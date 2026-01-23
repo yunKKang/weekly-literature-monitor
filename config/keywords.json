@@ -1,0 +1,260 @@
+{
+  "description": "Tiered keyword system for environmental footprint research - weekly literature monitoring",
+  "last_updated": "2026-01-23",
+  "scoring_rules": {
+    "tier1_score": 10,
+    "tier2_score": 5,
+    "tier3_score": 3,
+    "tier4_score": 2,
+    "multi_tier_bonus": 5,
+    "relevant_threshold": 5,
+    "high_priority_threshold": 15
+  },
+  "tiers": {
+    "tier1_core_io": {
+      "name": "Core IO/MRIO Methods",
+      "description": "IO方法核心词 - 单独出现即判定相关",
+      "score": 10,
+      "keywords_en": [
+        "\\bmrio\\b",
+        "\\beemrio\\b",
+        "\\beeio\\b",
+        "\\binput[- ]?output\\b",
+        "\\bio[- ]?analysis\\b",
+        "\\bio[- ]?table\\b",
+        "\\bio[- ]?model\\b",
+        "\\bmulti[- ]?region\\w* input[- ]?output\\b",
+        "\\benvironmental[- ]?extended input[- ]?output\\b",
+        "\\bexiobase\\b",
+        "\\bwiod\\b",
+        "\\bgtap\\b",
+        "\\beora\\b",
+        "\\bsupply[- ]?chain\\b",
+        "\\bvalue[- ]?chain\\b"
+      ],
+      "keywords_cn": [
+        "投入产出",
+        "多区域投入产出",
+        "环境扩展投入产出"
+      ]
+    },
+    "tier2_carbon_emissions": {
+      "name": "Carbon/GHG Emissions",
+      "description": "碳排放、碳核算、碳足迹相关",
+      "score": 5,
+      "keywords_en": [
+        "\\bcarbon footprint\\b",
+        "\\bcarbon emission\\b",
+        "\\bcarbon accounting\\b",
+        "\\bghg emission\\b",
+        "\\bgreenhouse gas\\b",
+        "\\bco2 emission\\b",
+        "\\bembodied carbon\\b",
+        "\\bembodied emission\\b",
+        "\\bconsumption[- ]?based emission\\b",
+        "\\bterritorial emission\\b",
+        "\\bproduction[- ]?based emission\\b",
+        "\\bscope 1\\b",
+        "\\bscope 2\\b",
+        "\\bscope 3\\b"
+      ],
+      "keywords_cn": [
+        "碳排放",
+        "碳核算",
+        "碳足迹",
+        "温室气体",
+        "隐含碳"
+      ]
+    },
+    "tier3_environmental_footprints": {
+      "name": "Environmental Footprints",
+      "description": "各类环境足迹",
+      "score": 3,
+      "keywords_en": [
+        "\\bwater footprint\\b",
+        "\\bmaterial footprint\\b",
+        "\\becological footprint\\b",
+        "\\benergy footprint\\b",
+        "\\bnitrogen footprint\\b",
+        "\\bland footprint\\b",
+        "\\bbiodiversity footprint\\b",
+        "\\bvirtual water\\b",
+        "\\bembodied water\\b",
+        "\\bembodied energy\\b",
+        "\\bmaterial flow\\b",
+        "\\bresource footprint\\b",
+        "\\benvironmental footprint\\b"
+      ],
+      "keywords_cn": [
+        "水足迹",
+        "物质足迹",
+        "生态足迹",
+        "能源足迹",
+        "氮足迹",
+        "土地足迹",
+        "虚拟水",
+        "隐含水",
+        "隐含能源",
+        "环境足迹"
+      ]
+    },
+    "tier4_infrastructure_capital": {
+      "name": "Infrastructure & Capital Investment",
+      "description": "基础设施和资本投资相关环境足迹",
+      "score": 5,
+      "keywords_en": [
+        "\\binfrastructure footprint\\b",
+        "\\binfrastructure emission\\b",
+        "\\binfrastructure carbon\\b",
+        "\\bcapital formation\\b",
+        "\\bgfcf\\b",
+        "\\bgross fixed capital\\b",
+        "\\bfixed capital\\b",
+        "\\bcapital stock\\b",
+        "\\binvestment goods\\b",
+        "\\bcapital goods\\b",
+        "\\bcapital investment\\b",
+        "\\bembodied infrastructure\\b",
+        "\\bbuilt environment\\b",
+        "\\bconstruction emission\\b",
+        "\\bconstruction carbon\\b"
+      ],
+      "keywords_cn": [
+        "基础设施排放",
+        "基础设施碳排放",
+        "资本形成",
+        "固定资本",
+        "资本存量",
+        "投资品",
+        "建筑排放"
+      ]
+    },
+    "tier5_trade_globalization": {
+      "name": "Trade & Globalization",
+      "description": "贸易隐含碳、环境不平等、全球化",
+      "score": 5,
+      "keywords_en": [
+        "\\btrade[- ]?embodied\\b",
+        "\\bembodied.{1,15}trade\\b",
+        "\\bcarbon leakage\\b",
+        "\\bcarbon transfer\\b",
+        "\\benvironmental transfer\\b",
+        "\\btrade in emission\\b",
+        "\\benvironmental inequality\\b",
+        "\\bconsumption[- ]?based account\\b",
+        "\\bterritorial.{1,20}consumption\\b",
+        "\\bglobal supply chain\\b",
+        "\\bglobal value chain\\b",
+        "\\binternational trade\\b",
+        "\\bglobalization\\b",
+        "\\bunequal exchange\\b",
+        "\\becological unequal exchange\\b"
+      ],
+      "keywords_cn": [
+        "贸易隐含碳",
+        "碳转移",
+        "碳泄漏",
+        "环境不平等",
+        "消费侧核算",
+        "全球供应链",
+        "全球价值链",
+        "不平等交换",
+        "生态不平等交换"
+      ]
+    },
+    "tier6_climate_targets": {
+      "name": "Climate Targets & Scenarios",
+      "description": "双碳目标、1.5°C/2°C 目标情景",
+      "score": 3,
+      "keywords_en": [
+        "\\bcarbon neutral\\b",
+        "\\bnet[- ]?zero\\b",
+        "\\b1\\.5\\s*°?c\\b",
+        "\\b2\\s*°?c\\b",
+        "\\bparis agreement\\b",
+        "\\bcarbon peak\\b",
+        "\\bpeak carbon\\b",
+        "\\bdecarbonization\\b",
+        "\\bdecarbonisation\\b",
+        "\\bclimate target\\b",
+        "\\bclimate mitigation\\b",
+        "\\bemission reduction\\b",
+        "\\bcarbon budget\\b",
+        "\\bndc\\b",
+        "\\bnationally determined contribution\\b",
+        "\\bcarbon pricing\\b",
+        "\\bcarbon tax\\b",
+        "\\bets\\b",
+        "\\bemission trading\\b"
+      ],
+      "keywords_cn": [
+        "碳中和",
+        "碳达峰",
+        "双碳",
+        "零碳",
+        "净零排放",
+        "巴黎协定",
+        "脱碳",
+        "气候目标",
+        "碳预算",
+        "碳定价",
+        "碳税"
+      ]
+    },
+    "tier7_ai_datacenter": {
+      "name": "AI & Datacenter Environmental Impact",
+      "description": "AI/算力基础设施扩张带来的环境影响",
+      "score": 5,
+      "keywords_en": [
+        "\\bai carbon\\b",
+        "\\bai emission\\b",
+        "\\bai energy\\b",
+        "\\bartificial intelligence.{1,20}carbon\\b",
+        "\\bartificial intelligence.{1,20}emission\\b",
+        "\\bartificial intelligence.{1,20}energy\\b",
+        "\\bmachine learning.{1,20}carbon\\b",
+        "\\bmachine learning.{1,20}energy\\b",
+        "\\bdata center\\b",
+        "\\bdatacentre\\b",
+        "\\bdatacenter\\b",
+        "\\bcloud computing.{1,20}carbon\\b",
+        "\\bcloud computing.{1,20}energy\\b",
+        "\\bdigital infrastructure\\b",
+        "\\bcomputing infrastructure\\b",
+        "\\bllm carbon\\b",
+        "\\blarge language model.{1,20}carbon\\b",
+        "\\blarge language model.{1,20}energy\\b",
+        "\\bgpu energy\\b",
+        "\\btraining carbon\\b"
+      ],
+      "keywords_cn": [
+        "AI碳排放",
+        "人工智能碳排放",
+        "数据中心",
+        "算力碳排放",
+        "云计算碳排放",
+        "数字基础设施",
+        "大模型碳排放",
+        "GPU能耗"
+      ]
+    }
+  },
+  "exclusion_patterns": [
+    "^editorial\\b",
+    "^editor[']?s note",
+    "^letter to",
+    "^correction[:\\s]",
+    "^erratum[:\\s]",
+    "^corrigendum[:\\s]",
+    "^retraction[:\\s]",
+    "^book review[:\\s]",
+    "^acknowledgement",
+    "\\beditorial board\\b",
+    "\\bguest editor\\b",
+    "^contents\\b",
+    "^table of contents\\b",
+    "^index\\b",
+    "^preface\\b",
+    "^foreword\\b"
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "description": "High-quality journals (JCR Q1/Q2, CAS Zone 1-2) for environmental economics, industrial ecology, and MRIO research",
+  "last_updated": "2026-01-23",
+  "quality_criteria": "JCR Q1/Q2 or CAS Zone 1-2 only",
+  "categories": {
+    "nature_family": {
+      "name": "Nature Family Journals",
+      "quality": "Top-tier",
+      "journals": [
+        {"issn": "0028-0836", "title": "Nature", "publisher": "Springer Nature"},
+        {"issn": "2041-1723", "title": "Nature Communications", "publisher": "Springer Nature"},
+        {"issn": "1758-6798", "title": "Nature Climate Change", "publisher": "Springer Nature"},
+        {"issn": "2398-9629", "title": "Nature Sustainability", "publisher": "Springer Nature"},
+        {"issn": "2058-7546", "title": "Nature Energy", "publisher": "Springer Nature"},
+        {"issn": "2524-7941", "title": "Nature Food", "publisher": "Springer Nature"},
+        {"issn": "1752-0894", "title": "Nature Geoscience", "publisher": "Springer Nature"},
+        {"issn": "2662-4435", "title": "Communications Earth & Environment", "publisher": "Springer Nature"}
+      ]
+    },
+    "science_family": {
+      "name": "Science Family",
+      "quality": "Top-tier",
+      "journals": [
+        {"issn": "0036-8075", "title": "Science", "publisher": "AAAS"},
+        {"issn": "2375-2548", "title": "Science Advances", "publisher": "AAAS"},
+        {"issn": "0027-8424", "title": "Proceedings of the National Academy of Sciences", "publisher": "NAS", "abbreviation": "PNAS"}
+      ]
+    },
+    "environmental_science": {
+      "name": "Environmental Science & Technology",
+      "quality": "Q1",
+      "journals": [
+        {"issn": "0013-936X", "title": "Environmental Science & Technology", "publisher": "ACS"},
+        {"issn": "2162-9570", "title": "Environmental Science & Technology Letters", "publisher": "ACS"},
+        {"issn": "2590-3322", "title": "One Earth", "publisher": "Cell Press"},
+        {"issn": "2589-9155", "title": "Environment International", "publisher": "Elsevier"}
+      ]
+    },
+    "industrial_ecology_mrio": {
+      "name": "Industrial Ecology & MRIO",
+      "quality": "Q1-Q2",
+      "journals": [
+        {"issn": "1088-1980", "title": "Journal of Industrial Ecology", "publisher": "Wiley"},
+        {"issn": "0921-8009", "title": "Ecological Economics", "publisher": "Elsevier"},
+        {"issn": "0953-5314", "title": "Economic Systems Research", "publisher": "Taylor & Francis", "note": "Core MRIO journal"},
+        {"issn": "0921-3449", "title": "Resources, Conservation and Recycling", "publisher": "Elsevier"},
+        {"issn": "0948-3349", "title": "International Journal of Life Cycle Assessment", "publisher": "Springer"},
+        {"issn": "2352-5509", "title": "Sustainable Production and Consumption", "publisher": "Elsevier"}
+      ]
+    },
+    "environmental_economics": {
+      "name": "Environmental Economics & Policy",
+      "quality": "Q1-Q2",
+      "journals": [
+        {"issn": "0095-0696", "title": "Journal of Environmental Economics and Management", "publisher": "Elsevier"},
+        {"issn": "0301-4215", "title": "Energy Policy", "publisher": "Elsevier"},
+        {"issn": "0140-9883", "title": "Energy Economics", "publisher": "Elsevier"},
+        {"issn": "1750-6816", "title": "Review of Environmental Economics and Policy", "publisher": "Oxford University Press"},
+        {"issn": "1469-3062", "title": "Climate Policy", "publisher": "Taylor & Francis"},
+        {"issn": "1364-0321", "title": "Renewable and Sustainable Energy Reviews", "publisher": "Elsevier"}
+      ]
+    },
+    "global_environmental_change": {
+      "name": "Global Environmental Change",
+      "quality": "Q1",
+      "journals": [
+        {"issn": "0959-3780", "title": "Global Environmental Change", "publisher": "Elsevier"},
+        {"issn": "1748-9326", "title": "Environmental Research Letters", "publisher": "IOP Publishing"},
+        {"issn": "2212-0963", "title": "Earth System Governance", "publisher": "Elsevier"},
+        {"issn": "2096-4129", "title": "Ecosystem Health and Sustainability", "publisher": "AAAS/Wiley"},
+        {"issn": "1543-5938", "title": "Annual Review of Environment and Resources", "publisher": "Annual Reviews"}
+      ]
+    },
+    "cleaner_production": {
+      "name": "Cleaner Production (Q1 only)",
+      "quality": "Q1",
+      "journals": [
+        {"issn": "0959-6526", "title": "Journal of Cleaner Production", "publisher": "Elsevier"}
+      ]
+    }
+  },
+  "issn_list": [
+    "0028-0836", "2041-1723", "1758-6798", "2398-9629", "2058-7546", "2524-7941", "1752-0894", "2662-4435",
+    "0036-8075", "2375-2548", "0027-8424",
+    "0013-936X", "2162-9570", "2590-3322", "2589-9155",
+    "1088-1980", "0921-8009", "0953-5314", "0921-3449", "0948-3349", "2352-5509",
+    "0095-0696", "0301-4215", "0140-9883", "1750-6816", "1469-3062", "1364-0321",
+    "0959-3780", "1748-9326", "2212-0963", "2096-4129", "1543-5938",
+    "0959-6526"
+  ]
+}
