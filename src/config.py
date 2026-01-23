@@ -21,7 +21,7 @@ class Config:
 
     API_DELAY_SECONDS: float = float(os.environ.get("API_DELAY_SECONDS", "0.3"))
 
-    MAX_PAPERS_PER_JOURNAL: int = int(os.environ.get("MAX_PAPERS_PER_JOURNAL", "50"))
+    MAX_PAPERS_PER_JOURNAL: int = int(os.environ.get("MAX_PAPERS_PER_JOURNAL", "200"))
 
     API_TIMEOUT_SECONDS: int = int(os.environ.get("API_TIMEOUT_SECONDS", "30"))
 

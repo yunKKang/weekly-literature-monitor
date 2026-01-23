@@ -90,7 +90,7 @@ def run_monitor(
         issns=issns,
         from_date=from_date,
         to_date=to_date,
-        max_per_journal=50,
+        max_per_journal=200,
         delay_s=0.3,
     )
 
