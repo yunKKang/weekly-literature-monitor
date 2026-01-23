@@ -7,8 +7,9 @@ DOI handling, and HTTP fetching.
 
 from __future__ import annotations
 
-import hashlib
 import json
+import logging
+import os
 import re
 import urllib.error
 import urllib.request
@@ -16,6 +17,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
+
+USER_AGENT = os.environ.get(
+    "USER_AGENT", "weekly-literature-monitor/1.0 (mailto:research@example.com)"
+)
 
 
 def now_iso() -> str:
@@ -34,9 +41,7 @@ def days_ago(n: int) -> str:
     return dt.strftime("%Y-%m-%d")
 
 
-def sha256_string(text: str) -> str:
-    """Return SHA-256 hash of input string as hexadecimal string."""
-    return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -155,7 +160,7 @@ def fetch_url(
         Tuple of (status_code, body_bytes). Returns (None, b"") on failure.
     """
     default_headers = {
-        "User-Agent": "weekly-literature-monitor/1.0 (mailto:research@example.com)",
+        "User-Agent": USER_AGENT,
     }
     if headers:
         default_headers.update(headers)

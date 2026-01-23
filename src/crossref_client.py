@@ -11,6 +11,8 @@ API Documentation: https://api.crossref.org/
 from __future__ import annotations
 
 import json
+import logging
+import os
 import time
 import urllib.parse
 from dataclasses import dataclass
@@ -25,11 +27,13 @@ from paper_utils import (
     normalize_doi,
 )
 
+logger = logging.getLogger(__name__)
 
-# Crossref API endpoints
 CROSSREF_API_BASE = "https://api.crossref.org"
 CROSSREF_WORKS = f"{CROSSREF_API_BASE}/works"
-CROSSREF_MAILTO = "weekly-literature-monitor@example.com"
+CROSSREF_MAILTO = os.environ.get(
+    "CROSSREF_MAILTO", "weekly-literature-monitor@example.com"
+)
 
 
 @dataclass
@@ -231,7 +235,8 @@ def parse_crossref_work(item: dict[str, Any]) -> CrossrefResult | None:
             raw=item,
         )
 
-    except Exception:
+    except Exception as e:
+        logger.warning(f"Failed to parse work item: {e}")
         return None
 
 
@@ -321,7 +326,7 @@ def fetch_recent_papers(
                     all_results.append(r)
 
         except Exception as e:
-            print(f"  Warning: Failed to fetch from ISSN {issn}: {e}")
+            logger.warning(f"Failed to fetch from ISSN {issn}: {e}")
 
         # Rate limiting
         if delay_s > 0:

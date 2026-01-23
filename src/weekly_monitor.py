@@ -8,6 +8,8 @@ and creates GitHub Issues with the results.
 from __future__ import annotations
 
 import argparse
+import logging
+import os
 import sys
 from pathlib import Path
 
@@ -19,6 +21,21 @@ from crossref_client import fetch_recent_papers, CrossrefResult
 from relevance_filter import load_keyword_config, filter_papers, RelevanceResult
 from state_manager import load_state, save_state, update_state_after_run
 from github_issue import notify_new_papers, PaperInfo
+
+logger = logging.getLogger(__name__)
+
+
+def setup_logging(verbose: bool = True) -> None:
+    level = logging.DEBUG if verbose else logging.INFO
+    log_level_env = os.environ.get("LOG_LEVEL", "INFO")
+    if not verbose:
+        level = getattr(logging, log_level_env.upper(), logging.INFO)
+
+    logging.basicConfig(
+        level=level,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
 
 
 def result_to_paper_info(
@@ -43,14 +60,13 @@ def run_monitor(
     dry_run: bool = False,
     verbose: bool = True,
 ) -> int:
+    setup_logging(verbose)
     base_dir = Path(__file__).parent.parent
     config_path = base_dir / "config"
 
-    if verbose:
-        print("=" * 60)
-        print("Weekly Literature Monitor")
-        print("=" * 60)
-        print()
+    logger.info("=" * 60)
+    logger.info("Weekly Literature Monitor")
+    logger.info("=" * 60)
 
     state = load_state()
 
@@ -58,23 +74,17 @@ def run_monitor(
 
     if state.last_from_date:
         from_date = state.last_from_date
-        if verbose:
-            print(f"Continuing from last run: {from_date}")
+        logger.info(f"Continuing from last run: {from_date}")
     else:
         from_date = days_ago(days_back)
-        if verbose:
-            print(f"First run, searching last {days_back} days")
+        logger.info(f"First run, searching last {days_back} days")
 
-    if verbose:
-        print(f"Date range: {from_date} to {to_date}")
-        print()
+    logger.info(f"Date range: {from_date} to {to_date}")
 
     issns = get_issn_list(config_path / "journals.json")
-    if verbose:
-        print(f"Monitoring {len(issns)} journals...")
+    logger.info(f"Monitoring {len(issns)} journals...")
 
-    if verbose:
-        print("Fetching papers from Crossref...")
+    logger.info("Fetching papers from Crossref...")
 
     all_papers = fetch_recent_papers(
         issns=issns,
@@ -84,21 +94,17 @@ def run_monitor(
         delay_s=0.3,
     )
 
-    if verbose:
-        print(f"  Fetched {len(all_papers)} papers total")
+    logger.info(f"Fetched {len(all_papers)} papers total")
 
     new_papers = [p for p in all_papers if p.doi not in state.seen_dois]
 
-    if verbose:
-        print(f"  New papers (not seen before): {len(new_papers)}")
+    logger.info(f"New papers (not seen before): {len(new_papers)}")
 
     if not new_papers:
-        if verbose:
-            print("\nNo new papers found. Exiting.")
+        logger.info("No new papers found. Exiting.")
         return 0
 
-    if verbose:
-        print("\nFiltering by relevance...")
+    logger.info("Filtering by relevance...")
 
     keyword_config = load_keyword_config(config_path / "keywords.json")
 
@@ -111,10 +117,10 @@ def run_monitor(
         high_count = len([r for _, r in filtered_results if r.priority == "HIGH"])
         med_count = len([r for _, r in filtered_results if r.priority == "MEDIUM"])
         low_count = len([r for _, r in filtered_results if r.priority == "LOW"])
-        print(f"  HIGH priority: {high_count}")
-        print(f"  MEDIUM priority: {med_count}")
-        print(f"  LOW priority: {low_count}")
-        print(f"  Total relevant: {len(filtered_results)}")
+        logger.info(f"  HIGH priority: {high_count}")
+        logger.info(f"  MEDIUM priority: {med_count}")
+        logger.info(f"  LOW priority: {low_count}")
+        logger.info(f"  Total relevant: {len(filtered_results)}")
 
     doi_to_paper = {p.doi: p for p in new_papers}
     paper_infos: list[PaperInfo] = []
@@ -126,18 +132,20 @@ def run_monitor(
             paper_infos.append(result_to_paper_info(original_paper, relevance))
 
     if dry_run:
-        print("\n[DRY RUN] Would create GitHub Issue with:")
-        print(f"  - {len(paper_infos)} relevant papers")
-        print(f"  - Date range: {from_date} to {to_date}")
+        logger.info("[DRY RUN] Would create GitHub Issue with:")
+        logger.info(f"  - {len(paper_infos)} relevant papers")
+        logger.info(f"  - Date range: {from_date} to {to_date}")
 
         if paper_infos:
-            print("\nTop 5 papers:")
+            logger.info("Top 5 papers:")
             for i, p in enumerate(paper_infos[:5], 1):
-                print(f"  {i}. [{p.priority}] {p.title[:60]}...")
-                print(f"      Score: {p.score}, Tiers: {', '.join(p.matched_tiers)}")
+                logger.info(f"  {i}. [{p.priority}] {p.title[:60]}...")
+                logger.info(
+                    f"      Score: {p.score}, Tiers: {', '.join(p.matched_tiers)}"
+                )
     else:
         if verbose:
-            print("\nCreating GitHub Issue...")
+            logger.info("Creating GitHub Issue...")
 
         success = notify_new_papers(
             papers=paper_infos,
@@ -148,7 +156,7 @@ def run_monitor(
         )
 
         if not success:
-            print("Warning: Failed to create GitHub Issue")
+            logger.warning("Failed to create GitHub Issue")
 
     new_dois = [p.doi for p in new_papers]
     state = update_state_after_run(
@@ -162,10 +170,10 @@ def run_monitor(
     if not dry_run:
         save_state(state)
         if verbose:
-            print(f"\nState updated. Total runs: {state.run_count}")
+            logger.info(f"State updated. Total runs: {state.run_count}")
 
     if verbose:
-        print("\nDone!")
+        logger.info("Done!")
 
     return 0
 

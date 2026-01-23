@@ -8,12 +8,15 @@ Uses the GitHub REST API via environment variables for authentication.
 from __future__ import annotations
 
 import json
+import logging
 import os
 import urllib.request
 import urllib.error
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -146,8 +149,8 @@ def create_github_issue(
         repo = os.environ.get("GITHUB_REPOSITORY")
 
     if not token or not repo:
-        print(
-            "Error: GITHUB_TOKEN and GITHUB_REPOSITORY environment variables required"
+        logger.error(
+            "GITHUB_TOKEN and GITHUB_REPOSITORY environment variables required"
         )
         return None
 
@@ -175,10 +178,10 @@ def create_github_issue(
         with urllib.request.urlopen(req, timeout=30) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
-        print(f"GitHub API error: {e.code} - {e.read().decode()}")
+        logger.error(f"GitHub API error: {e.code} - {e.read().decode()}")
         return None
     except urllib.error.URLError as e:
-        print(f"Network error: {e}")
+        logger.error(f"Network error: {e}")
         return None
 
 
@@ -190,7 +193,7 @@ def notify_new_papers(
     journals_count: int,
 ) -> bool:
     if not papers:
-        print("No relevant papers to report.")
+        logger.info("No relevant papers to report.")
         return True
 
     high_count = len([p for p in papers if p.priority == "HIGH"])
@@ -207,8 +210,8 @@ def notify_new_papers(
     result = create_github_issue(title, body, labels)
 
     if result:
-        print(f"Created GitHub Issue: {result.get('html_url')}")
+        logger.info(f"Created GitHub Issue: {result.get('html_url')}")
         return True
     else:
-        print("Failed to create GitHub Issue")
+        logger.error("Failed to create GitHub Issue")
         return False
