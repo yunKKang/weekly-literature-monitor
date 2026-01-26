@@ -10,11 +10,14 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 import urllib.request
 import urllib.error
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
+
+from config import config
 
 logger = logging.getLogger(__name__)
 
@@ -142,17 +145,26 @@ def create_github_issue(
     labels: list[str] | None = None,
     repo: str | None = None,
     token: str | None = None,
+    max_retries: int | None = None,
+    retry_delay: float | None = None,
 ) -> dict[str, Any] | None:
     if token is None:
-        token = os.environ.get("GITHUB_TOKEN")
+        token = config.GITHUB_TOKEN
     if repo is None:
-        repo = os.environ.get("GITHUB_REPOSITORY")
+        repo = config.GITHUB_REPOSITORY
 
     if not token or not repo:
         logger.error(
             "GITHUB_TOKEN and GITHUB_REPOSITORY environment variables required"
         )
         return None
+
+    effective_max_retries: int = (
+        max_retries if max_retries is not None else config.GITHUB_RETRY_COUNT
+    )
+    effective_retry_delay: float = (
+        retry_delay if retry_delay is not None else config.GITHUB_RETRY_DELAY
+    )
 
     url = f"https://api.github.com/repos/{repo}/issues"
 
@@ -172,17 +184,38 @@ def create_github_issue(
         "X-GitHub-Api-Version": "2022-11-28",
     }
 
-    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    last_error: Exception | None = None
 
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
-        logger.error(f"GitHub API error: {e.code} - {e.read().decode()}")
-        return None
-    except urllib.error.URLError as e:
-        logger.error(f"Network error: {e}")
-        return None
+    for attempt in range(effective_max_retries + 1):
+        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            last_error = e
+            error_body = e.read().decode() if hasattr(e, "read") else ""
+            if e.code in (500, 502, 503, 504) and attempt < effective_max_retries:
+                logger.warning(
+                    f"GitHub API error {e.code}, retrying in {effective_retry_delay}s..."
+                )
+                time.sleep(effective_retry_delay * (2**attempt))
+                continue
+            logger.error(f"GitHub API error: {e.code} - {error_body}")
+            return None
+        except urllib.error.URLError as e:
+            last_error = e
+            if attempt < effective_max_retries:
+                logger.warning(
+                    f"Network error, retrying in {effective_retry_delay}s..."
+                )
+                time.sleep(effective_retry_delay * (2**attempt))
+                continue
+            logger.error(f"Network error: {e}")
+            return None
+
+    logger.error(f"Failed after {effective_max_retries + 1} attempts: {last_error}")
+    return None
 
 
 def notify_new_papers(

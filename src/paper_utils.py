@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import re
 import urllib.error
 import urllib.request
@@ -18,11 +17,9 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
 
-logger = logging.getLogger(__name__)
+from config import config
 
-USER_AGENT = os.environ.get(
-    "USER_AGENT", "weekly-literature-monitor/1.0 (mailto:research@example.com)"
-)
+logger = logging.getLogger(__name__)
 
 
 def now_iso() -> str:
@@ -39,9 +36,6 @@ def days_ago(n: int) -> str:
     """Return date N days ago as YYYY-MM-DD string."""
     dt = datetime.now(timezone.utc) - timedelta(days=n)
     return dt.strftime("%Y-%m-%d")
-
-
-logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -160,7 +154,7 @@ def fetch_url(
         Tuple of (status_code, body_bytes). Returns (None, b"") on failure.
     """
     default_headers = {
-        "User-Agent": USER_AGENT,
+        "User-Agent": config.USER_AGENT,
     }
     if headers:
         default_headers.update(headers)
@@ -204,6 +198,56 @@ def get_issn_list(config_path: Path | None = None) -> list[str]:
     return config.get("issn_list", [])
 
 
+def get_issn_by_tier(
+    tiers: list[str] | None = None,
+    config_path: Path | None = None,
+) -> tuple[list[str], dict[str, int]]:
+    """Get ISSNs filtered by monitoring tier.
+
+    Args:
+        tiers: List of tier codes to include (e.g., ["S", "A"]). None = all tiers.
+        config_path: Path to journals.json config file.
+
+    Returns:
+        Tuple of (issn_list, tier_info) where tier_info maps tier -> count.
+    """
+    if config_path is None:
+        script_dir = Path(__file__).parent.parent
+        config_path = script_dir / "config" / "journals.json"
+
+    config = load_json(config_path)
+    pools = config.get("pools", {})
+    pool_issn_mapping = config.get("pool_issn_mapping", {})
+
+    issns: list[str] = []
+    tier_counts: dict[str, int] = {}
+
+    for pool_name, pool_data in pools.items():
+        if not isinstance(pool_data, dict):
+            continue
+        pool_tier = pool_data.get("tier", "A")
+
+        if tiers is not None and pool_tier not in tiers:
+            continue
+
+        pool_issns = pool_issn_mapping.get(pool_name, [])
+        issns.extend(pool_issns)
+        tier_counts[pool_tier] = tier_counts.get(pool_tier, 0) + len(pool_issns)
+
+    return list(set(issns)), tier_counts
+
+
+def get_tier_frequency(tier: str, config_path: Path | None = None) -> int:
+    """Get monitoring frequency in days for a tier."""
+    if config_path is None:
+        script_dir = Path(__file__).parent.parent
+        config_path = script_dir / "config" / "journals.json"
+
+    config = load_json(config_path)
+    tier_config = config.get("monitoring_tiers", {}).get(tier, {})
+    return tier_config.get("frequency_days", 7)
+
+
 def get_journal_title_by_issn(issn: str, config_path: Path | None = None) -> str | None:
     """Get journal title by ISSN."""
     if config_path is None:
@@ -212,9 +256,63 @@ def get_journal_title_by_issn(issn: str, config_path: Path | None = None) -> str
 
     config = load_json(config_path)
 
-    for category in config.get("categories", {}).values():
-        for journal in category.get("journals", []):
-            if journal.get("issn") == issn:
-                return journal.get("title")
+    for pool_data in config.get("pools", {}).values():
+        if not isinstance(pool_data, dict):
+            continue
+        for cat_data in pool_data.get("categories", {}).values():
+            if not isinstance(cat_data, dict):
+                continue
+            for journal in cat_data.get("journals", []):
+                if journal.get("issn") == issn:
+                    return journal.get("title")
 
     return None
+
+
+def get_conference_titles(
+    tiers: list[str] | None = None,
+    config_path: Path | None = None,
+) -> list[dict[str, str]]:
+    """Get list of conference container titles from Pool C.
+
+    Args:
+        tiers: List of tier codes to filter by (e.g., ["A"]). None = all tiers.
+        config_path: Path to journals.json config file.
+
+    Returns:
+        List of dicts with keys: container_title, full_name, publisher
+    """
+    if config_path is None:
+        script_dir = Path(__file__).parent.parent
+        config_path = script_dir / "config" / "journals.json"
+
+    config = load_json(config_path)
+    pools = config.get("pools", {})
+    conferences: list[dict[str, str]] = []
+
+    for pool_name, pool_data in pools.items():
+        if not isinstance(pool_data, dict):
+            continue
+
+        pool_tier = pool_data.get("tier", "A")
+
+        if tiers is not None and pool_tier not in tiers:
+            continue
+
+        categories = pool_data.get("categories", {})
+        for cat_name, cat_data in categories.items():
+            if not isinstance(cat_data, dict):
+                continue
+
+            conf_list = cat_data.get("conferences", [])
+            for conf in conf_list:
+                if isinstance(conf, dict) and conf.get("container_title"):
+                    conferences.append(
+                        {
+                            "container_title": conf.get("container_title", ""),
+                            "full_name": conf.get("full_name", ""),
+                            "publisher": conf.get("publisher", ""),
+                        }
+                    )
+
+    return conferences

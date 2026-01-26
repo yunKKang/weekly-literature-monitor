@@ -12,12 +12,12 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
 import urllib.parse
 from dataclasses import dataclass
 from typing import Any
 
+from config import config
 from paper_utils import (
     DoiInfo,
     SearchParams,
@@ -31,9 +31,6 @@ logger = logging.getLogger(__name__)
 
 CROSSREF_API_BASE = "https://api.crossref.org"
 CROSSREF_WORKS = f"{CROSSREF_API_BASE}/works"
-CROSSREF_MAILTO = os.environ.get(
-    "CROSSREF_MAILTO", "weekly-literature-monitor@example.com"
-)
 
 
 @dataclass
@@ -116,7 +113,7 @@ def build_crossref_query(params: SearchParams) -> str:
     query_parts.append(f"order={params.sort_order}")
 
     # Add mailto for polite pool (faster responses)
-    query_parts.append(f"mailto={CROSSREF_MAILTO}")
+    query_parts.append(f"mailto={config.CROSSREF_MAILTO}")
 
     return "&".join(query_parts)
 
@@ -290,15 +287,19 @@ def fetch_recent_papers(
     to_date: str | None = None,
     max_per_journal: int = 50,
     delay_s: float = 0.5,
+    batch_size: int | None = None,
 ) -> list[CrossrefResult]:
     """Fetch recent papers from specified journals.
+
+    Uses batch queries when batch_size is set to reduce API calls.
 
     Args:
         issns: List of journal ISSNs
         from_date: Start date (YYYY-MM-DD)
         to_date: End date (YYYY-MM-DD), defaults to today
-        max_per_journal: Maximum papers per journal
+        max_per_journal: Maximum papers per journal (used in batch mode as total max)
         delay_s: Delay between API calls (rate limiting)
+        batch_size: Number of ISSNs per batch query. None = single ISSN per call.
 
     Returns:
         List of CrossrefResult objects
@@ -306,13 +307,19 @@ def fetch_recent_papers(
     all_results: list[CrossrefResult] = []
     seen_dois: set[str] = set()
 
-    for issn in issns:
+    effective_batch_size: int = (
+        batch_size if batch_size is not None else config.ISSN_BATCH_SIZE
+    )
+
+    for i in range(0, len(issns), effective_batch_size):
+        batch = issns[i : i + effective_batch_size]
+
         params = SearchParams(
             query="",
-            issns=[issn],
+            issns=batch,
             year_from=from_date,
             year_to=to_date,
-            max_results=max_per_journal,
+            max_results=min(max_per_journal * len(batch), config.MAX_PAPERS_PER_BATCH),
             sort_by="published",
             sort_order="desc",
         )
@@ -326,9 +333,8 @@ def fetch_recent_papers(
                     all_results.append(r)
 
         except Exception as e:
-            logger.warning(f"Failed to fetch from ISSN {issn}: {e}")
+            logger.warning(f"Failed to fetch batch {batch[:3]}...: {e}")
 
-        # Rate limiting
         if delay_s > 0:
             time.sleep(delay_s)
 
@@ -357,3 +363,74 @@ def search_with_retry(
         raise last_error
 
     return 0, []
+
+
+def fetch_conference_papers(
+    container_titles: list[str],
+    from_date: str,
+    to_date: str | None = None,
+    max_per_conference: int = 50,
+    delay_s: float = 0.5,
+) -> list[CrossrefResult]:
+    """Fetch papers from conference proceedings by container-title.
+
+    Crossref supports container-title filter for conference proceedings.
+    This is used for Pool C conferences (SIGCOMM, ISCA, MICRO, etc.).
+
+    Args:
+        container_titles: List of conference container titles (short names)
+        from_date: Start date (YYYY-MM-DD)
+        to_date: End date (YYYY-MM-DD), defaults to today
+        max_per_conference: Maximum papers per conference
+        delay_s: Delay between API calls (rate limiting)
+
+    Returns:
+        List of CrossrefResult objects
+    """
+    all_results: list[CrossrefResult] = []
+    seen_dois: set[str] = set()
+
+    for container_title in container_titles:
+        query_parts = [
+            f"query.container-title={urllib.parse.quote(container_title)}",
+            f"rows={max_per_conference}",
+            "sort=published",
+            "order=desc",
+            f"mailto={config.CROSSREF_MAILTO}",
+        ]
+
+        filters = []
+        if from_date:
+            filters.append(f"from-pub-date:{from_date}")
+        if to_date:
+            filters.append(f"until-pub-date:{to_date}")
+        filters.append("type:proceedings-article")
+
+        if filters:
+            query_parts.append(f"filter={','.join(filters)}")
+
+        url = f"{CROSSREF_WORKS}?{'&'.join(query_parts)}"
+
+        try:
+            status, body = fetch_url(url, timeout_s=30)
+
+            if not body:
+                continue
+
+            data = json.loads(body.decode("utf-8", errors="replace"))
+            message = data.get("message", {})
+            items = message.get("items", [])
+
+            for item in items:
+                result = parse_crossref_work(item)
+                if result and result.doi not in seen_dois:
+                    seen_dois.add(result.doi)
+                    all_results.append(result)
+
+        except Exception as e:
+            logger.warning(f"Failed to fetch conference {container_title}: {e}")
+
+        if delay_s > 0:
+            time.sleep(delay_s)
+
+    return all_results
