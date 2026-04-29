@@ -2,6 +2,22 @@
 
 Automated weekly monitoring of academic publications for **GFCF (Gross Fixed Capital Formation) environmental impact research**. Creates GitHub Issues with relevant new papers.
 
+## Core Pain Point
+
+Researchers tracking capital formation, embodied impacts, and MRIO/EEIO methods face a high-noise discovery problem: relevant papers often avoid the exact term "GFCF", while generic investment searches return finance, ESG, and portfolio literature that is not useful for environmental footprint work. This project turns that recurring manual scan into a reproducible weekly filter with transparent vocabulary, scoring, and state tracking.
+
+## Core Logic Flow
+
+The monitor is a deterministic retrieval and ranking pipeline, not a multi-agent system and not an LLM long-chain reasoning workflow. Its logic is:
+
+1. Load journal, conference, keyword, and prior-run state configuration.
+2. Query Crossref for newly published works across curated journal/conference pools.
+3. Deduplicate by DOI and remove papers already seen in previous runs.
+4. Apply hard-threshold filters: investment/capital vocabulary must co-occur with at least one domain pipeline.
+5. Score surviving papers with weighted title/abstract matches, concept deduplication, capped bonuses, negative keyword exclusions, and HIGH-priority consistency checks.
+6. Publish a GitHub Issue report, or optionally export an Obsidian Markdown note.
+7. Update state only after successful notification/export so failed runs can be retried safely.
+
 ## Architecture: GFCF-Driven Pipeline System (v2.1)
 
 This system uses a **GFCF-first** approach where investment/capital formation is the primary research object, and MRIO/EEIO serves as a methodological tool.
@@ -38,7 +54,7 @@ Papers must pass a **hard threshold** (Boolean AND condition) to be considered:
 - **Negative Keywords**: Filters out financial/ESG noise (portfolio, stock market, etc.)
 - **Consistency Check**: HIGH priority requires asset type OR methodology match
 - **Multi-footprint Support**: Carbon, water, material, land, biodiversity, nitrogen, energy footprints
-- **Weighted Field Scoring**: Title 8x, Abstract 5x, Keywords 3x
+- **Weighted Field Scoring**: Title 8x, Abstract 5x
 
 ## GFCF Vocabulary Coverage (v2.1)
 
@@ -112,6 +128,7 @@ For GitHub Issue creation, the `GITHUB_TOKEN` is automatically provided by GitHu
 ```
 weekly-literature-monitor/
 ├── .github/workflows/
+│   ├── ci.yml                  # Compile and test quality gate
 │   └── weekly-monitor.yml      # GitHub Actions workflow
 ├── config/
 │   ├── journals.json           # Journal pools (6 pools, 70+ journals)
@@ -122,9 +139,14 @@ weekly-literature-monitor/
 │   ├── relevance_filter.py     # Pipeline-based filtering with v2.1 features
 │   ├── state_manager.py        # State persistence
 │   ├── github_issue.py         # Issue notification
+│   ├── obsidian_report.py      # Optional Obsidian Markdown export
 │   └── paper_utils.py          # Utilities
 ├── state/
 │   └── monitor_state.json      # Run state (auto-updated)
+├── tests/
+│   └── test_monitor_reliability.py
+├── LICENSE
+├── pyproject.toml
 └── README.md
 ```
 
@@ -177,6 +199,8 @@ Options:
   --days N      Number of days to look back (default: 7)
   --dry-run     Run without creating Issue or updating state
   --quiet       Suppress verbose output
+  --overlap-days N
+                Days to overlap before the last run date to catch delayed Crossref records
 ```
 
 ## Scoring System (v2.1)
@@ -249,8 +273,23 @@ GitHub Issue created:
 
 ## Requirements
 
-- Python 3.8+
+- Python 3.10+
 - No external dependencies (uses only standard library)
+
+## Quality Gate
+
+Run these checks before opening a pull request:
+
+```bash
+python -m compileall src
+python -m unittest discover -s tests
+```
+
+The `CI` workflow runs the same checks on push and pull requests.
+
+## Optional Obsidian Export
+
+`src/obsidian_report.py` exports the filtered results to Markdown. By default it writes to `obsidian-exports/`, which is ignored by Git. Set `OBSIDIAN_OUTPUT_DIR` or pass `--output-dir` to write into a local vault path.
 
 ## Design Philosophy
 

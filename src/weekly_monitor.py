@@ -23,6 +23,7 @@ from paper_utils import (
     get_conference_titles,
     today_str,
     days_ago,
+    shift_date,
     doi_to_url,
 )
 from crossref_client import fetch_recent_papers, fetch_conference_papers, CrossrefResult
@@ -69,6 +70,7 @@ def run_monitor(
     reset: bool = False,
     debug_filter: bool = False,
     tier: str | None = None,
+    overlap_days: int | None = None,
 ) -> int:
     setup_logging(verbose)
     base_dir = Path(__file__).parent.parent
@@ -93,6 +95,16 @@ def run_monitor(
     else:
         from_date = state.last_from_date
         logger.info(f"Continuing from last run: {from_date}")
+
+    effective_overlap_days = (
+        config.OVERLAP_DAYS if overlap_days is None else overlap_days
+    )
+    if not reset and state.last_from_date and effective_overlap_days > 0:
+        original_from_date = from_date
+        from_date = shift_date(from_date, -effective_overlap_days)
+        logger.info(
+            f"Using {effective_overlap_days}-day overlap window: {original_from_date} -> {from_date}"
+        )
 
     logger.info(f"Date range: {from_date} to {to_date}")
 
@@ -151,6 +163,17 @@ def run_monitor(
 
     if not new_papers:
         logger.info("No new papers found. Exiting.")
+        if not dry_run:
+            state = update_state_after_run(
+                state=state,
+                run_date=to_date,
+                from_date=to_date,
+                new_dois=[],
+                relevant_count=0,
+            )
+            save_state(state)
+            if verbose:
+                logger.info(f"State updated. Total runs: {state.run_count}")
         return 0
 
     logger.info("Filtering by relevance...")
@@ -225,6 +248,7 @@ def run_monitor(
 
         if not success:
             logger.warning("Failed to create GitHub Issue")
+            return 1
 
     new_dois = [p.doi for p in new_papers]
     state = update_state_after_run(
@@ -282,6 +306,12 @@ def main() -> int:
         default=None,
         help="Monitoring tier(s) to query: S (weekly), A (biweekly), B (monthly). Comma-separated, e.g., 'S,A'",
     )
+    parser.add_argument(
+        "--overlap-days",
+        type=int,
+        default=None,
+        help="Overlap days before last run date to catch delayed Crossref records (default: OVERLAP_DAYS env or 30)",
+    )
 
     args = parser.parse_args()
 
@@ -292,6 +322,7 @@ def main() -> int:
         reset=args.reset,
         debug_filter=args.debug_filter,
         tier=args.tier,
+        overlap_days=args.overlap_days,
     )
 
 

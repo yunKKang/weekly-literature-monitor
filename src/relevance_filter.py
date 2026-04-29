@@ -7,7 +7,7 @@ Key Features:
 - Hard threshold: Investment terms AND domain terms required
 - Concept deduplication: Only count one match per concept group
 - Bonus capping: Method/policy bonuses capped to prevent keyword stuffing
-- Field weighting: Title > Abstract > Keywords-only (with penalty)
+- Field weighting: Title > Abstract
 - Consistency check: HIGH priority requires asset type OR methodology match
 - Negative keywords: Filter out financial/ESG noise per pipeline
 """
@@ -79,8 +79,6 @@ class KeywordConfig:
     exclusion_patterns: list[re.Pattern]
     title_weight: int
     abstract_weight: int
-    keywords_weight: int
-    keywords_only_penalty: float
     asset_type_bonus: int
     method_bonus: int
     method_bonus_cap: int
@@ -95,13 +93,10 @@ class KeywordConfig:
 def compile_patterns(keywords: list[str], escape_cn: bool = False) -> list[re.Pattern]:
     patterns = []
     for kw in keywords:
-        try:
-            if escape_cn and not kw.startswith("\\"):
-                patterns.append(re.compile(re.escape(kw), re.IGNORECASE))
-            else:
-                patterns.append(re.compile(kw, re.IGNORECASE))
-        except re.error:
-            pass
+        if escape_cn and not kw.startswith("\\"):
+            patterns.append(re.compile(re.escape(kw), re.IGNORECASE))
+        else:
+            patterns.append(re.compile(kw, re.IGNORECASE))
     return patterns
 
 
@@ -209,8 +204,6 @@ def load_keyword_config(config_path: Path | None = None) -> KeywordConfig:
         exclusion_patterns=exclusion_patterns,
         title_weight=rules.get("title_weight", 8),
         abstract_weight=rules.get("abstract_weight", 5),
-        keywords_weight=rules.get("keywords_weight", 3),
-        keywords_only_penalty=rules.get("keywords_only_penalty", 0.5),
         asset_type_bonus=rules.get("asset_type_bonus", 2),
         method_bonus=rules.get("method_bonus", 3),
         method_bonus_cap=rules.get("method_bonus_cap", 6),

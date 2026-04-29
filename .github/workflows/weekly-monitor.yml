@@ -37,12 +37,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          DAYS_BACK: ${{ inputs.days_back || '7' }}
+          DRY_RUN: ${{ inputs.dry_run || 'false' }}
         run: |
           cd src
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
-            python weekly_monitor.py --days ${{ inputs.days_back || '7' }} --dry-run
+          if ! [[ "$DAYS_BACK" =~ ^[0-9]+$ ]]; then
+            echo "days_back must be an integer, got: $DAYS_BACK" >&2
+            exit 2
+          fi
+          if [ "$DRY_RUN" = "true" ]; then
+            python weekly_monitor.py --days "$DAYS_BACK" --dry-run
           else
-            python weekly_monitor.py --days ${{ inputs.days_back || '7' }}
+            python weekly_monitor.py --days "$DAYS_BACK"
           fi
 
       - name: Commit updated state

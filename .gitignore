@@ -1,6 +1,7 @@
 # state files
 state/*.json
 !state/monitor_state.json
+obsidian-exports/
 
 # Python
 __pycache__/
@@ -29,6 +30,8 @@ venv/
 ENV/
 env/
 .venv/
+.ruff_cache/
+.pytest_cache/
 
 # IDE
 .idea/

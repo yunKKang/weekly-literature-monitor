@@ -33,6 +33,14 @@ CROSSREF_API_BASE = "https://api.crossref.org"
 CROSSREF_WORKS = f"{CROSSREF_API_BASE}/works"
 
 
+class CrossrefFetchError(RuntimeError):
+    """Raised when Crossref returns an unusable response."""
+
+
+class CrossrefBatchError(RuntimeError):
+    """Raised when one or more Crossref batches fail."""
+
+
 @dataclass
 class CrossrefResult:
     """A single paper result from Crossref."""
@@ -73,6 +81,13 @@ class CrossrefResult:
         }
 
 
+@dataclass
+class CrossrefPage:
+    total_results: int
+    results: list[CrossrefResult]
+    next_cursor: str | None
+
+
 def build_crossref_query(params: SearchParams) -> str:
     """Build Crossref API query string from search parameters."""
     query_parts = []
@@ -101,6 +116,9 @@ def build_crossref_query(params: SearchParams) -> str:
 
     # Result limit
     query_parts.append(f"rows={params.max_results}")
+
+    if params.cursor:
+        query_parts.append(f"cursor={urllib.parse.quote(params.cursor)}")
 
     # Sorting - prioritize newest publications
     sort_map = {
@@ -237,39 +255,45 @@ def parse_crossref_work(item: dict[str, Any]) -> CrossrefResult | None:
         return None
 
 
-def search_crossref(
-    params: SearchParams, *, timeout_s: int = 30
-) -> tuple[int, list[CrossrefResult]]:
-    """Search Crossref for academic papers.
+def search_crossref_page(params: SearchParams, *, timeout_s: int = 30) -> CrossrefPage:
+    """Search one Crossref page for academic papers.
 
     Args:
         params: SearchParams with search criteria
         timeout_s: Request timeout in seconds
 
     Returns:
-        Tuple of (total_results, list of CrossrefResult)
+        CrossrefPage with result metadata and cursor for the next page.
     """
     query_string = build_crossref_query(params)
     url = f"{CROSSREF_WORKS}?{query_string}"
 
     status, body = fetch_url(url, timeout_s=timeout_s)
 
+    if status is None:
+        raise CrossrefFetchError("Crossref request failed before receiving a response")
+
+    if status < 200 or status >= 300:
+        body_preview = body.decode("utf-8", errors="replace")[:500] if body else ""
+        raise CrossrefFetchError(f"Crossref HTTP {status}: {body_preview}")
+
     if not body:
-        return 0, []
+        raise CrossrefFetchError("Crossref returned an empty response body")
 
     try:
         data = json.loads(body.decode("utf-8", errors="replace"))
-    except json.JSONDecodeError:
-        return 0, []
+    except json.JSONDecodeError as exc:
+        raise CrossrefFetchError("Crossref returned invalid JSON") from exc
 
     # Check API status
     message_type = data.get("message-type", "")
     if message_type != "work-list":
-        return 0, []
+        raise CrossrefFetchError(f"Unexpected Crossref message type: {message_type}")
 
     # Parse results
     message = data.get("message", {})
     total_results = message.get("total-results", 0)
+    next_cursor = message.get("next-cursor")
     items = message.get("items", [])
 
     results = []
@@ -278,7 +302,19 @@ def search_crossref(
         if result:
             results.append(result)
 
-    return total_results, results
+    return CrossrefPage(
+        total_results=total_results,
+        results=results,
+        next_cursor=next_cursor,
+    )
+
+
+def search_crossref(
+    params: SearchParams, *, timeout_s: int = 30
+) -> tuple[int, list[CrossrefResult]]:
+    """Search Crossref for academic papers."""
+    page = search_crossref_page(params, timeout_s=timeout_s)
+    return page.total_results, page.results
 
 
 def fetch_recent_papers(
@@ -313,30 +349,50 @@ def fetch_recent_papers(
 
     for i in range(0, len(issns), effective_batch_size):
         batch = issns[i : i + effective_batch_size]
-
-        params = SearchParams(
-            query="",
-            issns=batch,
-            year_from=from_date,
-            year_to=to_date,
-            max_results=min(max_per_journal * len(batch), config.MAX_PAPERS_PER_BATCH),
-            sort_by="published",
-            sort_order="desc",
-        )
-
+        errors: list[str] = []
+        rows = min(max_per_journal * len(batch), config.MAX_PAPERS_PER_BATCH)
+        cursor = "*"
+        pages_fetched = 0
         try:
-            _, results = search_crossref(params)
+            while True:
+                params = SearchParams(
+                    query="",
+                    issns=batch,
+                    year_from=from_date,
+                    year_to=to_date,
+                    max_results=rows,
+                    sort_by="published",
+                    sort_order="desc",
+                    cursor=cursor,
+                )
 
-            for r in results:
-                if r.doi not in seen_dois:
-                    seen_dois.add(r.doi)
-                    all_results.append(r)
+                page = search_crossref_page(params)
+                pages_fetched += 1
+
+                for r in page.results:
+                    if r.doi not in seen_dois:
+                        seen_dois.add(r.doi)
+                        all_results.append(r)
+
+                if not page.results:
+                    break
+                if not page.next_cursor or page.next_cursor == cursor:
+                    break
+                if pages_fetched >= config.MAX_CURSOR_PAGES:
+                    raise CrossrefFetchError(
+                        f"Reached MAX_CURSOR_PAGES={config.MAX_CURSOR_PAGES} for ISSN batch {batch[:3]}"
+                    )
+
+                cursor = page.next_cursor
 
         except Exception as e:
-            logger.warning(f"Failed to fetch batch {batch[:3]}...: {e}")
+            errors.append(f"ISSN batch {batch[:3]}: {e}")
 
         if delay_s > 0:
             time.sleep(delay_s)
+
+        if errors:
+            raise CrossrefBatchError("; ".join(errors))
 
     return all_results
 
@@ -391,44 +447,73 @@ def fetch_conference_papers(
     seen_dois: set[str] = set()
 
     for container_title in container_titles:
-        query_parts = [
-            f"query.container-title={urllib.parse.quote(container_title)}",
-            f"rows={max_per_conference}",
-            "sort=published",
-            "order=desc",
-            f"mailto={config.CROSSREF_MAILTO}",
-        ]
-
-        filters = []
-        if from_date:
-            filters.append(f"from-pub-date:{from_date}")
-        if to_date:
-            filters.append(f"until-pub-date:{to_date}")
-        filters.append("type:proceedings-article")
-
-        if filters:
-            query_parts.append(f"filter={','.join(filters)}")
-
-        url = f"{CROSSREF_WORKS}?{'&'.join(query_parts)}"
-
+        cursor = "*"
+        pages_fetched = 0
         try:
-            status, body = fetch_url(url, timeout_s=30)
+            while True:
+                query_parts = [
+                    f"query.container-title={urllib.parse.quote(container_title)}",
+                    f"rows={max_per_conference}",
+                    "sort=published",
+                    "order=desc",
+                    f"mailto={config.CROSSREF_MAILTO}",
+                    f"cursor={urllib.parse.quote(cursor)}",
+                ]
 
-            if not body:
-                continue
+                filters = []
+                if from_date:
+                    filters.append(f"from-pub-date:{from_date}")
+                if to_date:
+                    filters.append(f"until-pub-date:{to_date}")
+                filters.append("type:proceedings-article")
 
-            data = json.loads(body.decode("utf-8", errors="replace"))
-            message = data.get("message", {})
-            items = message.get("items", [])
+                if filters:
+                    query_parts.append(f"filter={','.join(filters)}")
 
-            for item in items:
-                result = parse_crossref_work(item)
-                if result and result.doi not in seen_dois:
-                    seen_dois.add(result.doi)
-                    all_results.append(result)
+                url = f"{CROSSREF_WORKS}?{'&'.join(query_parts)}"
+                status, body = fetch_url(url, timeout_s=30)
+
+                if status is None:
+                    raise CrossrefFetchError(
+                        f"Crossref request failed for conference {container_title}"
+                    )
+                if status < 200 or status >= 300:
+                    body_preview = (
+                        body.decode("utf-8", errors="replace")[:500] if body else ""
+                    )
+                    raise CrossrefFetchError(
+                        f"Crossref HTTP {status} for conference {container_title}: {body_preview}"
+                    )
+                if not body:
+                    raise CrossrefFetchError(
+                        f"Crossref returned an empty response for conference {container_title}"
+                    )
+
+                data = json.loads(body.decode("utf-8", errors="replace"))
+                message = data.get("message", {})
+                items = message.get("items", [])
+                pages_fetched += 1
+
+                for item in items:
+                    result = parse_crossref_work(item)
+                    if result and result.doi not in seen_dois:
+                        seen_dois.add(result.doi)
+                        all_results.append(result)
+
+                next_cursor = message.get("next-cursor")
+                if not items:
+                    break
+                if not next_cursor or next_cursor == cursor:
+                    break
+                if pages_fetched >= config.MAX_CURSOR_PAGES:
+                    raise CrossrefFetchError(
+                        f"Reached MAX_CURSOR_PAGES={config.MAX_CURSOR_PAGES} for conference {container_title}"
+                    )
+
+                cursor = next_cursor
 
         except Exception as e:
-            logger.warning(f"Failed to fetch conference {container_title}: {e}")
+            raise CrossrefBatchError(f"Conference {container_title}: {e}") from e
 
         if delay_s > 0:
             time.sleep(delay_s)

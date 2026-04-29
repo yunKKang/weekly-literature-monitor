@@ -25,13 +25,23 @@ class Config:
 
     MAX_PAPERS_PER_BATCH: int = int(os.environ.get("MAX_PAPERS_PER_BATCH", "1000"))
 
+    MAX_CURSOR_PAGES: int = int(os.environ.get("MAX_CURSOR_PAGES", "100"))
+
     MAX_PAPERS_PER_CONFERENCE: int = int(
         os.environ.get("MAX_PAPERS_PER_CONFERENCE", "50")
     )
 
     API_TIMEOUT_SECONDS: int = int(os.environ.get("API_TIMEOUT_SECONDS", "30"))
 
+    CROSSREF_RETRY_COUNT: int = int(os.environ.get("CROSSREF_RETRY_COUNT", "3"))
+
+    CROSSREF_RETRY_DELAY: float = float(
+        os.environ.get("CROSSREF_RETRY_DELAY", "2.0")
+    )
+
     MAX_SEEN_DOIS: int = int(os.environ.get("MAX_SEEN_DOIS", "10000"))
+
+    OVERLAP_DAYS: int = int(os.environ.get("OVERLAP_DAYS", "30"))
 
     LOG_LEVEL: str = os.environ.get("LOG_LEVEL", "INFO")
 

@@ -7,8 +7,6 @@
   "scoring_rules": {
     "title_weight": 8,
     "abstract_weight": 5,
-    "keywords_weight": 3,
-    "keywords_only_penalty": 0.5,
     "asset_type_bonus": 2,
     "method_bonus": 3,
     "method_bonus_cap": 6,

@@ -12,6 +12,8 @@ import logging
 import re
 import urllib.error
 import urllib.request
+import socket
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -36,6 +38,12 @@ def days_ago(n: int) -> str:
     """Return date N days ago as YYYY-MM-DD string."""
     dt = datetime.now(timezone.utc) - timedelta(days=n)
     return dt.strftime("%Y-%m-%d")
+
+
+def shift_date(date_str: str, days: int) -> str:
+    """Shift a YYYY-MM-DD date by a number of days."""
+    dt = datetime.strptime(date_str, "%Y-%m-%d")
+    return (dt + timedelta(days=days)).strftime("%Y-%m-%d")
 
 
 @dataclass(frozen=True)
@@ -135,6 +143,7 @@ class SearchParams:
     max_results: int = 100
     sort_by: str = "published"  # relevance, published, citationCount
     sort_order: str = "desc"  # desc, asc
+    cursor: str | None = None
 
 
 def fetch_url(
@@ -142,6 +151,8 @@ def fetch_url(
     *,
     timeout_s: int = 30,
     headers: dict[str, str] | None = None,
+    max_retries: int | None = None,
+    retry_delay_s: float | None = None,
 ) -> tuple[int | None, bytes]:
     """Fetch a URL and return status code and body.
 
@@ -149,6 +160,8 @@ def fetch_url(
         url: URL to fetch
         timeout_s: Timeout in seconds
         headers: Optional HTTP headers
+        max_retries: Number of retries on transient transport failures
+        retry_delay_s: Base delay between retries, doubled after each attempt
 
     Returns:
         Tuple of (status_code, body_bytes). Returns (None, b"") on failure.
@@ -159,17 +172,51 @@ def fetch_url(
     if headers:
         default_headers.update(headers)
 
-    req = urllib.request.Request(url, headers=default_headers)
+    effective_max_retries = (
+        config.CROSSREF_RETRY_COUNT if max_retries is None else max_retries
+    )
+    effective_retry_delay = (
+        config.CROSSREF_RETRY_DELAY if retry_delay_s is None else retry_delay_s
+    )
 
-    try:
-        with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-            status = getattr(resp, "status", None)
-            return status, resp.read()
-    except urllib.error.HTTPError as e:
-        body = e.read() if hasattr(e, "read") else b""
-        return getattr(e, "code", None), body
-    except urllib.error.URLError:
-        return None, b""
+    last_error: Exception | None = None
+
+    for attempt in range(effective_max_retries + 1):
+        req = urllib.request.Request(url, headers=default_headers)
+
+        try:
+            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
+                status = getattr(resp, "status", None)
+                return status, resp.read()
+        except urllib.error.HTTPError as e:
+            body = e.read() if hasattr(e, "read") else b""
+            last_error = e
+            if e.code in (500, 502, 503, 504) and attempt < effective_max_retries:
+                logger.warning(
+                    "HTTP %s for %s, retrying in %.1fs...",
+                    e.code,
+                    url,
+                    effective_retry_delay,
+                )
+                time.sleep(effective_retry_delay * (2**attempt))
+                continue
+            return getattr(e, "code", None), body
+        except (urllib.error.URLError, socket.timeout, TimeoutError) as e:
+            last_error = e
+            if attempt < effective_max_retries:
+                logger.warning(
+                    "Network error for %s, retrying in %.1fs...",
+                    url,
+                    effective_retry_delay,
+                )
+                time.sleep(effective_retry_delay * (2**attempt))
+                continue
+            break
+
+    if last_error:
+        logger.error("Failed to fetch %s after %s attempts: %s", url, effective_max_retries + 1, last_error)
+
+    return None, b""
 
 
 def load_json(path: Path) -> dict[str, Any]:
