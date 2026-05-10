@@ -45,8 +45,19 @@ def build_pipeline(
     """
     stages: list[Stage] = []
 
-    # 1. Hard threshold (pass-through for now — legacy handles this)
-    stages.append(HardThresholdStage())
+    # 1. Hard threshold — reject papers that fail ALL pipelines' AND conditions
+    if topic:
+        # Build keyword set lookup from topic
+        ks_map = {ks.name: ks.keywords for ks in topic.keyword_sets}
+        # Build pipeline requirements from topic pipelines
+        pipe_reqs = [pipe.hard_threshold.required_sets for pipe in topic.pipelines]
+        stages.append(HardThresholdStage(
+            keyword_sets=ks_map,
+            pipeline_requirements=pipe_reqs,
+        ))
+    else:
+        # No topic — pass through (legacy compat)
+        stages.append(HardThresholdStage())
 
     # 2. Legacy rule scoring (Branch by Abstraction)
     if use_legacy:

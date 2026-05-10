@@ -82,6 +82,24 @@ keyword_sets:
       - "capitalization"
       - "capitalized"
       - "data capitalization"
+      # GFCF-adjacent (from benchmark papers)
+      - "manufactured capital"
+      - "investment structure"
+      - "capital turnover"
+      - "capital vintage"
+      - "gross capital"
+      - "fixed asset"
+      - "capital goods"
+      - "investment goods"
+      - "capital expenditure"
+      - "CAPEX"
+      - "infrastructure investment"
+      - "public investment"
+      - "private investment"
+      - "domestic investment"
+      - "foreign investment"
+      - "green investment"
+      - "climate investment"
 
   - name: environmental_impact
     description: Environmental footprint and impact vocabulary — multi-footprint coverage.

@@ -327,8 +327,10 @@ def evaluate_pipeline(
 
     # Score calculation
     rules = config.scoring_rules
-    title_weight = rules.get("title_weight", 8)
-    abstract_weight = rules.get("abstract_weight", 5)
+    inv_title_weight = rules.get("investment_title_weight", 20)
+    inv_abstract_weight = rules.get("investment_abstract_weight", 12)
+    dom_title_weight = rules.get("domain_title_weight", 5)
+    dom_abstract_weight = rules.get("domain_abstract_weight", 3)
     method_bonus = rules.get("method_bonus", 3)
     policy_bonus = rules.get("policy_bonus", 2)
     asset_type_bonus = rules.get("asset_type_bonus", 2)
@@ -336,15 +338,17 @@ def evaluate_pipeline(
     method_bonus_cap = rules.get("method_bonus_cap", 6)
     policy_bonus_cap = rules.get("policy_bonus_cap", 6)
 
-    # Base score: investment + domain matches
+    # Base score: investment terms weighted much higher than domain terms
     title_inv_count = len(match_patterns(title_lower, pipeline.investment_patterns))
     title_domain_count = len(match_patterns(title_lower, pipeline.domain_patterns))
     abstract_inv_count = len(match_patterns(abstract_lower, pipeline.investment_patterns))
     abstract_domain_count = len(match_patterns(abstract_lower, pipeline.domain_patterns))
 
     base_score = (
-        (title_inv_count + title_domain_count) * title_weight
-        + (abstract_inv_count + abstract_domain_count) * abstract_weight
+        title_inv_count * inv_title_weight
+        + abstract_inv_count * inv_abstract_weight
+        + title_domain_count * dom_title_weight
+        + abstract_domain_count * dom_abstract_weight
     )
 
     # Bonus score

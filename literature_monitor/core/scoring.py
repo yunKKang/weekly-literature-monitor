@@ -26,7 +26,8 @@ def score_for_request(
 ) -> ScoreResult:
     keyword_config = load_keyword_config(CONFIG_DIR / "keywords.json")
     legacy = score_paper(paper.title, paper.abstract, keyword_config)
-    if not should_apply_legacy_gfcf(request):
+    is_gfcf_pool = should_apply_legacy_gfcf(request)
+    if not is_gfcf_pool:
         legacy.score = 0
         legacy.priority = "LOW"
         legacy.matched_keywords = []
@@ -36,9 +37,18 @@ def score_for_request(
         legacy.exclusion_reason = None
         legacy.negative_matches = []
 
-    dynamic_hits = collect_keyword_hits(paper, request)
-    dynamic_score = sum(hit.weight for hit in dynamic_hits)
-    negative_penalty = negative_keyword_penalty(paper, request.negative_keywords)
+    # For GFCF pools: if the paper failed ALL pipelines (legacy.score == 0),
+    # skip dynamic keyword scoring entirely. Without this guard, generic terms
+    # like "carbon" + "cement" produce false positives for papers that have
+    # nothing to do with capital formation or GFCF research.
+    if is_gfcf_pool and legacy.score == 0:
+        dynamic_hits: list[KeywordHit] = []
+        dynamic_score = 0.0
+        negative_penalty = 0.0
+    else:
+        dynamic_hits = collect_keyword_hits(paper, request)
+        dynamic_score = sum(hit.weight for hit in dynamic_hits)
+        negative_penalty = negative_keyword_penalty(paper, request.negative_keywords)
 
     rule_score = max(0.0, float(legacy.score) + dynamic_score - negative_penalty)
     text_score = text_relevance(conn, paper_id, request.query_text)

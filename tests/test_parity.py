@@ -258,3 +258,59 @@ class TestParity:
 
         assert new_result.rule_score == legacy_result.rule_score == 0.0
         assert new_result.relevance_level == "LOW"
+
+
+class TestHardThresholdStage:
+    """Test the activated HardThresholdStage."""
+
+    def test_paper_passes_with_matching_keywords(self):
+        from literature_monitor.pipeline.stages.hard_threshold import HardThresholdStage
+        stage = HardThresholdStage(
+            keyword_sets={"inv": ["investment", "capital"], "env": ["carbon", "emissions"]},
+            pipeline_requirements=[["inv", "env"]],
+        )
+        state = PipelineState(title="Carbon emissions from capital investment")
+        result = stage.run(state)
+        assert result.passed_hard_threshold is True
+        assert result.excluded is False
+
+    def test_paper_excluded_missing_domain(self):
+        from literature_monitor.pipeline.stages.hard_threshold import HardThresholdStage
+        stage = HardThresholdStage(
+            keyword_sets={"inv": ["investment", "capital"], "env": ["carbon", "emissions"]},
+            pipeline_requirements=[["inv", "env"]],
+        )
+        state = PipelineState(title="Investment strategy for stocks")
+        result = stage.run(state)
+        assert result.passed_hard_threshold is False
+        assert result.excluded is True
+
+    def test_paper_excluded_missing_investment(self):
+        from literature_monitor.pipeline.stages.hard_threshold import HardThresholdStage
+        stage = HardThresholdStage(
+            keyword_sets={"inv": ["investment", "capital"], "env": ["carbon", "emissions"]},
+            pipeline_requirements=[["inv", "env"]],
+        )
+        state = PipelineState(title="Carbon emissions from diesel engines")
+        result = stage.run(state)
+        assert result.excluded is True
+
+    def test_any_pipeline_passes(self):
+        """OR between pipelines: passes if any pipeline's sets all match."""
+        from literature_monitor.pipeline.stages.hard_threshold import HardThresholdStage
+        stage = HardThresholdStage(
+            keyword_sets={"inv": ["investment"], "env": ["carbon"], "mrio": ["MRIO"]},
+            pipeline_requirements=[["inv", "env"], ["inv", "mrio"]],
+        )
+        # Matches inv + mrio (second pipeline) but not inv + env
+        state = PipelineState(title="Investment analysis using MRIO")
+        result = stage.run(state)
+        assert result.passed_hard_threshold is True
+
+    def test_no_requirements_passes_through(self):
+        from literature_monitor.pipeline.stages.hard_threshold import HardThresholdStage
+        stage = HardThresholdStage()
+        state = PipelineState(title="Random paper")
+        result = stage.run(state)
+        assert result.passed_hard_threshold is True
+        assert result.excluded is False

@@ -1,64 +1,63 @@
-"""Hard threshold stage — reject papers that don't pass investment + domain AND condition."""
+"""Hard threshold stage — reject papers that don't pass any pipeline's AND condition."""
 
 from __future__ import annotations
 
 import re
-from typing import Any
 
 from literature_monitor.pipeline.base import PipelineState
 
 
 class HardThresholdStage:
-    """Reject papers that fail the hard threshold (investment AND domain).
+    """Reject papers that fail ALL pipelines' hard thresholds.
 
-    This is the first stage in the pipeline. If a paper doesn't match
-    at least one investment term AND one domain term, it's excluded.
-
-    In the new Pipeline system, this stage uses Topic keyword_sets
-    directly instead of the legacy KeywordConfig approach.
-
-    For now, this is a STUB that always passes (letting the legacy
-    scoring stage handle filtering). Once we fully migrate scoring
-    logic from relevance_filter.py, this will do the actual work.
+    Each pipeline has required_sets (e.g. [investment_terms, environmental_impact]).
+    A paper passes the hard threshold if ANY pipeline's required_sets are ALL matched.
+    This is OR between pipelines, AND within each pipeline's required sets.
 
     Stage name: hard_threshold
     """
 
     name = "hard_threshold"
 
-    def __init__(self, keyword_sets: dict[str, list[str]] | None = None) -> None:
+    def __init__(
+        self,
+        keyword_sets: dict[str, list[str]] | None = None,
+        pipeline_requirements: list[list[str]] | None = None,
+    ) -> None:
         """
         Args:
-            keyword_sets: Mapping of set_name -> keyword patterns.
-                          If None, passes all papers through (legacy compat).
+            keyword_sets: Mapping of set_name -> keyword strings.
+            pipeline_requirements: List of pipelines, each is a list of required
+                keyword set names. Paper passes if ANY pipeline's sets all match.
+                If None, passes all papers through.
         """
-        self.keyword_sets = keyword_sets
-        self._compiled: dict[str, list[re.Pattern]] | None = None
-        if keyword_sets:
-            self._compiled = {
-                name: [re.compile(re.escape(kw), re.IGNORECASE) for kw in kws]
-                for name, kws in keyword_sets.items()
-            }
+        self.keyword_sets = keyword_sets or {}
+        self.pipeline_requirements = pipeline_requirements
+        # Compile patterns once
+        self._compiled: dict[str, list[re.Pattern]] = {
+            name: [re.compile(re.escape(kw), re.IGNORECASE) for kw in kws if kw]
+            for name, kws in self.keyword_sets.items()
+        }
 
     def run(self, state: PipelineState) -> PipelineState:
-        if self._compiled is None:
-            # Legacy compat — no keyword sets configured, pass through
+        if not self.pipeline_requirements or not self._compiled:
+            # No requirements configured — pass through (backward compat)
             return state.with_(passed_hard_threshold=True)
 
         text = f"{state.title} {state.abstract}"
-        matched_sets: list[str] = []
-        for set_name, patterns in self._compiled.items():
-            if any(p.search(text) for p in patterns):
-                matched_sets.append(set_name)
 
-        # All configured sets must have at least one match
-        required = set(self._compiled.keys())
-        matched = set(matched_sets)
-        if not required.issubset(matched):
-            missing = required - matched
-            return state.with_(
-                excluded=True,
-                exclusion_reason=f"hard_threshold: missing matches in {missing}",
-            )
+        for required_sets in self.pipeline_requirements:
+            all_matched = True
+            for set_name in required_sets:
+                patterns = self._compiled.get(set_name, [])
+                if not patterns or not any(p.search(text) for p in patterns):
+                    all_matched = False
+                    break
+            if all_matched:
+                return state.with_(passed_hard_threshold=True)
 
-        return state.with_(passed_hard_threshold=True)
+        # No pipeline's requirements were fully met
+        return state.with_(
+            excluded=True,
+            exclusion_reason="hard_threshold: no pipeline requirements met",
+        )
