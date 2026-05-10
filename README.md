@@ -1,6 +1,6 @@
 # Weekly Literature Monitor
 
-Automated weekly monitoring and manual search of academic publications for **GFCF (Gross Fixed Capital Formation) environmental impact research**. Features a local web workbench for manual literature search across Crossref and OpenAlex, plus automated weekly GitHub Issues.
+Automated weekly monitoring and manual search of academic publications for **environmental footprint research**. Features a local web workbench for manual literature search across Crossref and OpenAlex, plus automated weekly GitHub Issues.
 
 ## Core Pain Point
 
@@ -122,6 +122,19 @@ The workbench lets you create a search run interactively: select keywords, date 
 .venv/bin/litmon search --date-from 2026-01-01 --date-to 2026-05-01 --keywords "capital investment,carbon" --journal-pool main_pool
 ```
 
+### CLI Topic Management
+
+```bash
+# List all available research topics
+.venv/bin/litmon topic list
+
+# Show topic details
+.venv/bin/litmon topic show gfcf_environment
+
+# Validate a topic YAML file
+.venv/bin/litmon topic validate algal_bloom_ml
+```
+
 ### Weekly Automated Run (Legacy)
 
 ```bash
@@ -147,11 +160,17 @@ weekly-literature-monitor/
 ├── .github/workflows/
 │   ├── ci.yml                  # Compile and test quality gate
 │   └── weekly-monitor.yml      # GitHub Actions workflow
+├── topics/                     # Research topic definitions (YAML)
+│   ├── gfcf_environment.yaml   # GFCF Environmental Impact topic
+│   └── algal_bloom_ml.yaml     # Algal Bloom + ML topic
 ├── config/
 │   ├── journals.json           # Journal pools (6 pools, 70+ journals)
 │   └── keywords.json           # GFCF vocabulary & pipeline definitions
 ├── literature_monitor/         # Productized web workbench package
-│   ├── cli.py                  # CLI: serve / init-db / search
+│   ├── cli.py                  # CLI: serve / init-db / search / topic
+│   ├── topic/                  # Topic abstraction layer (Phase 1)
+│   │   ├── schema.py           # Pydantic Topic model
+│   │   └── loader.py           # YAML → Topic loader & validator
 │   ├── api/
 │   │   ├── app.py              # FastAPI application factory
 │   │   ├── routes.py           # REST endpoints
@@ -183,11 +202,17 @@ weekly-literature-monitor/
 │   ├── github_issue.py         # Issue notification
 │   ├── obsidian_report.py      # Optional Obsidian Markdown export
 │   └── paper_utils.py          # Utilities
+├── scripts/
+│   └── snapshot_baseline.py    # Baseline snapshot for refactor regression
+├── baseline/                   # Baseline snapshots (git-ignored)
 ├── state/
 │   └── monitor_state.json      # Run state (auto-updated)
 ├── tests/
-│   ├── test_monitor_reliability.py  # Legacy tests
-│   └── test_literature_monitor.py   # Workbench tests (71 tests)
+│   ├── test_literature_monitor.py  # Workbench tests (71 tests)
+│   ├── test_topic.py           # Topic abstraction tests (13 tests)
+│   └── test_monitor_reliability.py  # Legacy tests
+├── docs/
+│   └── REFACTOR-PLAN.md        # v3.0 refactor plan
 ├── LICENSE
 ├── pyproject.toml
 └── README.md
@@ -318,7 +343,7 @@ GitHub Issue created:
 
 - Python 3.10+
 - Legacy weekly monitor: no external dependencies (stdlib only)
-- Web workbench: `fastapi`, `uvicorn`, `pydantic` (installed via `pip install -e .`)
+- Web workbench: `fastapi`, `uvicorn`, `pydantic`, `pyyaml` (installed via `pip install -e .`)
 
 ## Quality Gate
 
@@ -349,6 +374,7 @@ This system is designed around five key principles:
 
 | Version | Date | Changes |
 |---------|------|---------|
+| **2.2** | 2026-05-10 | Topic abstraction layer (YAML config, Pydantic schema, CLI), baseline snapshot script, shared assets |
 | **2.1** | 2026-01-26 | Pool A split (A1/A2), concept dedup, bonus capping, negative keywords, consistency check, multi-footprint, datacenter engineering terms |
 | **2.0** | 2026-01-20 | GFCF-first architecture, 4 pipelines, hard thresholds |
 | **1.0** | 2026-01-15 | Initial release, MRIO-driven tier system |
