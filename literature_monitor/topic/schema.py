@@ -143,6 +143,10 @@ class Topic(BaseModel):
         default_factory=list,
         description="Additional explicit ISSNs not in any pool",
     )
+    include_conferences: bool = Field(
+        False,
+        description="Include conference paper fetching (Crossref container-title search)",
+    )
 
     # --- Keyword definitions ---
     keyword_sets: list[KeywordSet] = Field(

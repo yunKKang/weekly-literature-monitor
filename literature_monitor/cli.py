@@ -103,7 +103,7 @@ def _resolve_topic(topic_id: str) -> dict:
                 "synonyms": all_synonyms,
                 "negative_keywords": all_negatives,
                 "journal_pool_ids": t.journal_pool_ids,
-                "include_conferences": False,
+                "include_conferences": t.include_conferences,
                 "min_score": 0,
                 "max_results_per_source": 200,
             }

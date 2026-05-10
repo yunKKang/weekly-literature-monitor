@@ -22,6 +22,8 @@ journal_pool_ids:
   - pool_environment_high_quality
   - pool_general_high_impact
 
+include_conferences: true
+
 keyword_sets:
   - name: investment_terms
     description: >

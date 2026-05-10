@@ -32,10 +32,7 @@ def fetch_crossref(request: SearchRequest, issns: list[str]) -> list[ProviderPap
         issns=issns,
         from_date=request.date_from,
         to_date=request.date_to,
-        max_per_journal=max(
-            1,
-            request.max_results_per_source // max(1, len(issns)),
-        ),
+        max_per_journal=200,  # per-journal cap, matching legacy default
     )
     return [_from_crossref_result(result) for result in results]
 
