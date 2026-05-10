@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """GFCF-driven pipeline relevance filter v2.1 for weekly literature monitoring.
 
 Architecture: Pipeline-based with hard thresholds (GFCF-first, MRIO as tool)
@@ -50,10 +49,10 @@ class PipelineMatch:
     investment_matches: list[str]
     domain_matches: list[str]
     bonus_matches: list[str]
-    base_score: int
-    bonus_score: int
-    total_score: int
-    blocked_by_negative: bool
+    asset_type_matches: list[str]
+    theme_matches: list[str]
+    negative_matches: list[str]
+    score: int
 
 
 @dataclass
@@ -63,8 +62,10 @@ class PipelineConfig:
     priority: int
     investment_patterns: list[re.Pattern]
     domain_patterns: list[re.Pattern]
-    bonus_patterns: list[re.Pattern]
-    negative_patterns: list[re.Pattern]
+    bonus_patterns: list[re.Pattern] = field(default_factory=list)
+    negative_patterns: list[re.Pattern] = field(default_factory=list)
+    asset_type_patterns: dict[str, list[re.Pattern]] = field(default_factory=dict)
+    theme_patterns: dict[str, tuple[list[re.Pattern], int]] = field(default_factory=dict)
 
 
 @dataclass
@@ -73,31 +74,28 @@ class KeywordConfig:
     concept_groups: dict[str, list[str]]
     asset_type_patterns: dict[str, list[re.Pattern]]
     pipelines: dict[str, PipelineConfig]
-    theme_patterns: dict[str, list[re.Pattern]]
-    theme_scores: dict[str, int]
-    consistency_patterns: list[re.Pattern]
+    negative_keywords: dict[str, list[re.Pattern]]
     exclusion_patterns: list[re.Pattern]
-    title_weight: int
-    abstract_weight: int
-    asset_type_bonus: int
-    method_bonus: int
-    method_bonus_cap: int
-    policy_bonus: int
-    policy_bonus_cap: int
-    multi_pipeline_bonus: int
-    high_priority_threshold: int
-    medium_priority_threshold: int
+    supplementary_themes: dict[str, tuple[list[re.Pattern], int]]
     consistency_check_enabled: bool
+    consistency_patterns: list[re.Pattern]
+    scoring_rules: dict[str, Any]
 
 
 def compile_patterns(keywords: list[str], escape_cn: bool = False) -> list[re.Pattern]:
-    patterns = []
-    for kw in keywords:
-        if escape_cn and not kw.startswith("\\"):
-            patterns.append(re.compile(re.escape(kw), re.IGNORECASE))
-        else:
-            patterns.append(re.compile(kw, re.IGNORECASE))
-    return patterns
+    if escape_cn:
+        patterns = []
+        for kw in keywords:
+            if not kw or not kw.strip():
+                continue
+            pattern = re.escape(kw.strip())
+            patterns.append(re.compile(pattern, re.IGNORECASE))
+        return patterns
+    return [
+        re.compile(kw, re.IGNORECASE)
+        for kw in keywords
+        if kw and kw.strip() and not kw.startswith("#")
+    ]
 
 
 def load_keyword_config(config_path: Path | None = None) -> KeywordConfig:
@@ -198,91 +196,74 @@ def load_keyword_config(config_path: Path | None = None) -> KeywordConfig:
         concept_groups=concept_groups,
         asset_type_patterns=asset_type_patterns,
         pipelines=pipelines,
-        theme_patterns=theme_patterns,
-        theme_scores=theme_scores,
-        consistency_patterns=consistency_patterns,
+        negative_keywords=negative_by_pipeline,
         exclusion_patterns=exclusion_patterns,
-        title_weight=rules.get("title_weight", 8),
-        abstract_weight=rules.get("abstract_weight", 5),
-        asset_type_bonus=rules.get("asset_type_bonus", 2),
-        method_bonus=rules.get("method_bonus", 3),
-        method_bonus_cap=rules.get("method_bonus_cap", 6),
-        policy_bonus=rules.get("policy_bonus", 2),
-        policy_bonus_cap=rules.get("policy_bonus_cap", 6),
-        multi_pipeline_bonus=rules.get("multi_pipeline_bonus", 5),
-        high_priority_threshold=rules.get("high_priority_threshold", 20),
-        medium_priority_threshold=rules.get("medium_priority_threshold", 12),
-        consistency_check_enabled=rules.get("consistency_check_enabled", True),
+        supplementary_themes={
+            name: (patterns, theme_scores.get(name, 3))
+            for name, patterns in theme_patterns.items()
+        },
+        consistency_check_enabled=consistency_req.get("enabled", False),
+        consistency_patterns=consistency_patterns,
+        scoring_rules=rules,
     )
 
 
 def match_patterns(text: str, patterns: list[re.Pattern]) -> list[str]:
-    if not text:
-        return []
+    """Return unique matched substrings from pattern list."""
     matches = []
+    seen = set()
     for pattern in patterns:
-        found = pattern.search(text)
-        if found:
-            matches.append(found.group(0).lower())
+        m = pattern.search(text)
+        if m:
+            match_str = m.group(0).lower()
+            if match_str not in seen:
+                seen.add(match_str)
+                matches.append(match_str)
     return matches
 
 
 def deduplicate_by_concept_groups(
     matches: list[str], concept_groups: dict[str, list[str]]
 ) -> list[str]:
-    """Remove duplicate matches from same concept group, keeping only one per group."""
+    """Deduplicate matches: only count one match per concept group."""
     if not concept_groups:
-        return list(set(matches))
+        return matches
 
     matched_groups: set[str] = set()
-    deduped: list[str] = []
-    matches_lower = [m.lower() for m in matches]
+    deduplicated: list[str] = []
 
-    for match in matches_lower:
-        group_found = None
-        for group_name, group_terms in concept_groups.items():
-            for term in group_terms:
-                if term.lower() in match or match in term.lower():
-                    group_found = group_name
-                    break
-            if group_found:
+    for match in matches:
+        match_lower = match.lower()
+        group_found = False
+        for group_name, group_members in concept_groups.items():
+            if match_lower in [m.lower() for m in group_members]:
+                if group_name not in matched_groups:
+                    matched_groups.add(group_name)
+                    deduplicated.append(match)
+                group_found = True
                 break
+        if not group_found:
+            deduplicated.append(match)
 
-        if group_found:
-            if group_found not in matched_groups:
-                matched_groups.add(group_found)
-                deduped.append(match)
-        else:
-            if match not in deduped:
-                deduped.append(match)
-
-    return deduped
-
-
-def check_exclusion(title: str, patterns: list[re.Pattern]) -> str | None:
-    title_lower = title.lower()
-    for pattern in patterns:
-        if pattern.search(title_lower):
-            return f"Matches exclusion pattern: {pattern.pattern}"
-    return None
-
-
-def check_negative_keywords(text: str, patterns: list[re.Pattern]) -> list[str]:
-    """Check for negative keyword matches."""
-    return match_patterns(text, patterns)
+    return deduplicated
 
 
 def evaluate_pipeline(
     title: str,
-    abstract: str,
+    abstract: str | None,
     pipeline: PipelineConfig,
     config: KeywordConfig,
 ) -> PipelineMatch:
-    combined = f"{title} {abstract}".lower()
-    title_lower = title.lower()
-    abstract_lower = abstract.lower() if abstract else ""
+    """Evaluate a single pipeline against paper title+abstract.
 
-    negative_matches = check_negative_keywords(combined, pipeline.negative_patterns)
+    Returns PipelineMatch with threshold check and scores.
+    """
+    title_lower = title.lower()
+    abstract_lower = (abstract or "").lower()
+    combined = f"{title_lower} {abstract_lower}"
+
+    # Check negative keywords
+    negative_matches = match_patterns(combined, pipeline.negative_patterns)
     if negative_matches:
         return PipelineMatch(
             name=pipeline.name,
@@ -291,90 +272,165 @@ def evaluate_pipeline(
             investment_matches=[],
             domain_matches=[],
             bonus_matches=[],
-            base_score=0,
-            bonus_score=0,
-            total_score=0,
-            blocked_by_negative=True,
+            asset_type_matches=[],
+            theme_matches=[],
+            negative_matches=negative_matches,
+            score=-999,
         )
 
-    investment_matches = match_patterns(combined, pipeline.investment_patterns)
+    # Investment term matching with concept deduplication
+    title_investment = match_patterns(title_lower, pipeline.investment_patterns)
+    abstract_investment = match_patterns(abstract_lower, pipeline.investment_patterns)
+    investment_matches = title_investment + [
+        m for m in abstract_investment if m not in title_investment
+    ]
     investment_deduped = deduplicate_by_concept_groups(
         investment_matches, config.concept_groups
     )
 
-    domain_matches = match_patterns(combined, pipeline.domain_patterns)
+    # Domain term matching
+    domain_matches = match_patterns(
+        combined, pipeline.domain_patterns
+    )
 
+    # Hard threshold check: investment AND domain must both have matches
     passed_threshold = bool(investment_deduped) and bool(domain_matches)
 
-    bonus_matches = []
+    if not passed_threshold:
+        return PipelineMatch(
+            name=pipeline.name,
+            pipeline_id=pipeline.pipeline_id,
+            passed_threshold=False,
+            investment_matches=investment_deduped,
+            domain_matches=domain_matches,
+            bonus_matches=[],
+            asset_type_matches=[],
+            theme_matches=[],
+            negative_matches=negative_matches,
+            score=0,
+        )
+
+    # Bonus term matching
+    bonus_matches = match_patterns(combined, pipeline.bonus_patterns)
+
+    # Asset type matching
+    asset_type_matches: list[str] = []
+    for asset_name, asset_patterns in pipeline.asset_type_patterns.items():
+        if match_patterns(combined, asset_patterns):
+            asset_type_matches.append(asset_name)
+
+    # Theme matching
+    theme_matches: list[str] = []
+    for theme_name, (theme_pats, _score) in pipeline.theme_patterns.items():
+        if match_patterns(combined, theme_pats):
+            theme_matches.append(theme_name)
+
+    # Score calculation
+    rules = config.scoring_rules
+    title_weight = rules.get("title_weight", 8)
+    abstract_weight = rules.get("abstract_weight", 5)
+    method_bonus = rules.get("method_bonus", 3)
+    policy_bonus = rules.get("policy_bonus", 2)
+    asset_type_bonus = rules.get("asset_type_bonus", 2)
+    multi_pipeline_bonus = rules.get("multi_pipeline_bonus", 5)
+    method_bonus_cap = rules.get("method_bonus_cap", 6)
+    policy_bonus_cap = rules.get("policy_bonus_cap", 6)
+
+    # Base score: investment + domain matches
+    title_inv_count = len(match_patterns(title_lower, pipeline.investment_patterns))
+    title_domain_count = len(match_patterns(title_lower, pipeline.domain_patterns))
+    abstract_inv_count = len(match_patterns(abstract_lower, pipeline.investment_patterns))
+    abstract_domain_count = len(match_patterns(abstract_lower, pipeline.domain_patterns))
+
+    base_score = (
+        (title_inv_count + title_domain_count) * title_weight
+        + (abstract_inv_count + abstract_domain_count) * abstract_weight
+    )
+
+    # Bonus score
     bonus_score = 0
-    if passed_threshold:
-        bonus_matches = list(set(match_patterns(combined, pipeline.bonus_patterns)))
-        raw_bonus = len(bonus_matches) * config.method_bonus
-        bonus_score = min(raw_bonus, config.method_bonus_cap)
+    method_bonus_total = 0
+    policy_bonus_total = 0
+    for bm in bonus_matches:
+        if any(
+            kw.lower() in bm
+            for kw in [
+                "method",
+                "framework",
+                "model",
+                "tool",
+                "software",
+                "methodology",
+                "approach",
+                "technique",
+            ]
+        ):
+            method_bonus_total += method_bonus
+        elif any(
+            kw.lower() in bm
+            for kw in ["policy", "strategy", "regulation", "scenario"]
+        ):
+            policy_bonus_total += policy_bonus
+        else:
+            method_bonus_total += method_bonus
+    method_bonus_total = min(method_bonus_total, method_bonus_cap)
+    policy_bonus_total = min(policy_bonus_total, policy_bonus_cap)
+    bonus_score = method_bonus_total + policy_bonus_total
 
-    base_score = 0
-    if passed_threshold:
-        inv_title = match_patterns(title_lower, pipeline.investment_patterns)
-        inv_abstract = match_patterns(abstract_lower, pipeline.investment_patterns)
-        inv_title_deduped = deduplicate_by_concept_groups(
-            inv_title, config.concept_groups
-        )
-        inv_abstract_deduped = deduplicate_by_concept_groups(
-            inv_abstract, config.concept_groups
-        )
-        base_score += len(inv_title_deduped) * config.title_weight
-        base_score += len(inv_abstract_deduped) * config.abstract_weight
+    # Asset type bonus
+    asset_bonus = len(asset_type_matches) * asset_type_bonus
 
-        dom_title = match_patterns(title_lower, pipeline.domain_patterns)
-        dom_abstract = match_patterns(abstract_lower, pipeline.domain_patterns)
-        base_score += len(set(dom_title)) * config.title_weight
-        base_score += len(set(dom_abstract)) * config.abstract_weight
+    # Theme bonus
+    theme_bonus = sum(
+        score
+        for theme_name, (_pats, score) in config.supplementary_themes.items()
+        if theme_name in theme_matches
+    )
 
+    total = base_score + bonus_score + asset_bonus + theme_bonus
     return PipelineMatch(
         name=pipeline.name,
         pipeline_id=pipeline.pipeline_id,
-        passed_threshold=passed_threshold,
-        investment_matches=list(set(investment_deduped)),
-        domain_matches=list(set(domain_matches)),
+        passed_threshold=True,
+        investment_matches=investment_deduped,
+        domain_matches=domain_matches,
         bonus_matches=bonus_matches,
-        base_score=base_score,
-        bonus_score=bonus_score,
-        total_score=base_score + bonus_score if passed_threshold else 0,
-        blocked_by_negative=False,
+        asset_type_matches=asset_type_matches,
+        theme_matches=theme_matches,
+        negative_matches=negative_matches,
+        score=total,
     )
 
 
 def check_consistency(
-    text: str,
-    asset_type_patterns: dict[str, list[re.Pattern]],
+    title: str,
+    abstract: str | None,
+    asset_type_matches: list[str],
     consistency_patterns: list[re.Pattern],
 ) -> tuple[bool, list[str]]:
-    """Check if paper passes consistency requirements for HIGH priority."""
-    matched_assets = []
-    for asset_name, patterns in asset_type_patterns.items():
-        if match_patterns(text, patterns):
-            matched_assets.append(asset_name)
+    """Check consistency: paper must match asset type OR methodology terms."""
+    if asset_type_matches:
+        return True, asset_type_matches
 
-    if matched_assets:
-        return True, matched_assets
-
-    if match_patterns(text, consistency_patterns):
-        return True, []
-
-    return False, []
+    combined = f"{title.lower()} {(abstract or '').lower()}"
+    matches = match_patterns(combined, consistency_patterns)
+    return bool(matches), matches
 
 
 def score_paper(
-    title: str,
-    abstract: str | None,
-    config: KeywordConfig,
+    title: str, abstract: str | None, config: KeywordConfig
 ) -> RelevanceResult:
-    abstract = abstract or ""
-    combined = f"{title} {abstract}".lower()
+    """Score a paper using the GFCF-driven pipeline system.
 
-    exclusion_reason = check_exclusion(title, config.exclusion_patterns)
-    if exclusion_reason:
+    Returns a RelevanceResult with score, priority, and detailed match info.
+    """
+    title_lower = title.lower()
+    abstract_lower = (abstract or "").lower()
+    combined = f"{title_lower} {abstract_lower}"
+
+    # Check exclusion patterns
+    exclusion_matches = match_patterns(combined, config.exclusion_patterns)
+    if exclusion_matches:
         return RelevanceResult(
             doi="",
             title=title,
@@ -390,24 +446,27 @@ def score_paper(
             matched_keywords=[],
             matched_tiers=[],
             is_excluded=True,
-            exclusion_reason=exclusion_reason,
+            exclusion_reason=exclusion_matches[0],
             passed_consistency=False,
             negative_matches=[],
         )
 
-    pipeline_results: list[PipelineMatch] = []
-    all_negative_matches: list[str] = []
+    # Evaluate all pipelines
+    best_match: PipelineMatch | None = None
+    all_passed: list[PipelineMatch] = []
 
-    for pipe_name, pipeline in config.pipelines.items():
-        result = evaluate_pipeline(title, abstract, pipeline, config)
-        if result.blocked_by_negative:
-            all_negative_matches.extend(
-                match_patterns(combined, pipeline.negative_patterns)
-            )
-        if result.passed_threshold:
-            pipeline_results.append(result)
+    sorted_pipelines = sorted(
+        config.pipelines.values(), key=lambda p: p.priority
+    )
 
-    if not pipeline_results:
+    for pipeline in sorted_pipelines:
+        match = evaluate_pipeline(title, abstract, pipeline, config)
+        if match.passed_threshold:
+            all_passed.append(match)
+            if best_match is None or match.score > best_match.score:
+                best_match = match
+
+    if not best_match:
         return RelevanceResult(
             doi="",
             title=title,
@@ -425,74 +484,83 @@ def score_paper(
             is_excluded=False,
             exclusion_reason=None,
             passed_consistency=False,
-            negative_matches=list(set(all_negative_matches)),
+            negative_matches=[],
         )
 
-    pipeline_results.sort(key=lambda x: (-x.total_score,))
-    primary_pipeline = pipeline_results[0]
+    # Multi-pipeline bonus
+    rules = config.scoring_rules
+    multi_bonus = rules.get("multi_pipeline_bonus", 5)
+    if len(all_passed) > 1:
+        best_match.score += (len(all_passed) - 1) * multi_bonus
 
-    all_investment = []
-    all_domain = []
-    all_bonus = []
-    total_score = primary_pipeline.total_score
+    # Asset type matching (global, not per-pipeline)
+    asset_type_matches: list[str] = []
+    for asset_name, asset_patterns in config.asset_type_patterns.items():
+        if match_patterns(combined, asset_patterns):
+            asset_type_matches.append(asset_name)
 
-    for pr in pipeline_results:
-        all_investment.extend(pr.investment_matches)
-        all_domain.extend(pr.domain_matches)
-        all_bonus.extend(pr.bonus_matches)
+    # Supplementary theme matching
+    theme_matches: list[str] = []
+    theme_bonus = 0
+    for theme_name, (theme_pats, score) in config.supplementary_themes.items():
+        if match_patterns(combined, theme_pats):
+            theme_matches.append(theme_name)
+            theme_bonus += score
 
-    if len(pipeline_results) > 1:
-        total_score += (len(pipeline_results) - 1) * config.multi_pipeline_bonus
-
-    matched_asset_types = []
-    for asset_name, patterns in config.asset_type_patterns.items():
-        if match_patterns(combined, patterns):
-            matched_asset_types.append(asset_name)
-            total_score += config.asset_type_bonus
-
-    matched_themes = []
-    for theme_name, patterns in config.theme_patterns.items():
-        if match_patterns(combined, patterns):
-            matched_themes.append(theme_name)
-            total_score += config.theme_scores.get(theme_name, 3)
-
-    passed_consistency, consistency_assets = check_consistency(
-        combined,
-        config.asset_type_patterns,
-        config.consistency_patterns,
+    best_match.score += (
+        len(asset_type_matches) * rules.get("asset_type_bonus", 2) + theme_bonus
     )
 
-    if total_score >= config.high_priority_threshold:
-        if config.consistency_check_enabled and not passed_consistency:
-            priority = "MEDIUM"
-        else:
-            priority = "HIGH"
-    elif total_score >= config.medium_priority_threshold:
+    # Collect all matched keywords
+    all_keywords = set()
+    all_keywords.update(best_match.investment_matches)
+    all_keywords.update(best_match.domain_matches)
+    all_keywords.update(best_match.bonus_matches)
+    all_keywords.update(asset_type_matches)
+    all_keywords.update(theme_matches)
+
+    # Determine priority
+    rules = config.scoring_rules
+    high_threshold = rules.get("high_threshold", 20)
+    medium_threshold = rules.get("medium_threshold", 12)
+    consistency_check_enabled = config.consistency_check_enabled
+
+    # Consistency check for HIGH priority
+    passed_consistency = True
+    consistency_matches: list[str] = []
+    if best_match.score >= high_threshold and consistency_check_enabled:
+        passed_consistency, consistency_matches = check_consistency(
+            title, abstract, asset_type_matches, config.consistency_patterns
+        )
+
+    if best_match.score >= high_threshold:
+        priority = "HIGH" if passed_consistency else "MEDIUM"
+    elif best_match.score >= medium_threshold:
         priority = "MEDIUM"
     else:
         priority = "LOW"
 
-    all_keywords = list(set(all_investment + all_domain + all_bonus))
-    matched_pipeline_names = [pr.name for pr in pipeline_results]
+    matched_pipelines = [m.name for m in all_passed]
+    matched_tiers = list(set(matched_pipelines))
 
     return RelevanceResult(
         doi="",
         title=title,
-        score=total_score,
+        score=best_match.score,
         priority=priority,
-        matched_pipeline=primary_pipeline.name,
-        matched_pipelines=matched_pipeline_names,
-        matched_investment_terms=list(set(all_investment)),
-        matched_domain_terms=list(set(all_domain)),
-        matched_bonus_terms=list(set(all_bonus)),
-        matched_asset_types=matched_asset_types,
-        matched_themes=matched_themes,
-        matched_keywords=all_keywords,
-        matched_tiers=matched_pipeline_names,
+        matched_pipeline=best_match.name,
+        matched_pipelines=matched_pipelines,
+        matched_investment_terms=best_match.investment_matches,
+        matched_domain_terms=best_match.domain_matches,
+        matched_bonus_terms=best_match.bonus_matches,
+        matched_asset_types=asset_type_matches,
+        matched_themes=theme_matches,
+        matched_keywords=list(all_keywords),
+        matched_tiers=matched_tiers,
         is_excluded=False,
         exclusion_reason=None,
         passed_consistency=passed_consistency,
-        negative_matches=list(set(all_negative_matches)),
+        negative_matches=best_match.negative_matches,
     )
 
 
