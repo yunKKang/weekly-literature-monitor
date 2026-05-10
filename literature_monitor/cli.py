@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import argparse
-import json
 from datetime import date
 
 from literature_monitor.core.search_service import (
@@ -13,11 +12,15 @@ from literature_monitor.core.search_service import (
 from literature_monitor.core.topics import list_search_topics
 from literature_monitor.db.connection import connect
 from literature_monitor.db.schema import init_db
+from literature_monitor.topic.loader import load_topic, list_topics, validate_topic
+from literature_monitor.topic.schema import Topic
 
+
+# ---------------------------------------------------------------------------
+# Topic subcommands
+# ---------------------------------------------------------------------------
 
 def _cmd_topic_list() -> int:
-    from literature_monitor.topic.loader import list_topics, load_topic
-
     topic_ids = list_topics()
     if not topic_ids:
         print("No topics found in topics/")
@@ -35,8 +38,6 @@ def _cmd_topic_list() -> int:
 
 
 def _cmd_topic_validate(topic_id: str) -> int:
-    from literature_monitor.topic.loader import validate_topic
-
     ok, msg = validate_topic(topic_id)
     status = "PASS" if ok else "FAIL"
     print(f"[{status}] {topic_id}: {msg}")
@@ -44,15 +45,12 @@ def _cmd_topic_validate(topic_id: str) -> int:
 
 
 def _cmd_topic_show(topic_id: str) -> int:
-    from literature_monitor.topic.loader import load_topic
-
     try:
         topic = load_topic(topic_id)
     except FileNotFoundError:
         print(f"Topic not found: {topic_id}")
         return 1
 
-    ks_names = {ks.name for ks in topic.keyword_sets}
     print(f"Topic: {topic.name} ({topic.id})")
     print(f"Description: {topic.description.strip()}")
     print(f"Version: {topic.version}")
@@ -60,7 +58,8 @@ def _cmd_topic_show(topic_id: str) -> int:
     print(f"Journal pools: {', '.join(topic.journal_pool_ids) or '(none)'}")
     print(f"Keyword sets ({len(topic.keyword_sets)}):")
     for ks in topic.keyword_sets:
-        print(f"  - {ks.name}: {len(ks.keywords)} keywords, {len(ks.synonyms)} synonyms, {len(ks.negative_keywords)} negatives")
+        print(f"  - {ks.name}: {len(ks.keywords)} keywords, "
+              f"{len(ks.synonyms)} synonyms, {len(ks.negative_keywords)} negatives")
     print(f"Pipelines ({len(topic.pipelines)}):")
     for p in topic.pipelines:
         req = ", ".join(p.hard_threshold.required_sets)
@@ -78,6 +77,48 @@ def _cmd_topic_show(topic_id: str) -> int:
     print(f"Exporters: {', '.join(e.type for e in topic.exporters if e.enabled) or '(none)'}")
     return 0
 
+
+# ---------------------------------------------------------------------------
+# Search command — topic resolution
+# ---------------------------------------------------------------------------
+
+def _resolve_topic(topic_id: str) -> dict:
+    """Try new Topic YAML first, then legacy search_topics.json fallback."""
+    # Try new system
+    for tid in list_topics():
+        if tid == topic_id:
+            t = load_topic(topic_id)
+            # Flatten all keywords from all keyword_sets into a single list
+            all_keywords = []
+            all_synonyms = []
+            all_negatives = []
+            for ks in t.keyword_sets:
+                all_keywords.extend(ks.keywords)
+                all_synonyms.extend(ks.synonyms)
+                all_negatives.extend(ks.negative_keywords)
+            return {
+                "id": t.id,
+                "date_from": t.date_range.date_from,
+                "keywords": all_keywords,
+                "synonyms": all_synonyms,
+                "negative_keywords": all_negatives,
+                "journal_pool_ids": t.journal_pool_ids,
+                "include_conferences": False,
+                "min_score": 0,
+                "max_results_per_source": 200,
+            }
+
+    # Fallback to legacy
+    for topic in list_search_topics():
+        if topic.get("id") == topic_id:
+            return topic
+
+    raise SystemExit(f"Unknown topic: {topic_id} (checked topics/ and config/search_topics.json)")
+
+
+# ---------------------------------------------------------------------------
+# Main CLI
+# ---------------------------------------------------------------------------
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Manual literature search workbench")
@@ -98,8 +139,8 @@ def main() -> int:
     search.add_argument("--issn", action="append", default=[])
     search.add_argument("--max-results-per-source", type=int)
 
-    topic = sub.add_parser("topic", help="Manage research topics")
-    topic_sub = topic.add_subparsers(dest="topic_command", required=True)
+    topic_parser = sub.add_parser("topic", help="Manage research topics")
+    topic_sub = topic_parser.add_subparsers(dest="topic_command", required=True)
     topic_sub.add_parser("list", help="List all available topics")
     tv = topic_sub.add_parser("validate", help="Validate a topic YAML")
     tv.add_argument("topic_id", help="Topic ID to validate")
@@ -135,24 +176,24 @@ def main() -> int:
         return 1
 
     if args.command == "search":
-        topic = topic_by_id(args.topic) if args.topic else {}
-        keywords = args.keywords or ",".join(topic.get("keywords", []))
-        journal_pools = args.journal_pool or topic.get("journal_pool_ids", [])
+        preset = _resolve_topic(args.topic) if args.topic else {}
+        keywords = args.keywords or ",".join(preset.get("keywords", []))
+        journal_pools = args.journal_pool or preset.get("journal_pool_ids", [])
         request = request_from_dict(
             {
-                "date_from": args.date_from or topic.get("date_from"),
+                "date_from": args.date_from or preset.get("date_from"),
                 "date_to": args.date_to or date.today().isoformat(),
                 "keywords": keywords,
-                "synonyms": topic.get("synonyms", []),
-                "negative_keywords": topic.get("negative_keywords", []),
+                "synonyms": preset.get("synonyms", []),
+                "negative_keywords": preset.get("negative_keywords", []),
                 "journal_pool_ids": journal_pools,
                 "journal_issns": args.issn,
-                "include_conferences": topic.get("include_conferences", False),
-                "min_score": topic.get("min_score", 0),
+                "include_conferences": preset.get("include_conferences", False),
+                "min_score": preset.get("min_score", 0),
                 "max_results_per_source": (
                     args.max_results_per_source
                     if args.max_results_per_source is not None
-                    else topic.get("max_results_per_source", 100)
+                    else preset.get("max_results_per_source", 100)
                 ),
             }
         )
@@ -164,10 +205,8 @@ def main() -> int:
 
 
 def topic_by_id(topic_id: str) -> dict:
-    for topic in list_search_topics():
-        if topic.get("id") == topic_id:
-            return topic
-    raise SystemExit(f"Unknown topic preset: {topic_id}")
+    """Legacy helper — kept for backward compatibility."""
+    return _resolve_topic(topic_id)
 
 
 if __name__ == "__main__":

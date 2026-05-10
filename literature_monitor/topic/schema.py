@@ -7,7 +7,12 @@ files under topics/ and validated by Pydantic schemas at load time.
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+import re
+
+from pydantic import BaseModel, Field, field_validator
+
+
+_ISO_DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 class DateRange(BaseModel):
@@ -15,6 +20,13 @@ class DateRange(BaseModel):
 
     date_from: str = Field(..., description="Start date YYYY-MM-DD")
     date_to: str | None = Field(None, description="End date YYYY-MM-DD, null=today")
+
+    @field_validator("date_from", "date_to")
+    @classmethod
+    def _check_date_format(cls, v: str | None) -> str | None:
+        if v is not None and not _ISO_DATE.match(v):
+            raise ValueError(f"Date must be YYYY-MM-DD, got: {v!r}")
+        return v
 
 
 class KeywordSet(BaseModel):

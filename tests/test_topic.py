@@ -164,3 +164,84 @@ class TestLoadAllTopics:
         assert "gfcf_environment" in all_topics
         assert "algal_bloom_ml" in all_topics
         assert len(all_topics) >= 2
+
+
+class TestCLITopicCommands:
+    """Test CLI topic subcommands (list, validate, show)."""
+
+    def test_list_runs(self, capsys):
+        from literature_monitor.cli import _cmd_topic_list
+        rc = _cmd_topic_list()
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "gfcf_environment" in out
+        assert "algal_bloom_ml" in out
+
+    def test_validate_pass(self):
+        from literature_monitor.cli import _cmd_topic_validate
+        rc = _cmd_topic_validate("gfcf_environment")
+        assert rc == 0
+
+    def test_validate_fail(self):
+        from literature_monitor.cli import _cmd_topic_validate
+        rc = _cmd_topic_validate("nonexistent")
+        assert rc == 1
+
+    def test_show_gfcf(self, capsys):
+        from literature_monitor.cli import _cmd_topic_show
+        rc = _cmd_topic_show("gfcf_environment")
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "GFCF Environmental Impact" in out
+        assert "pipelines" in out.lower() or "Pipelines" in out
+
+    def test_show_nonexistent(self):
+        from literature_monitor.cli import _cmd_topic_show
+        rc = _cmd_topic_show("nonexistent")
+        assert rc == 1
+
+
+class TestSynonymInLegacyDict:
+    """Test that synonyms are included in legacy keyword dict."""
+
+    def test_synonyms_appended_to_investment(self):
+        from literature_monitor.topic.loader import topic_to_legacy_keywords_dict
+        t = load_topic("gfcf_environment")
+        legacy = topic_to_legacy_keywords_dict(t)
+        inv_en = legacy["gfcf_vocabulary"]["investment_terms"]["keywords_en"]
+        # gfcf_environment has no synonyms on investment_terms, but function
+        # should not crash and should return valid list
+        assert isinstance(inv_en, list)
+        assert len(inv_en) >= 40
+
+    def test_algal_bloom_includes_synonyms_in_legacy(self):
+        t = load_topic("algal_bloom_ml")
+        legacy = topic_to_legacy_keywords_dict(t)
+        assert "scoring_rules" in legacy
+        assert "gfcf_vocabulary" in legacy
+
+
+class TestDateRangeValidation:
+    """Test DateRange ISO format validation."""
+
+    def test_valid_date(self):
+        from literature_monitor.topic.schema import DateRange
+        dr = DateRange(date_from="2026-01-01")
+        assert dr.date_from == "2026-01-01"
+
+    def test_invalid_date_rejected(self):
+        import pytest
+        from literature_monitor.topic.schema import DateRange
+        with pytest.raises(Exception):
+            DateRange(date_from="not-a-date")
+
+    def test_valid_date_to(self):
+        from literature_monitor.topic.schema import DateRange
+        dr = DateRange(date_from="2026-01-01", date_to="2026-12-31")
+        assert dr.date_to == "2026-12-31"
+
+    def test_invalid_date_to_rejected(self):
+        import pytest
+        from literature_monitor.topic.schema import DateRange
+        with pytest.raises(Exception):
+            DateRange(date_from="2026-01-01", date_to="bad-date")

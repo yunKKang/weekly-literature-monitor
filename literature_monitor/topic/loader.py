@@ -113,27 +113,49 @@ def validate_topic(topic_id: str) -> tuple[bool, str]:
         return False, f"Error: {e}"
 
 
-def topic_to_legacy_keywords_dict(topic: Topic) -> dict[str, Any]:
-    """Convert a Topic into a dict resembling the legacy keywords.json structure.
+# Mapping from topic keyword_set names to legacy domain key names
+# that relevance_filter.py looks for in pipeline dicts.
+_DOMAIN_KEY_MAP: dict[str, str] = {
+    "environmental_impact": "environmental_impact_terms",
+    "mrio_eeio": "io_method_terms",
+    "trade_globalization": "trade_terms",
+    "policy_scenarios": "policy_terms",
+}
 
-    This enables incremental migration: existing scoring code can consume
-    topic-derived config without being rewritten yet.
+
+def topic_to_legacy_keywords_dict(topic: Topic) -> dict[str, Any]:
+    """Convert a Topic into a dict consumable by src/relevance_filter.py.
+
+    The output mirrors config/keywords.json structure closely enough that
+    load_keyword_config() can read it. This enables incremental migration:
+    existing scoring code can consume topic-derived config without being
+    rewritten yet.
+
+    Note: concept_groups are not modeled in the Topic schema yet.
+    When Phase 2 (Pipeline+Stage) is complete, this function will be deprecated.
     """
     # Build keyword set lookup
     ks_map = {ks.name: ks for ks in topic.keyword_sets}
 
+    # Collect all synonyms from all keyword sets for enrichment
+    all_synonyms: list[str] = []
+    for ks in topic.keyword_sets:
+        all_synonyms.extend(ks.synonyms)
+
     # Build pipelines dict in legacy format
     pipelines: dict[str, Any] = {}
     for pipe in topic.pipelines:
-        domain_key = None
+        # Find domain keyword set (not investment/asset/bonus)
+        domain_legacy_key: str | None = None
         domain_ks = None
         for ks_ref in pipe.keyword_sets:
-            if ks_ref not in ("investment_terms", "asset_types", "bonus_terms"):
-                domain_key = ks_ref
+            legacy_key = _DOMAIN_KEY_MAP.get(ks_ref)
+            if legacy_key:
+                domain_legacy_key = legacy_key
                 domain_ks = ks_map.get(ks_ref)
                 break
 
-        pipelines[pipe.name] = {
+        pipe_dict: dict[str, Any] = {
             "name": pipe.name,
             "priority": pipe.priority,
             "hard_threshold": {
@@ -143,33 +165,52 @@ def topic_to_legacy_keywords_dict(topic: Topic) -> dict[str, Any]:
                 ],
             },
         }
-        if domain_ks:
-            pipelines[pipe.name][domain_key] = {
+        if domain_legacy_key and domain_ks:
+            pipe_dict[domain_legacy_key] = {
                 "keywords_en": domain_ks.keywords,
             }
         if pipe.bonus_terms:
-            pipelines[pipe.name]["bonus_terms"] = {
+            pipe_dict["bonus_terms"] = {
                 "keywords_en": pipe.bonus_terms,
                 "max_bonus": 6,
             }
+        pipelines[pipe.name] = pipe_dict
 
-    # Build investment terms dict
+    # Build investment terms dict (including synonyms)
     inv_ks = ks_map.get("investment_terms")
+    inv_keywords = (inv_ks.keywords if inv_ks else []) + all_synonyms
     investment_terms = {
-        "keywords_en": inv_ks.keywords if inv_ks else [],
+        "keywords_en": inv_keywords,
         "keywords_cn": [],
         "concept_groups": {},
     }
 
     # Build asset types dict
     asset_ks = ks_map.get("asset_types")
-    asset_types = {
+    asset_types: dict[str, Any] = {
         "description": "SNA asset type categories",
-        "structures": {"keywords_en": []},
-        "machinery_equipment": {"keywords_en": []},
     }
     if asset_ks:
         asset_types["all"] = {"keywords_en": asset_ks.keywords}
+
+    # Build supplementary themes from bonus_terms keyword set
+    bonus_ks = ks_map.get("bonus_terms")
+    supplementary_themes: dict[str, Any] = {}
+    if bonus_ks:
+        supplementary_themes["bonus"] = {
+            "keywords_en": bonus_ks.keywords,
+            "keywords_cn": [],
+            "bonus_score": 3,
+        }
+
+    # Build negative_keywords dict (legacy expects group → {keywords_en, apply_to})
+    negative_keywords: dict[str, Any] = {}
+    for pipe in topic.pipelines:
+        if pipe.negative_keywords:
+            negative_keywords[pipe.name] = {
+                "keywords_en": pipe.negative_keywords,
+                "apply_to": [pipe.name],
+            }
 
     return {
         "version": topic.version,
@@ -179,18 +220,29 @@ def topic_to_legacy_keywords_dict(topic: Topic) -> dict[str, Any]:
             "abstract_weight": topic.scoring.abstract_weight,
             "high_threshold": topic.scoring.high_threshold,
             "medium_threshold": topic.scoring.medium_threshold,
+            "asset_type_bonus": 2,
+            "method_bonus": 3,
+            "method_bonus_cap": 6,
+            "policy_bonus": 2,
+            "policy_bonus_cap": 6,
+            "multi_pipeline_bonus": 5,
+            "consistency_check_enabled": topic.scoring.consistency_check,
         },
         "gfcf_vocabulary": {
             "investment_terms": investment_terms,
             "asset_types": asset_types,
         },
         "pipelines": pipelines,
-        "negative_keywords": {
-            pipe.name: {
-                "keywords_en": pipe.negative_keywords,
-                "apply_to": [pipe.name],
-            }
-            for pipe in topic.pipelines
-            if pipe.negative_keywords
+        "supplementary_themes": supplementary_themes,
+        "negative_keywords": negative_keywords,
+        "consistency_requirements": {
+            "enabled": topic.scoring.consistency_check,
+            "checks": [
+                {
+                    "name": "asset_type_or_methodology",
+                    "keywords_en": [],
+                }
+            ],
         },
+        "exclusion_patterns": [],
     }

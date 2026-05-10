@@ -6,7 +6,7 @@ import math
 import re
 import sqlite3
 from collections.abc import Iterable
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from literature_monitor.compat import CONFIG_DIR, SRC  # noqa: F401
 from relevance_filter import load_keyword_config, score_paper
@@ -185,12 +185,12 @@ def recency_bonus(value: str | None) -> float:
         return 0.0
     try:
         if len(value) == 4:
-            published = datetime(int(value), 1, 1, tzinfo=UTC)
+            published = datetime(int(value), 1, 1, tzinfo=timezone.utc)
         else:
-            published = datetime.strptime(value[:10], "%Y-%m-%d").replace(tzinfo=UTC)
+            published = datetime.strptime(value[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
     except (ValueError, TypeError):
         return 0.0
-    age_days = max((datetime.now(UTC) - published).days, 0)
+    age_days = max((datetime.now(timezone.utc) - published).days, 0)
     return max(0.0, 8.0 - math.log1p(age_days))
 
 
