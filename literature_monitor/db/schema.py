@@ -89,7 +89,17 @@ def init_db(conn: sqlite3.Connection) -> None:
           content='papers',
           content_rowid='id'
         );
+
+        -- Phase 3: Global DOI dedup table (replaces state/monitor_state.json)
+        CREATE TABLE IF NOT EXISTS seen_dois (
+          doi TEXT NOT NULL,
+          topic_id TEXT NOT NULL DEFAULT '__global__',
+          first_seen_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (doi, topic_id)
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_seen_dois_topic
+          ON seen_dois(topic_id);
         """
     )
     conn.commit()
-
