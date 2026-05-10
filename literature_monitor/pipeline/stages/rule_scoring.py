@@ -31,23 +31,60 @@ class RuleScoringStage:
         keyword_config_path: str | None = None,
         *,
         use_legacy: bool = True,
+        journal_pool_ids: list[str] | None = None,
     ) -> None:
         self.keyword_config_path = keyword_config_path
         self.use_legacy = use_legacy
+        self.journal_pool_ids = journal_pool_ids or []
+        self._kw_config = None  # cached lazy-loaded config
+
+    def _should_apply_legacy_gfcf(self) -> bool:
+        """Check if journal_pool_ids contain any legacy pool markers."""
+        if not self.journal_pool_ids:
+            return False
+        legacy_pool_markers = (
+            "main_pool",
+            "gfcf",
+            "sna",
+            "capital",
+            "built_environment",
+            "digital",
+        )
+        return any(
+            any(marker in pool_id for marker in legacy_pool_markers)
+            for pool_id in self.journal_pool_ids
+        )
+
+    def _get_kw_config(self):
+        """Lazy-load and cache keyword config."""
+        if self._kw_config is None:
+            from literature_monitor.compat import CONFIG_DIR
+            from relevance_filter import load_keyword_config
+
+            from pathlib import Path
+            config_path = self.keyword_config_path or str(CONFIG_DIR / "keywords.json")
+            self._kw_config = load_keyword_config(Path(config_path))
+        return self._kw_config
 
     def run(self, state: PipelineState) -> PipelineState:
         if not self.use_legacy:
             return state
 
-        # Lazy import to avoid pulling in compat.py at module load time
-        from literature_monitor.compat import CONFIG_DIR
-        from relevance_filter import load_keyword_config, score_paper
+        from relevance_filter import score_paper
 
-        config_path = self.keyword_config_path or str(CONFIG_DIR / "keywords.json")
-        from pathlib import Path
-        kw_config = load_keyword_config(Path(config_path))
-
+        kw_config = self._get_kw_config()
         result = score_paper(state.title, state.abstract, kw_config)
+
+        # Zero out legacy result if not using legacy GFCF scoring
+        if not self._should_apply_legacy_gfcf():
+            result.score = 0
+            result.priority = "LOW"
+            result.matched_keywords = []
+            result.matched_pipelines = []
+            result.matched_asset_types = []
+            result.matched_themes = []
+            result.exclusion_reason = None
+            result.negative_matches = []
 
         # Map legacy RelevanceResult into PipelineState
         matched_kw = list(result.matched_keywords or [])
@@ -65,12 +102,13 @@ class RuleScoringStage:
             for field, text in text_fields.items():
                 if keyword and keyword.lower() in text.lower():
                     from literature_monitor.core.models import KeywordHit
+                    from literature_monitor.core.scoring import snippet
                     hits.append(KeywordHit(
                         keyword=keyword,
                         field=field,
                         hit_type="pipeline_keyword",
                         weight=2,
-                        snippet=_snippet(text, keyword),
+                        snippet=snippet(text, keyword),
                     ))
                     break
 
@@ -93,15 +131,3 @@ class RuleScoringStage:
             exclusion_reason=result.exclusion_reason,
             breakdown=breakdown,
         )
-
-
-def _snippet(text: str, keyword: str, radius: int = 70) -> str:
-    lower = text.lower()
-    idx = lower.find(keyword.lower())
-    if idx < 0:
-        return text[: radius * 2].strip()
-    start = max(0, idx - radius)
-    end = min(len(text), idx + len(keyword) + radius)
-    prefix = "..." if start > 0 else ""
-    suffix = "..." if end < len(text) else ""
-    return f"{prefix}{text[start:end].strip()}{suffix}"

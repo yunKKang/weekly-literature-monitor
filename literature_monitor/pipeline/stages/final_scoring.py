@@ -18,7 +18,7 @@ LEVEL_MEDIUM = 35
 class FinalScoringStage:
     """Compute total_score and relevance_level from all accumulated scores.
 
-    total = rule_score * 1.0 + text_score * text_weight + recency + journal - negative
+    total = max(0, rule_score - negative_penalty) * 1.0 + text_score * text_weight + recency + journal
     level = HIGH if score >= 70 or legacy_priority == HIGH, else MEDIUM if >= 35, else LOW
 
     Stage name: final_scoring
@@ -42,12 +42,14 @@ class FinalScoringStage:
         breakdown = dict(state.breakdown)
         negative_penalty = breakdown.get("negative_penalty", 0.0)
 
+        # Subtract negative_penalty from rule_score before applying max(0)
+        rule_score_adj = max(0.0, state.rule_score - negative_penalty)
+
         total = (
-            state.rule_score * self.rule_weight
+            rule_score_adj * self.rule_weight
             + state.text_score * self.text_weight
             + state.recency_score
             + state.journal_score
-            - negative_penalty
         )
         total = max(0.0, total)
 
@@ -67,6 +69,7 @@ class FinalScoringStage:
             level = "LOW"
 
         breakdown["total_score_raw"] = total
+        breakdown["rule_score_adj"] = rule_score_adj
         return state.with_(
             total_score=round(total, 3),
             relevance_level=level,

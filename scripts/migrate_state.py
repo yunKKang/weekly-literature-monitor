@@ -7,7 +7,7 @@ Usage:
 This script:
 1. Reads state/monitor_state.json (legacy state file)
 2. Inserts all seen_dois into the SQLite seen_dois table
-3. Records last_run_date and last_from_date as metadata
+3. Records last_run_date and last_from_date as metadata (printed only)
 4. Does NOT delete or modify the original JSON file (safety)
 
 The seen_dois table has no row limit (unlike the 10000 FIFO cap in the JSON).
@@ -49,10 +49,11 @@ def main():
     print(f"[migrate] State file: {STATE_PATH}")
     print(f"[migrate] seen_dois count: {len(seen_dois)}")
     print(f"[migrate] last_run_date: {last_run_date}")
+    print(f"[migrate] last_from_date: {last_from_date}")
     print(f"[migrate] run_count: {run_count}")
 
-    # Deduplicate
-    unique_dois = list(dict.fromkeys(d for d in seen_dois if d))
+    # Deduplicate (case-insensitive)
+    unique_dois = list(dict.fromkeys(d.lower().strip() for d in seen_dois if d))
     dupes = len(seen_dois) - len(unique_dois)
     if dupes:
         print(f"[migrate] Duplicate DOIs removed: {dupes}")
@@ -74,16 +75,14 @@ def main():
     conn.row_factory = sqlite3.Row
     init_db(conn)
 
-    # Check existing count
-    existing = conn.execute(
+    # Check existing count before inserts
+    initial_count = conn.execute(
         "SELECT COUNT(*) FROM seen_dois WHERE topic_id = ?", (args.topic_id,)
     ).fetchone()[0]
-    print(f"[migrate] Existing seen_dois for topic '{args.topic_id}': {existing}")
+    print(f"[migrate] Existing seen_dois for topic '{args.topic_id}': {initial_count}")
 
     # Insert in batches
     batch_size = 1000
-    inserted = 0
-    skipped = 0
     now = datetime.now(timezone.utc).isoformat()
 
     for i in range(0, len(unique_dois), batch_size):
@@ -92,36 +91,23 @@ def main():
             try:
                 conn.execute(
                     "INSERT OR IGNORE INTO seen_dois (doi, topic_id, first_seen_at) VALUES (?, ?, ?)",
-                    (doi.lower().strip(), args.topic_id, now),
+                    (doi, args.topic_id, now),
                 )
-                inserted += 1
             except Exception:
-                skipped += 1
+                pass
         conn.commit()
-        print(f"[migrate] Batch {i // batch_size + 1}: inserted {len(batch)}")
+        print(f"[migrate] Batch {i // batch_size + 1}: processed {len(batch)}")
 
-    # Store metadata as a special '__meta__' entry
-    meta_doi = f"__meta__:last_run_date"
-    conn.execute(
-        "INSERT OR REPLACE INTO seen_dois (doi, topic_id, first_seen_at) VALUES (?, ?, ?)",
-        (meta_doi, args.topic_id, last_run_date or now),
-    )
-    meta_doi2 = f"__meta__:run_count"
-    conn.execute(
-        "INSERT OR REPLACE INTO seen_dois (doi, topic_id, first_seen_at) VALUES (?, ?, ?)",
-        (meta_doi2, args.topic_id, str(run_count)),
-    )
-    conn.commit()
-
+    # Use count-based measurement for accurate inserted count
     final_count = conn.execute(
         "SELECT COUNT(*) FROM seen_dois WHERE topic_id = ?", (args.topic_id,)
     ).fetchone()[0]
+    inserted = final_count - initial_count
 
     conn.close()
 
     print(f"\n[migrate] Migration complete:")
     print(f"  DOIs inserted: {inserted}")
-    print(f"  DOIs skipped:  {skipped}")
     print(f"  Total in DB:   {final_count}")
     print(f"  Topic ID:      {args.topic_id}")
     print(f"\n[migrate] Original state file preserved at: {STATE_PATH}")

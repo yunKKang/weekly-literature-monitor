@@ -20,6 +20,8 @@ from pathlib import Path
 
 def seen_doi_exists(conn: sqlite3.Connection, doi: str, topic_id: str = "__global__") -> bool:
     """Check if a DOI has already been seen for a given topic."""
+    if not doi:
+        return False
     row = conn.execute(
         "SELECT 1 FROM seen_dois WHERE doi = ? AND topic_id = ?",
         (doi.lower().strip(), topic_id),
@@ -34,13 +36,16 @@ def mark_doi_seen(
     first_seen_at: str | None = None,
 ) -> bool:
     """Record a DOI as seen. Returns True if newly inserted, False if already existed."""
+    if not doi:
+        return False
     ts = first_seen_at or datetime.now(timezone.utc).isoformat()
     try:
-        conn.execute(
+        cursor = conn.execute(
             "INSERT OR IGNORE INTO seen_dois (doi, topic_id, first_seen_at) VALUES (?, ?, ?)",
             (doi.lower().strip(), topic_id, ts),
         )
-        return conn.total_changes > 0  # will be >0 if INSERT actually happened
+        conn.commit()
+        return cursor.rowcount > 0
     except sqlite3.IntegrityError:
         return False
 
@@ -57,12 +62,11 @@ def bulk_mark_seen(
         if not doi:
             continue
         try:
-            conn.execute(
+            cursor = conn.execute(
                 "INSERT OR IGNORE INTO seen_dois (doi, topic_id, first_seen_at) VALUES (?, ?, ?)",
                 (doi.lower().strip(), topic_id, ts),
             )
-            if conn.total_changes:
-                count += 1
+            count += cursor.rowcount
         except sqlite3.IntegrityError:
             pass
     conn.commit()
@@ -117,7 +121,7 @@ def migrate_from_json(conn: sqlite3.Connection, json_path: Path, topic_id: str =
     if not dois:
         return 0
 
-    # Deduplicate
+    # Deduplicate (case-insensitive)
     unique = list(dict.fromkeys(d.lower().strip() for d in dois if d))
 
     # Batch insert
@@ -125,12 +129,13 @@ def migrate_from_json(conn: sqlite3.Connection, json_path: Path, topic_id: str =
     inserted = 0
     for doi in unique:
         try:
-            conn.execute(
+            cursor = conn.execute(
                 "INSERT OR IGNORE INTO seen_dois (doi, topic_id, first_seen_at) VALUES (?, ?, ?)",
                 (doi, topic_id, now),
             )
+            inserted += cursor.rowcount
         except sqlite3.IntegrityError:
             pass
     conn.commit()
 
-    return len(unique)
+    return inserted

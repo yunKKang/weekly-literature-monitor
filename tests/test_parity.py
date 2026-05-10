@@ -91,7 +91,7 @@ def db_conn():
 
 class TestRuleScoringStage:
     def test_relevant_paper_gets_positive_score(self):
-        stage = RuleScoringStage()
+        stage = RuleScoringStage(journal_pool_ids=["main_pool"])
         state = PipelineState(
             title="Carbon footprint of capital investment in infrastructure",
             abstract="This paper examines embodied carbon emissions of GFCF.",
@@ -225,6 +225,7 @@ class TestParity:
             selected_issns=selected_issns,
             use_legacy=True,
             query_terms=request.query_terms,
+            journal_pool_ids=request.journal_pool_ids,
         )
         _, new_result = run_pipeline(pipeline, paper, paper_id=1)
 

@@ -36,6 +36,8 @@ def build_pipeline(
     *,
     use_legacy: bool = True,
     query_terms: list[str] | None = None,
+    request_negative_keywords: list[str] | None = None,
+    journal_pool_ids: list[str] | None = None,
 ) -> Pipeline:
     """Build a scoring Pipeline from a Topic configuration.
 
@@ -48,7 +50,7 @@ def build_pipeline(
 
     # 2. Legacy rule scoring (Branch by Abstraction)
     if use_legacy:
-        stages.append(RuleScoringStage())
+        stages.append(RuleScoringStage(journal_pool_ids=journal_pool_ids))
 
     # 2b. Dynamic keyword matching (user query terms)
     if query_terms:
@@ -62,9 +64,12 @@ def build_pipeline(
         # Also from keyword_sets
         for ks in topic.keyword_sets:
             all_negatives.extend(ks.negative_keywords)
+    # Merge in request-level negative keywords
+    all_negatives.extend(request_negative_keywords or [])
+    all_negatives = list(set(all_negatives))
     if all_negatives:
         penalty = topic.scoring.negative_penalty if topic else 20
-        stages.append(NegativeFilterStage(list(set(all_negatives)), penalty))
+        stages.append(NegativeFilterStage(all_negatives, penalty))
 
     # 4. Text relevance (FTS5)
     if conn and query_text:

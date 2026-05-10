@@ -21,18 +21,6 @@ _FIELD_WEIGHTS = {
 }
 
 
-def _snippet(text: str, keyword: str, radius: int = 70) -> str:
-    lower = text.lower()
-    idx = lower.find(keyword.lower())
-    if idx < 0:
-        return text[: radius * 2].strip()
-    start = max(0, idx - radius)
-    end = min(len(text), idx + len(keyword) + radius)
-    prefix = "..." if start > 0 else ""
-    suffix = "..." if end < len(text) else ""
-    return f"{prefix}{text[start:end].strip()}{suffix}"
-
-
 class KeywordMatchStage:
     """Match user query keywords against paper fields with weighted scoring.
 
@@ -52,6 +40,7 @@ class KeywordMatchStage:
             return state
 
         from literature_monitor.core.models import KeywordHit
+        from literature_monitor.core.scoring import snippet as _snippet
 
         fields = {
             "title": state.title,
