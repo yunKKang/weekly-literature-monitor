@@ -19,19 +19,24 @@ from literature_monitor.core.models import (
 
 def fetch_crossref(request: SearchRequest, issns: list[str]) -> list[ProviderPaper]:
     if not issns:
-        return []
-    if request.query_text:
-        results = fetch_keyword_papers(request, issns)
-    else:
-        results = fetch_recent_papers(
-            issns=issns,
-            from_date=request.date_from,
-            to_date=request.date_to,
-            max_per_journal=max(
-                1,
-                request.max_results_per_source // max(1, len(issns)),
-            ),
-        )
+        # No ISSNs — fallback to keyword search (no journal constraint)
+        if not request.query_text:
+            return []
+        results = fetch_keyword_papers(request, [])
+        return [_from_crossref_result(r) for r in results]
+
+    # Have ISSNs — always fetch by ISSN (all papers from those journals).
+    # Keywords are for post-fetch scoring, NOT for the API query.
+    # This matches the legacy weekly_monitor.py strategy.
+    results = fetch_recent_papers(
+        issns=issns,
+        from_date=request.date_from,
+        to_date=request.date_to,
+        max_per_journal=max(
+            1,
+            request.max_results_per_source // max(1, len(issns)),
+        ),
+    )
     return [_from_crossref_result(result) for result in results]
 
 
@@ -40,11 +45,17 @@ def fetch_keyword_papers(request: SearchRequest, issns: list[str]):
     seen_dois = set()
     batch_size = 10
     rows_per_batch = max(1, min(request.max_results_per_source, 100))
-    for index in range(0, len(issns), batch_size):
-        batch = issns[index : index + batch_size]
+    query = request.provider_query_text or request.query_text
+
+    # When no ISSNs, do a single unfiltered keyword search
+    batches = [issns[i : i + batch_size] for i in range(0, max(1, len(issns)), batch_size)]
+    if not issns:
+        batches = [[]]
+
+    for batch in batches:
         params = SearchParams(
-            query=request.provider_query_text or request.query_text,
-            issns=batch,
+            query=query,
+            issns=batch or None,
             year_from=request.date_from,
             year_to=request.date_to,
             max_results=rows_per_batch,

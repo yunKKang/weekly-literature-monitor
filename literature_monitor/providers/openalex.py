@@ -71,9 +71,14 @@ def _fetch_openalex_chunk(
             "sort=publication_date:desc",
             f"cursor={urllib.parse.quote(cursor)}",
         ]
-        provider_query = request.provider_query_text or request.query_text
-        if provider_query:
-            query_parts.append(f"search={urllib.parse.quote(provider_query)}")
+        # Only use keyword search when NO ISSNs are available.
+        # With ISSNs, we fetch all papers from those journals (post-filter with keywords).
+        # This matches the legacy strategy and avoids Crossref/OpenAlex
+        # keyword matching issues with complex query strings.
+        if not issns:
+            provider_query = request.provider_query_text or request.query_text
+            if provider_query:
+                query_parts.append(f"search={urllib.parse.quote(provider_query)}")
 
         filters = []
         if request.date_from:

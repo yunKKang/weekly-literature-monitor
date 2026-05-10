@@ -15,10 +15,12 @@ date_range:
 
 journal_pool_ids:
   - main_pool
-  - gfcf
-  - sna
-  - built_environment
-  - digital
+  - pool_a1_sna_capital
+  - pool_a2_macro_growth
+  - pool_b_built_environment
+  - pool_c_digital_infrastructure
+  - pool_environment_high_quality
+  - pool_general_high_impact
 
 keyword_sets:
   - name: investment_terms

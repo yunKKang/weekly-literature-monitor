@@ -761,7 +761,30 @@ class TestOpenAlexParseWork:
 
 
 class TestCrossrefProvider:
-    def test_keyword_search_uses_query_text(self):
+    def test_with_issns_uses_issn_fetch(self):
+        """With ISSNs present, always fetch by ISSN (not keyword search)."""
+        from literature_monitor.providers.crossref import fetch_crossref
+
+        request = SearchRequest(
+            date_from="2026-01-01",
+            date_to="2026-12-31",
+            keywords=["carbon"],
+            max_results_per_source=10,
+        )
+
+        with patch(
+            "literature_monitor.providers.crossref.fetch_recent_papers"
+        ) as fetch:
+            fetch.return_value = []
+            fetch_crossref(request, ["1234-5678"])
+
+        # Should use ISSN-based fetch, not keyword search
+        fetch.assert_called_once()
+        assert fetch.call_args.kwargs["issns"] == ["1234-5678"]
+        assert fetch.call_args.kwargs["from_date"] == "2026-01-01"
+
+    def test_without_issns_uses_keyword_search(self):
+        """Without ISSNs, use keyword search API."""
         from literature_monitor.providers.crossref import fetch_crossref
 
         request = SearchRequest(
@@ -778,7 +801,7 @@ class TestCrossrefProvider:
             "literature_monitor.providers.crossref.search_crossref_page"
         ) as search:
             search.return_value = Page()
-            fetch_crossref(request, ["1234-5678"])
+            fetch_crossref(request, [])
 
         assert search.call_args.args[0].query == "carbon"
 
