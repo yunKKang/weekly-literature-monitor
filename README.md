@@ -1,6 +1,6 @@
 # Weekly Literature Monitor
 
-Automated weekly monitoring of academic publications for **GFCF (Gross Fixed Capital Formation) environmental impact research**. Creates GitHub Issues with relevant new papers.
+Automated weekly monitoring and manual search of academic publications for **GFCF (Gross Fixed Capital Formation) environmental impact research**. Features a local web workbench for manual literature search across Crossref and OpenAlex, plus automated weekly GitHub Issues.
 
 ## Core Pain Point
 
@@ -105,7 +105,24 @@ The system captures papers that may not explicitly use "GFCF" but discuss relate
 
 ## Quick Start
 
-### Manual Run (Local)
+### Web Workbench (Manual Search)
+
+```bash
+python -m venv .venv && .venv/bin/pip install -e ".[test]"
+.venv/bin/litmon init-db
+.venv/bin/litmon serve
+# Open http://127.0.0.1:8000
+```
+
+The workbench lets you create a search run interactively: select keywords, date range, journal pool, and optional synonyms/negative keywords. Results are scored using the legacy pipeline system plus BM25 text relevance, recency bonus, and journal pool matching. Export to CSV, BibTeX, or Markdown.
+
+### CLI Manual Search
+
+```bash
+.venv/bin/litmon search --date-from 2026-01-01 --date-to 2026-05-01 --keywords "capital investment,carbon" --journal-pool main_pool
+```
+
+### Weekly Automated Run (Legacy)
 
 ```bash
 cd src
@@ -133,7 +150,32 @@ weekly-literature-monitor/
 ├── config/
 │   ├── journals.json           # Journal pools (6 pools, 70+ journals)
 │   └── keywords.json           # GFCF vocabulary & pipeline definitions
-├── src/
+├── literature_monitor/         # Productized web workbench package
+│   ├── cli.py                  # CLI: serve / init-db / search
+│   ├── api/
+│   │   ├── app.py              # FastAPI application factory
+│   │   ├── routes.py           # REST endpoints
+│   │   └── schemas.py          # Pydantic request models
+│   ├── core/
+│   │   ├── models.py           # Domain dataclasses
+│   │   ├── scoring.py          # Hybrid scoring (legacy rules + BM25 + recency)
+│   │   ├── search_service.py   # Search orchestrator
+│   │   ├── dedup.py            # DOI + title deduplication
+│   │   ├── export.py           # CSV, BibTeX, Markdown export
+│   │   └── journals.py         # Journal pool resolution
+│   ├── db/
+│   │   ├── connection.py       # SQLite connection
+│   │   ├── schema.py           # DDL (5 tables + FTS5)
+│   │   └── repositories.py     # CRUD + filtering queries
+│   └── providers/
+│       ├── crossref.py         # Crossref adapter (wraps legacy)
+│       └── openalex.py         # OpenAlex REST API provider
+├── web/                        # Frontend SPA
+│   ├── index.html
+│   └── static/
+│       ├── app.js
+│       └── app.css
+├── src/                        # Legacy weekly monitor
 │   ├── weekly_monitor.py       # Main entry point
 │   ├── crossref_client.py      # Crossref API client
 │   ├── relevance_filter.py     # Pipeline-based filtering with v2.1 features
@@ -144,7 +186,8 @@ weekly-literature-monitor/
 ├── state/
 │   └── monitor_state.json      # Run state (auto-updated)
 ├── tests/
-│   └── test_monitor_reliability.py
+│   ├── test_monitor_reliability.py  # Legacy tests
+│   └── test_literature_monitor.py   # Workbench tests (71 tests)
 ├── LICENSE
 ├── pyproject.toml
 └── README.md
@@ -274,15 +317,16 @@ GitHub Issue created:
 ## Requirements
 
 - Python 3.10+
-- No external dependencies (uses only standard library)
+- Legacy weekly monitor: no external dependencies (stdlib only)
+- Web workbench: `fastapi`, `uvicorn`, `pydantic` (installed via `pip install -e .`)
 
 ## Quality Gate
 
 Run these checks before opening a pull request:
 
 ```bash
-python -m compileall src
-python -m unittest discover -s tests
+.venv/bin/python -m compileall src
+.venv/bin/python -m pytest tests/ -v
 ```
 
 The `CI` workflow runs the same checks on push and pull requests.

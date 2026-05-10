@@ -1,17 +1,563 @@
 {
-  "description": "GFCF-driven journal pools v2.2: Tiered monitoring frequency (S/A/B) for different pools",
-  "last_updated": "2026-01-26",
-  "version": "2.2",
-  "quality_criteria": "JCR Q1/Q2 or CAS Zone 1-2",
-  
+  "description": "Manual literature search journal pools v2.3: legacy GFCF pools plus high-quality environmental and sustainability pools",
+  "last_updated": "2026-05-09",
+  "version": "2.4",
+  "quality_criteria": "High-quality candidate pools target JCR Q1/Q2 or CAS Zone 1-2; rankings are annual and should be re-verified before formal evaluation use.",
   "monitoring_tiers": {
     "description": "Monitoring frequency tiers: S=weekly (7d), A=biweekly (14d), B=monthly (30d)",
-    "S": {"frequency_days": 7, "description": "High-priority: Nature/Science family, domain flagships"},
-    "A": {"frequency_days": 14, "description": "Core Q1 journals"},
-    "B": {"frequency_days": 30, "description": "Supplementary/niche journals"}
+    "S": {
+      "frequency_days": 7,
+      "description": "High-priority: Nature/Science family, domain flagships"
+    },
+    "A": {
+      "frequency_days": 14,
+      "description": "Core Q1 journals"
+    },
+    "B": {
+      "frequency_days": 30,
+      "description": "Supplementary/niche journals"
+    }
   },
-  
   "pools": {
+    "pool_environment_high_quality": {
+      "name": "High-Quality Environmental & Sustainability Journals",
+      "name_zh": "高水平环境与可持续发展期刊池",
+      "description": "Candidate journal pool for environmental science, environmental engineering, environmental planning and management, resource/environment studies, remote sensing, sustainability, environmental economics, and broad multidisciplinary journals. Target quality: JCR Q1/Q2 or CAS Zone 1-2; verify against the latest annual ranking before formal evaluation use.",
+      "description_zh": "覆盖环境科学、环境工程、环境规划与管理、资源与环境、环境遥感、可持续发展、环境经济及综合性高水平期刊。目标质量为 JCR Q1/Q2 或中科院 1-2 区；正式评价使用前需按最新年度分区校准。",
+      "priority": 1,
+      "tier": "S",
+      "quality": "High-quality candidate pool: JCR Q1/Q2 or CAS Zone 1-2 target, annual verification required",
+      "categories": {
+        "environmental_science_engineering": {
+          "name": "Environmental Science & Engineering",
+          "name_zh": "环境科学与环境工程",
+          "quality": "High-quality candidate: JCR Q1/Q2 or CAS Zone 1-2 target",
+          "journals": [
+            {
+              "issn": "0013-936X",
+              "title": "Environmental Science & Technology",
+              "publisher": "ACS"
+            },
+            {
+              "issn": "2162-9570",
+              "title": "Environmental Science & Technology Letters",
+              "publisher": "ACS"
+            },
+            {
+              "issn": "0043-1354",
+              "title": "Water Research",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0301-4797",
+              "title": "Journal of Environmental Management",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0269-7491",
+              "title": "Environmental Pollution",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0048-9697",
+              "title": "Science of the Total Environment",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2589-9155",
+              "title": "Environment International",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2213-3437",
+              "title": "Journal of Environmental Chemical Engineering",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0944-1344",
+              "title": "Environmental Science and Pollution Research",
+              "publisher": "Springer"
+            },
+            {
+              "issn": "1093-4529",
+              "title": "Environmental Engineering Science",
+              "publisher": "Mary Ann Liebert"
+            }
+          ]
+        },
+        "environmental_planning_management_policy": {
+          "name": "Environmental Planning, Management & Policy",
+          "name_zh": "环境规划、管理与政策",
+          "quality": "High-quality candidate: JCR Q1/Q2 or CAS Zone 1-2 target",
+          "journals": [
+            {
+              "issn": "0959-3780",
+              "title": "Global Environmental Change",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1462-9011",
+              "title": "Environmental Science & Policy",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0301-4797",
+              "title": "Journal of Environmental Management",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0264-8377",
+              "title": "Land Use Policy",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2212-0963",
+              "title": "Earth System Governance",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1469-3062",
+              "title": "Climate Policy",
+              "publisher": "Taylor & Francis"
+            },
+            {
+              "issn": "0959-3330",
+              "title": "Environmental Politics",
+              "publisher": "Taylor & Francis"
+            },
+            {
+              "issn": "1523-908X",
+              "title": "Environmental Practice",
+              "publisher": "Taylor & Francis"
+            }
+          ]
+        },
+        "resources_environment_remote_sensing": {
+          "name": "Resources, Environment & Remote Sensing",
+          "name_zh": "资源环境与遥感",
+          "quality": "High-quality candidate: JCR Q1/Q2 or CAS Zone 1-2 target",
+          "journals": [
+            {
+              "issn": "0921-3449",
+              "title": "Resources, Conservation and Recycling",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0921-8009",
+              "title": "Ecological Economics",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0034-4257",
+              "title": "Remote Sensing of Environment",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1569-8432",
+              "title": "International Journal of Applied Earth Observation and Geoinformation",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2072-4292",
+              "title": "Remote Sensing",
+              "publisher": "MDPI"
+            },
+            {
+              "issn": "2095-7564",
+              "title": "Journal of Resources and Ecology",
+              "publisher": "Science Press"
+            },
+            {
+              "issn": "1002-0160",
+              "title": "Journal of Natural Resources",
+              "publisher": "Science Press"
+            },
+            {
+              "issn": "1007-6301",
+              "title": "Resources Science",
+              "publisher": "Science Press"
+            }
+          ]
+        },
+        "sustainability_environmental_economics": {
+          "name": "Sustainability & Environmental Economics",
+          "name_zh": "可持续发展与环境经济",
+          "quality": "High-quality candidate: JCR Q1/Q2 or CAS Zone 1-2 target",
+          "journals": [
+            {
+              "issn": "2398-9629",
+              "title": "Nature Sustainability",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2590-3322",
+              "title": "One Earth",
+              "publisher": "Cell Press"
+            },
+            {
+              "issn": "2352-5509",
+              "title": "Sustainable Production and Consumption",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0959-6526",
+              "title": "Journal of Cleaner Production",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2210-4224",
+              "title": "Environmental Innovation and Societal Transitions",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0095-0696",
+              "title": "Journal of Environmental Economics and Management",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1750-6816",
+              "title": "Review of Environmental Economics and Policy",
+              "publisher": "Oxford University Press"
+            },
+            {
+              "issn": "0924-6460",
+              "title": "Resource and Energy Economics",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0140-9883",
+              "title": "Energy Economics",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1862-4057",
+              "title": "Sustainability Science",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2731-9814",
+              "title": "npj Climate Action",
+              "publisher": "Springer Nature"
+            }
+          ]
+        },
+        "climate_earth_multidisciplinary": {
+          "name": "Climate, Earth & Multidisciplinary Journals",
+          "name_zh": "气候、地球科学与综合性期刊",
+          "quality": "Top-tier and high-quality candidate journals",
+          "journals": [
+            {
+              "issn": "0028-0836",
+              "title": "Nature",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "0036-8075",
+              "title": "Science",
+              "publisher": "AAAS"
+            },
+            {
+              "issn": "0027-8424",
+              "title": "PNAS",
+              "publisher": "NAS"
+            },
+            {
+              "issn": "2041-1723",
+              "title": "Nature Communications",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2375-2548",
+              "title": "Science Advances",
+              "publisher": "AAAS"
+            },
+            {
+              "issn": "1758-678X",
+              "title": "Nature Climate Change",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "1752-0894",
+              "title": "Nature Geoscience",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "1748-9326",
+              "title": "Environmental Research Letters",
+              "publisher": "IOP"
+            },
+            {
+              "issn": "2662-4435",
+              "title": "Communications Earth & Environment",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "1543-5938",
+              "title": "Annual Review of Environment and Resources",
+              "publisher": "Annual Reviews"
+            }
+          ]
+        },
+        "water_hydrology_resources": {
+          "name": "Water, Hydrology & Water Resources",
+          "name_zh": "水文、水资源与水环境",
+          "quality": "High-quality environmental field journals",
+          "journals": [
+            {
+              "issn": "0022-1694",
+              "title": "Journal of Hydrology",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2731-6084",
+              "title": "Nature Water",
+              "publisher": "Springer Nature"
+            }
+          ]
+        },
+        "atmosphere_air_quality": {
+          "name": "Atmosphere & Air Quality",
+          "name_zh": "大气环境与空气质量",
+          "quality": "High-quality environmental field journals",
+          "journals": [
+            {
+              "issn": "1352-2310",
+              "title": "Atmospheric Environment",
+              "publisher": "Elsevier"
+            }
+          ]
+        },
+        "environmental_health_toxicology": {
+          "name": "Environmental Health, Toxicology & Hazardous Materials",
+          "name_zh": "环境健康、毒理与危险材料",
+          "quality": "High-quality environmental field journals",
+          "journals": [
+            {
+              "issn": "0013-9351",
+              "title": "Environmental Research",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2542-5196",
+              "title": "The Lancet Planetary Health",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0304-3894",
+              "title": "Journal of Hazardous Materials",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0045-6535",
+              "title": "Chemosphere",
+              "publisher": "Elsevier"
+            }
+          ]
+        },
+        "environmental_modelling_data": {
+          "name": "Environmental Modelling, Software & Earth System Data",
+          "name_zh": "环境建模、软件与地球系统数据",
+          "quality": "High-quality environmental field journals",
+          "journals": [
+            {
+              "issn": "1364-8152",
+              "title": "Environmental Modelling & Software",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1866-3516",
+              "title": "Earth System Science Data",
+              "publisher": "Copernicus Publications"
+            }
+          ]
+        },
+        "urban_environment_sustainability": {
+          "name": "Urban Environment & Sustainability",
+          "name_zh": "城市环境与城市可持续发展",
+          "quality": "High-quality environmental field journals",
+          "journals": [
+            {
+              "issn": "0169-2046",
+              "title": "Landscape and Urban Planning",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2212-0955",
+              "title": "Urban Climate",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2661-8001",
+              "title": "npj Urban Sustainability",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2731-9997",
+              "title": "Nature Cities",
+              "publisher": "Springer Nature"
+            }
+          ]
+        }
+      }
+    },
+    "pool_algal_bloom_ml": {
+      "name": "Algal Blooms + Machine Learning Topic Pool",
+      "name_zh": "藻华与机器学习专题期刊池",
+      "description": "Topic pool for algal blooms, harmful algal blooms, cyanobacterial blooms, bloom forecasting, remote sensing, aquatic ecology, marine/coastal systems, ecological informatics, and geospatial machine learning. Includes the full high-quality environmental pool plus topical aquatic, marine, ecological informatics, and remote-sensing journals.",
+      "description_zh": "用于藻华/有害藻华/蓝藻水华、藻华预测预警、遥感监测、水生态、海洋与海岸系统、生态信息学和地理空间机器学习检索。包含完整高水平环境期刊池，并补充藻华、水生态、海洋、生态信息学和遥感专题期刊。",
+      "priority": 1,
+      "tier": "S",
+      "quality": "Topical pool; journal quality is acceptable for discovery and can be narrowed during review/export.",
+      "includes_pool_ids": [
+        "pool_environment_high_quality"
+      ],
+      "categories": {
+        "aquatic_blooms_limnology": {
+          "name": "Aquatic Blooms, Limnology & Freshwater Ecology",
+          "name_zh": "藻华、湖沼学与淡水生态",
+          "journals": [
+            {
+              "issn": "1568-9883",
+              "title": "Harmful Algae",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2211-9264",
+              "title": "Algal Research",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0018-8158",
+              "title": "Hydrobiologia",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "0046-5070",
+              "title": "Freshwater Biology",
+              "publisher": "Wiley"
+            },
+            {
+              "issn": "0024-3590",
+              "title": "Limnology and Oceanography",
+              "publisher": "Wiley"
+            },
+            {
+              "issn": "1541-5856",
+              "title": "Limnology and Oceanography: Methods",
+              "publisher": "Wiley"
+            },
+            {
+              "issn": "2044-2041",
+              "title": "Inland Waters",
+              "publisher": "Taylor & Francis"
+            },
+            {
+              "issn": "1015-1621",
+              "title": "Aquatic Sciences",
+              "publisher": "Springer Nature"
+            }
+          ]
+        },
+        "marine_coastal_blooms": {
+          "name": "Marine, Coastal & Ocean Bloom Systems",
+          "name_zh": "海洋、海岸与近海藻华系统",
+          "journals": [
+            {
+              "issn": "0025-326X",
+              "title": "Marine Pollution Bulletin",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0272-7714",
+              "title": "Estuarine, Coastal and Shelf Science",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0171-8630",
+              "title": "Marine Ecology Progress Series",
+              "publisher": "Inter-Research"
+            },
+            {
+              "issn": "1385-1101",
+              "title": "Journal of Sea Research",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0964-5691",
+              "title": "Ocean & Coastal Management",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2296-7745",
+              "title": "Frontiers in Marine Science",
+              "publisher": "Frontiers"
+            }
+          ]
+        },
+        "ecological_informatics_monitoring": {
+          "name": "Ecological Informatics & Environmental Monitoring",
+          "name_zh": "生态信息学与环境监测",
+          "journals": [
+            {
+              "issn": "1470-160X",
+              "title": "Ecological Indicators",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1574-9541",
+              "title": "Ecological Informatics",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0167-6369",
+              "title": "Environmental Monitoring and Assessment",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2296-665X",
+              "title": "Frontiers in Environmental Science",
+              "publisher": "Frontiers"
+            }
+          ]
+        },
+        "remote_sensing_geospatial_ml": {
+          "name": "Remote Sensing, Geospatial AI & Earth Observation",
+          "name_zh": "遥感、地理空间 AI 与地球观测",
+          "journals": [
+            {
+              "issn": "0924-2716",
+              "title": "ISPRS Journal of Photogrammetry and Remote Sensing",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0196-2892",
+              "title": "IEEE Transactions on Geoscience and Remote Sensing",
+              "publisher": "IEEE"
+            },
+            {
+              "issn": "1548-1603",
+              "title": "GIScience & Remote Sensing",
+              "publisher": "Taylor & Francis"
+            },
+            {
+              "issn": "2352-9385",
+              "title": "Remote Sensing Applications: Society and Environment",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2666-0172",
+              "title": "Science of Remote Sensing",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1939-1404",
+              "title": "IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing",
+              "publisher": "IEEE"
+            }
+          ]
+        }
+      }
+    },
     "main_pool": {
       "name": "Main Pool: GFCF x Environmental Impact Accounting",
       "description": "Core journals for investment/capital formation environmental footprint research",
@@ -22,41 +568,110 @@
           "name": "Industrial Ecology & LCA Core",
           "quality": "Q1",
           "journals": [
-            {"issn": "1088-1980", "title": "Journal of Industrial Ecology", "publisher": "Wiley"},
-            {"issn": "0948-3349", "title": "International Journal of Life Cycle Assessment", "publisher": "Springer"},
-            {"issn": "0921-3449", "title": "Resources, Conservation and Recycling", "publisher": "Elsevier"},
-            {"issn": "0953-5314", "title": "Economic Systems Research", "publisher": "Taylor & Francis", "note": "Core MRIO journal"},
-            {"issn": "2352-5509", "title": "Sustainable Production and Consumption", "publisher": "Elsevier"}
+            {
+              "issn": "1088-1980",
+              "title": "Journal of Industrial Ecology",
+              "publisher": "Wiley"
+            },
+            {
+              "issn": "0948-3349",
+              "title": "International Journal of Life Cycle Assessment",
+              "publisher": "Springer"
+            },
+            {
+              "issn": "0921-3449",
+              "title": "Resources, Conservation and Recycling",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0953-5314",
+              "title": "Economic Systems Research",
+              "publisher": "Taylor & Francis",
+              "note": "Core MRIO journal"
+            },
+            {
+              "issn": "2352-5509",
+              "title": "Sustainable Production and Consumption",
+              "publisher": "Elsevier"
+            }
           ]
         },
         "environmental_science": {
           "name": "Environmental Science & Technology",
           "quality": "Q1",
           "journals": [
-            {"issn": "0013-936X", "title": "Environmental Science & Technology", "publisher": "ACS"},
-            {"issn": "2162-9570", "title": "Environmental Science & Technology Letters", "publisher": "ACS"},
-            {"issn": "2590-3322", "title": "One Earth", "publisher": "Cell Press"},
-            {"issn": "2589-9155", "title": "Environment International", "publisher": "Elsevier"},
-            {"issn": "1748-9326", "title": "Environmental Research Letters", "publisher": "IOP"}
+            {
+              "issn": "0013-936X",
+              "title": "Environmental Science & Technology",
+              "publisher": "ACS"
+            },
+            {
+              "issn": "2162-9570",
+              "title": "Environmental Science & Technology Letters",
+              "publisher": "ACS"
+            },
+            {
+              "issn": "2590-3322",
+              "title": "One Earth",
+              "publisher": "Cell Press"
+            },
+            {
+              "issn": "2589-9155",
+              "title": "Environment International",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1748-9326",
+              "title": "Environmental Research Letters",
+              "publisher": "IOP"
+            }
           ]
         },
         "nature_sustainability": {
           "name": "Nature Sustainability & Energy",
           "quality": "Top-tier",
           "journals": [
-            {"issn": "2398-9629", "title": "Nature Sustainability", "publisher": "Springer Nature"},
-            {"issn": "2058-7546", "title": "Nature Energy", "publisher": "Springer Nature"},
-            {"issn": "1758-6798", "title": "Nature Climate Change", "publisher": "Springer Nature"},
-            {"issn": "2662-4435", "title": "Communications Earth & Environment", "publisher": "Springer Nature"}
+            {
+              "issn": "2398-9629",
+              "title": "Nature Sustainability",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2058-7546",
+              "title": "Nature Energy",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "1758-6798",
+              "title": "Nature Climate Change",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2662-4435",
+              "title": "Communications Earth & Environment",
+              "publisher": "Springer Nature"
+            }
           ]
         },
         "global_environmental": {
           "name": "Global Environmental Change",
           "quality": "Q1",
           "journals": [
-            {"issn": "0959-3780", "title": "Global Environmental Change", "publisher": "Elsevier"},
-            {"issn": "0959-6526", "title": "Journal of Cleaner Production", "publisher": "Elsevier"},
-            {"issn": "0921-8009", "title": "Ecological Economics", "publisher": "Elsevier"}
+            {
+              "issn": "0959-3780",
+              "title": "Global Environmental Change",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0959-6526",
+              "title": "Journal of Cleaner Production",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0921-8009",
+              "title": "Ecological Economics",
+              "publisher": "Elsevier"
+            }
           ]
         },
         "energy_systems": {
@@ -64,15 +679,30 @@
           "quality": "Q1",
           "note": "Critical for investment-driven decarbonization research",
           "journals": [
-            {"issn": "0306-2619", "title": "Applied Energy", "publisher": "Elsevier"},
-            {"issn": "0360-5442", "title": "Energy", "publisher": "Elsevier"},
-            {"issn": "1364-0321", "title": "Renewable and Sustainable Energy Reviews", "publisher": "Elsevier"},
-            {"issn": "2542-4351", "title": "Joule", "publisher": "Cell Press"}
+            {
+              "issn": "0306-2619",
+              "title": "Applied Energy",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0360-5442",
+              "title": "Energy",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1364-0321",
+              "title": "Renewable and Sustainable Energy Reviews",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2542-4351",
+              "title": "Joule",
+              "publisher": "Cell Press"
+            }
           ]
         }
       }
     },
-
     "pool_a1_sna_capital": {
       "name": "Pool A1: SNA/National Accounts & Capital Measurement (Core)",
       "description": "Narrow, high-precision: SNA methodology, capital stock, PIM, depreciation, asset boundaries",
@@ -84,10 +714,28 @@
           "name": "National Accounts & Income Measurement",
           "quality": "Q1-Q2",
           "journals": [
-            {"issn": "1475-4991", "title": "Review of Income and Wealth", "publisher": "Wiley", "note": "Key SNA/capital measurement journal"},
-            {"issn": "0034-6535", "title": "Review of Economics and Statistics", "publisher": "MIT Press"},
-            {"issn": "1572-3097", "title": "Journal of Productivity Analysis", "publisher": "Springer", "note": "Capital services, TFP"},
-            {"issn": "0165-1765", "title": "Economics Letters", "publisher": "Elsevier"}
+            {
+              "issn": "1475-4991",
+              "title": "Review of Income and Wealth",
+              "publisher": "Wiley",
+              "note": "Key SNA/capital measurement journal"
+            },
+            {
+              "issn": "0034-6535",
+              "title": "Review of Economics and Statistics",
+              "publisher": "MIT Press"
+            },
+            {
+              "issn": "1572-3097",
+              "title": "Journal of Productivity Analysis",
+              "publisher": "Springer",
+              "note": "Capital services, TFP"
+            },
+            {
+              "issn": "0165-1765",
+              "title": "Economics Letters",
+              "publisher": "Elsevier"
+            }
           ]
         },
         "intangibles_ipp": {
@@ -95,14 +743,26 @@
           "quality": "Q1-Q2",
           "note": "Software, databases, R&D capital, data capitalization",
           "journals": [
-            {"issn": "0048-7333", "title": "Research Policy", "publisher": "Elsevier"},
-            {"issn": "0167-6245", "title": "Information Economics and Policy", "publisher": "Elsevier"},
-            {"issn": "0304-405X", "title": "Journal of Financial Economics", "publisher": "Elsevier", "note": "Intangible asset valuation"}
+            {
+              "issn": "0048-7333",
+              "title": "Research Policy",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0167-6245",
+              "title": "Information Economics and Policy",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0304-405X",
+              "title": "Journal of Financial Economics",
+              "publisher": "Elsevier",
+              "note": "Intangible asset valuation"
+            }
           ]
         }
       }
     },
-
     "pool_a2_macro_growth": {
       "name": "Pool A2: Macro Growth & Productivity (Broad)",
       "description": "Broader scope: Economic growth, productivity, development - lower monitoring frequency",
@@ -114,16 +774,35 @@
           "name": "Growth & Development Economics",
           "quality": "Q1-Q2",
           "journals": [
-            {"issn": "0022-1996", "title": "Journal of International Economics", "publisher": "Elsevier"},
-            {"issn": "0304-3878", "title": "Journal of Development Economics", "publisher": "Elsevier"},
-            {"issn": "1094-2025", "title": "Review of Economic Dynamics", "publisher": "Elsevier"},
-            {"issn": "0014-2921", "title": "European Economic Review", "publisher": "Elsevier"},
-            {"issn": "0022-166X", "title": "Journal of Human Resources", "publisher": "UW Press"}
+            {
+              "issn": "0022-1996",
+              "title": "Journal of International Economics",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0304-3878",
+              "title": "Journal of Development Economics",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1094-2025",
+              "title": "Review of Economic Dynamics",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0014-2921",
+              "title": "European Economic Review",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0022-166X",
+              "title": "Journal of Human Resources",
+              "publisher": "UW Press"
+            }
           ]
         }
       }
     },
-
     "pool_b_built_environment": {
       "name": "Pool B: Built Environment, Infrastructure Networks & Transport",
       "description": "Buildings, infrastructure networks, transport systems, construction materials, urban systems",
@@ -134,21 +813,57 @@
           "name": "Building & Construction",
           "quality": "Q1-Q2",
           "journals": [
-            {"issn": "0360-1323", "title": "Building and Environment", "publisher": "Elsevier"},
-            {"issn": "0378-7788", "title": "Energy and Buildings", "publisher": "Elsevier"},
-            {"issn": "0926-5805", "title": "Automation in Construction", "publisher": "Elsevier"},
-            {"issn": "0950-0618", "title": "Construction and Building Materials", "publisher": "Elsevier"}
+            {
+              "issn": "0360-1323",
+              "title": "Building and Environment",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0378-7788",
+              "title": "Energy and Buildings",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0926-5805",
+              "title": "Automation in Construction",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0950-0618",
+              "title": "Construction and Building Materials",
+              "publisher": "Elsevier"
+            }
           ]
         },
         "infrastructure_urban": {
           "name": "Infrastructure & Urban Systems",
           "quality": "Q1-Q2",
           "journals": [
-            {"issn": "0301-4215", "title": "Energy Policy", "publisher": "Elsevier"},
-            {"issn": "0264-2751", "title": "Cities", "publisher": "Elsevier"},
-            {"issn": "0197-3975", "title": "Habitat International", "publisher": "Elsevier"},
-            {"issn": "2210-6707", "title": "Sustainable Cities and Society", "publisher": "Elsevier"},
-            {"issn": "0959-6526", "title": "Journal of Cleaner Production", "publisher": "Elsevier"}
+            {
+              "issn": "0301-4215",
+              "title": "Energy Policy",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0264-2751",
+              "title": "Cities",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0197-3975",
+              "title": "Habitat International",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2210-6707",
+              "title": "Sustainable Cities and Society",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0959-6526",
+              "title": "Journal of Cleaner Production",
+              "publisher": "Elsevier"
+            }
           ]
         },
         "transport_networks": {
@@ -156,10 +871,26 @@
           "quality": "Q1-Q2",
           "note": "Road/rail/aviation infrastructure investment & emissions",
           "journals": [
-            {"issn": "1361-9209", "title": "Transportation Research Part D: Transport and Environment", "publisher": "Elsevier"},
-            {"issn": "0965-8564", "title": "Transportation Research Part A: Policy and Practice", "publisher": "Elsevier"},
-            {"issn": "0967-070X", "title": "Transport Policy", "publisher": "Elsevier"},
-            {"issn": "2095-7564", "title": "Journal of Traffic and Transportation Engineering", "publisher": "Elsevier"}
+            {
+              "issn": "1361-9209",
+              "title": "Transportation Research Part D: Transport and Environment",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0965-8564",
+              "title": "Transportation Research Part A: Policy and Practice",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0967-070X",
+              "title": "Transport Policy",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2095-7564",
+              "title": "Journal of Traffic and Transportation Engineering",
+              "publisher": "Elsevier"
+            }
           ]
         },
         "power_grid_water": {
@@ -167,22 +898,41 @@
           "quality": "Q1-Q2",
           "note": "Electricity grid, water/wastewater systems",
           "journals": [
-            {"issn": "0142-0615", "title": "International Journal of Electrical Power & Energy Systems", "publisher": "Elsevier"},
-            {"issn": "0043-1354", "title": "Water Research", "publisher": "Elsevier"},
-            {"issn": "0921-8009", "title": "Ecological Economics", "publisher": "Elsevier"}
+            {
+              "issn": "0142-0615",
+              "title": "International Journal of Electrical Power & Energy Systems",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0043-1354",
+              "title": "Water Research",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0921-8009",
+              "title": "Ecological Economics",
+              "publisher": "Elsevier"
+            }
           ]
         },
         "materials_cement_steel": {
           "name": "Industrial Materials (Cement, Steel, Aluminum)",
           "quality": "Q1-Q2",
           "journals": [
-            {"issn": "0008-8846", "title": "Cement and Concrete Research", "publisher": "Elsevier"},
-            {"issn": "1359-6462", "title": "Scripta Materialia", "publisher": "Elsevier"}
+            {
+              "issn": "0008-8846",
+              "title": "Cement and Concrete Research",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1359-6462",
+              "title": "Scripta Materialia",
+              "publisher": "Elsevier"
+            }
           ]
         }
       }
     },
-
     "pool_c_digital_infrastructure": {
       "name": "Pool C: Digital Infrastructure, Datacenters & ICT",
       "description": "ICT capital, datacenters, cloud computing, AI infrastructure, semiconductor supply chain",
@@ -194,11 +944,31 @@
           "name": "Datacenter & Computing Sustainability",
           "quality": "Q1-Q2",
           "journals": [
-            {"issn": "2210-5379", "title": "Sustainable Computing: Informatics and Systems", "publisher": "Elsevier"},
-            {"issn": "0743-7315", "title": "Journal of Parallel and Distributed Computing", "publisher": "Elsevier"},
-            {"issn": "0167-739X", "title": "Future Generation Computer Systems", "publisher": "Elsevier"},
-            {"issn": "2325-5870", "title": "ACM Computing Surveys", "publisher": "ACM"},
-            {"issn": "0885-7458", "title": "Journal of Supercomputing", "publisher": "Springer"}
+            {
+              "issn": "2210-5379",
+              "title": "Sustainable Computing: Informatics and Systems",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0743-7315",
+              "title": "Journal of Parallel and Distributed Computing",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0167-739X",
+              "title": "Future Generation Computer Systems",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2325-5870",
+              "title": "ACM Computing Surveys",
+              "publisher": "ACM"
+            },
+            {
+              "issn": "0885-7458",
+              "title": "Journal of Supercomputing",
+              "publisher": "Springer"
+            }
           ]
         },
         "ict_energy_environment": {
@@ -206,19 +976,48 @@
           "quality": "Q1-Q2",
           "note": "AI/ML energy, semiconductor manufacturing, e-waste",
           "journals": [
-            {"issn": "0140-9883", "title": "Energy Economics", "publisher": "Elsevier"},
-            {"issn": "2542-4351", "title": "Joule", "publisher": "Cell Press"},
-            {"issn": "2666-3864", "title": "Cell Reports Physical Science", "publisher": "Cell Press"},
-            {"issn": "0272-1732", "title": "IEEE Micro", "publisher": "IEEE", "note": "Semiconductor/chip efficiency"}
+            {
+              "issn": "0140-9883",
+              "title": "Energy Economics",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "2542-4351",
+              "title": "Joule",
+              "publisher": "Cell Press"
+            },
+            {
+              "issn": "2666-3864",
+              "title": "Cell Reports Physical Science",
+              "publisher": "Cell Press"
+            },
+            {
+              "issn": "0272-1732",
+              "title": "IEEE Micro",
+              "publisher": "IEEE",
+              "note": "Semiconductor/chip efficiency"
+            }
           ]
         },
         "communications_networks": {
           "name": "Communications & Network Infrastructure",
           "quality": "Q1-Q2",
           "journals": [
-            {"issn": "1389-1286", "title": "Computer Networks", "publisher": "Elsevier"},
-            {"issn": "1084-8045", "title": "Journal of Network and Computer Applications", "publisher": "Elsevier"},
-            {"issn": "0890-8044", "title": "IEEE Network", "publisher": "IEEE"}
+            {
+              "issn": "1389-1286",
+              "title": "Computer Networks",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1084-8045",
+              "title": "Journal of Network and Computer Applications",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "0890-8044",
+              "title": "IEEE Network",
+              "publisher": "IEEE"
+            }
           ]
         },
         "conferences": {
@@ -226,19 +1025,50 @@
           "quality": "Top-tier conferences",
           "note": "Conference papers via container-title search",
           "conferences": [
-            {"container_title": "SIGCOMM", "full_name": "ACM SIGCOMM Conference", "publisher": "ACM"},
-            {"container_title": "ISCA", "full_name": "International Symposium on Computer Architecture", "publisher": "ACM/IEEE"},
-            {"container_title": "MICRO", "full_name": "IEEE/ACM International Symposium on Microarchitecture", "publisher": "IEEE/ACM"},
-            {"container_title": "ASPLOS", "full_name": "Architectural Support for Programming Languages and Operating Systems", "publisher": "ACM"},
-            {"container_title": "HPCA", "full_name": "IEEE International Symposium on High-Performance Computer Architecture", "publisher": "IEEE"},
-            {"container_title": "SC", "full_name": "International Conference for High Performance Computing", "publisher": "ACM/IEEE"},
-            {"container_title": "e-Energy", "full_name": "ACM International Conference on Future Energy Systems", "publisher": "ACM"},
-            {"container_title": "HotCarbon", "full_name": "Workshop on Sustainable Computer Systems", "publisher": "ACM"}
+            {
+              "container_title": "SIGCOMM",
+              "full_name": "ACM SIGCOMM Conference",
+              "publisher": "ACM"
+            },
+            {
+              "container_title": "ISCA",
+              "full_name": "International Symposium on Computer Architecture",
+              "publisher": "ACM/IEEE"
+            },
+            {
+              "container_title": "MICRO",
+              "full_name": "IEEE/ACM International Symposium on Microarchitecture",
+              "publisher": "IEEE/ACM"
+            },
+            {
+              "container_title": "ASPLOS",
+              "full_name": "Architectural Support for Programming Languages and Operating Systems",
+              "publisher": "ACM"
+            },
+            {
+              "container_title": "HPCA",
+              "full_name": "IEEE International Symposium on High-Performance Computer Architecture",
+              "publisher": "IEEE"
+            },
+            {
+              "container_title": "SC",
+              "full_name": "International Conference for High Performance Computing",
+              "publisher": "ACM/IEEE"
+            },
+            {
+              "container_title": "e-Energy",
+              "full_name": "ACM International Conference on Future Energy Systems",
+              "publisher": "ACM"
+            },
+            {
+              "container_title": "HotCarbon",
+              "full_name": "Workshop on Sustainable Computer Systems",
+              "publisher": "ACM"
+            }
           ]
         }
       }
     },
-
     "pool_general_high_impact": {
       "name": "General High-Impact Journals",
       "description": "Broad-scope top-tier journals that publish cross-disciplinary research",
@@ -249,83 +1079,441 @@
           "name": "Nature & Science Family",
           "quality": "Top-tier",
           "journals": [
-            {"issn": "0028-0836", "title": "Nature", "publisher": "Springer Nature"},
-            {"issn": "2041-1723", "title": "Nature Communications", "publisher": "Springer Nature"},
-            {"issn": "1752-0894", "title": "Nature Geoscience", "publisher": "Springer Nature"},
-            {"issn": "2524-7941", "title": "Nature Food", "publisher": "Springer Nature"},
-            {"issn": "0036-8075", "title": "Science", "publisher": "AAAS"},
-            {"issn": "2375-2548", "title": "Science Advances", "publisher": "AAAS"},
-            {"issn": "0027-8424", "title": "PNAS", "publisher": "NAS"}
+            {
+              "issn": "0028-0836",
+              "title": "Nature",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2041-1723",
+              "title": "Nature Communications",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "1752-0894",
+              "title": "Nature Geoscience",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "2524-7941",
+              "title": "Nature Food",
+              "publisher": "Springer Nature"
+            },
+            {
+              "issn": "0036-8075",
+              "title": "Science",
+              "publisher": "AAAS"
+            },
+            {
+              "issn": "2375-2548",
+              "title": "Science Advances",
+              "publisher": "AAAS"
+            },
+            {
+              "issn": "0027-8424",
+              "title": "PNAS",
+              "publisher": "NAS"
+            }
           ]
         },
         "environmental_economics": {
           "name": "Environmental Economics & Policy",
           "quality": "Q1",
           "journals": [
-            {"issn": "0095-0696", "title": "Journal of Environmental Economics and Management", "publisher": "Elsevier"},
-            {"issn": "1750-6816", "title": "Review of Environmental Economics and Policy", "publisher": "Oxford"},
-            {"issn": "1469-3062", "title": "Climate Policy", "publisher": "Taylor & Francis"},
-            {"issn": "2212-0963", "title": "Earth System Governance", "publisher": "Elsevier"},
-            {"issn": "1543-5938", "title": "Annual Review of Environment and Resources", "publisher": "Annual Reviews"}
+            {
+              "issn": "0095-0696",
+              "title": "Journal of Environmental Economics and Management",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1750-6816",
+              "title": "Review of Environmental Economics and Policy",
+              "publisher": "Oxford"
+            },
+            {
+              "issn": "1469-3062",
+              "title": "Climate Policy",
+              "publisher": "Taylor & Francis"
+            },
+            {
+              "issn": "2212-0963",
+              "title": "Earth System Governance",
+              "publisher": "Elsevier"
+            },
+            {
+              "issn": "1543-5938",
+              "title": "Annual Review of Environment and Resources",
+              "publisher": "Annual Reviews"
+            }
           ]
         }
       }
     }
   },
-
   "issn_list": [
-    "1088-1980", "0948-3349", "0921-3449", "0953-5314", "2352-5509",
-    "0013-936X", "2162-9570", "2590-3322", "2589-9155", "1748-9326",
-    "2398-9629", "2058-7546", "1758-6798", "2662-4435",
-    "0959-3780", "0959-6526", "0921-8009",
-    "0306-2619", "0360-5442", "1364-0321", "2542-4351",
-    "1475-4991", "0034-6535", "1572-3097", "0165-1765",
-    "0048-7333", "0167-6245", "0304-405X",
-    "0022-1996", "0304-3878", "1094-2025", "0014-2921", "0022-166X",
-    "0360-1323", "0378-7788", "0926-5805", "0950-0618",
-    "0301-4215", "0264-2751", "0197-3975", "2210-6707",
-    "1361-9209", "0965-8564", "0967-070X", "2095-7564",
-    "0142-0615", "0043-1354",
-    "0008-8846", "1359-6462",
-    "2210-5379", "0743-7315", "0167-739X", "2325-5870", "0885-7458",
-    "0140-9883", "2666-3864", "0272-1732",
-    "1389-1286", "1084-8045", "0890-8044",
-    "0028-0836", "2041-1723", "1752-0894", "2524-7941",
-    "0036-8075", "2375-2548", "0027-8424",
-    "0095-0696", "1750-6816", "1469-3062", "2212-0963", "1543-5938"
+    "0013-936X",
+    "2162-9570",
+    "0043-1354",
+    "0301-4797",
+    "0269-7491",
+    "0048-9697",
+    "2589-9155",
+    "2213-3437",
+    "0944-1344",
+    "1093-4529",
+    "0959-3780",
+    "1462-9011",
+    "0264-8377",
+    "2212-0963",
+    "1469-3062",
+    "0959-3330",
+    "1523-908X",
+    "0921-3449",
+    "0921-8009",
+    "0034-4257",
+    "1569-8432",
+    "2072-4292",
+    "2095-7564",
+    "1002-0160",
+    "1007-6301",
+    "2398-9629",
+    "2590-3322",
+    "2352-5509",
+    "0959-6526",
+    "2210-4224",
+    "0095-0696",
+    "1750-6816",
+    "0924-6460",
+    "0140-9883",
+    "1862-4057",
+    "2731-9814",
+    "0028-0836",
+    "0036-8075",
+    "0027-8424",
+    "2041-1723",
+    "2375-2548",
+    "1758-678X",
+    "1752-0894",
+    "1748-9326",
+    "2662-4435",
+    "1543-5938",
+    "0022-1694",
+    "2731-6084",
+    "1352-2310",
+    "0013-9351",
+    "2542-5196",
+    "0304-3894",
+    "0045-6535",
+    "1364-8152",
+    "1866-3516",
+    "0169-2046",
+    "2212-0955",
+    "2661-8001",
+    "2731-9997",
+    "1568-9883",
+    "2211-9264",
+    "0018-8158",
+    "0046-5070",
+    "0024-3590",
+    "1541-5856",
+    "2044-2041",
+    "1015-1621",
+    "0025-326X",
+    "0272-7714",
+    "0171-8630",
+    "1385-1101",
+    "0964-5691",
+    "2296-7745",
+    "1470-160X",
+    "1574-9541",
+    "0167-6369",
+    "2296-665X",
+    "0924-2716",
+    "0196-2892",
+    "1548-1603",
+    "2352-9385",
+    "2666-0172",
+    "1939-1404",
+    "1088-1980",
+    "0948-3349",
+    "0953-5314",
+    "2058-7546",
+    "1758-6798",
+    "0306-2619",
+    "0360-5442",
+    "1364-0321",
+    "2542-4351",
+    "1475-4991",
+    "0034-6535",
+    "1572-3097",
+    "0165-1765",
+    "0048-7333",
+    "0167-6245",
+    "0304-405X",
+    "0022-1996",
+    "0304-3878",
+    "1094-2025",
+    "0014-2921",
+    "0022-166X",
+    "0360-1323",
+    "0378-7788",
+    "0926-5805",
+    "0950-0618",
+    "0301-4215",
+    "0264-2751",
+    "0197-3975",
+    "2210-6707",
+    "1361-9209",
+    "0965-8564",
+    "0967-070X",
+    "0142-0615",
+    "0008-8846",
+    "1359-6462",
+    "2210-5379",
+    "0743-7315",
+    "0167-739X",
+    "2325-5870",
+    "0885-7458",
+    "2666-3864",
+    "0272-1732",
+    "1389-1286",
+    "1084-8045",
+    "0890-8044",
+    "2524-7941"
   ],
-
   "pool_issn_mapping": {
+    "pool_environment_high_quality": [
+      "0013-936X",
+      "2162-9570",
+      "0043-1354",
+      "0301-4797",
+      "0269-7491",
+      "0048-9697",
+      "2589-9155",
+      "2213-3437",
+      "0944-1344",
+      "1093-4529",
+      "0959-3780",
+      "1462-9011",
+      "0264-8377",
+      "2212-0963",
+      "1469-3062",
+      "0959-3330",
+      "1523-908X",
+      "0921-3449",
+      "0921-8009",
+      "0034-4257",
+      "1569-8432",
+      "2072-4292",
+      "2095-7564",
+      "1002-0160",
+      "1007-6301",
+      "2398-9629",
+      "2590-3322",
+      "2352-5509",
+      "0959-6526",
+      "2210-4224",
+      "0095-0696",
+      "1750-6816",
+      "0924-6460",
+      "0140-9883",
+      "1862-4057",
+      "2731-9814",
+      "0028-0836",
+      "0036-8075",
+      "0027-8424",
+      "2041-1723",
+      "2375-2548",
+      "1758-678X",
+      "1752-0894",
+      "1748-9326",
+      "2662-4435",
+      "1543-5938",
+      "0022-1694",
+      "2731-6084",
+      "1352-2310",
+      "0013-9351",
+      "2542-5196",
+      "0304-3894",
+      "0045-6535",
+      "1364-8152",
+      "1866-3516",
+      "0169-2046",
+      "2212-0955",
+      "2661-8001",
+      "2731-9997"
+    ],
+    "pool_algal_bloom_ml": [
+      "0013-936X",
+      "2162-9570",
+      "0043-1354",
+      "0301-4797",
+      "0269-7491",
+      "0048-9697",
+      "2589-9155",
+      "2213-3437",
+      "0944-1344",
+      "1093-4529",
+      "0959-3780",
+      "1462-9011",
+      "0264-8377",
+      "2212-0963",
+      "1469-3062",
+      "0959-3330",
+      "1523-908X",
+      "0921-3449",
+      "0921-8009",
+      "0034-4257",
+      "1569-8432",
+      "2072-4292",
+      "2095-7564",
+      "1002-0160",
+      "1007-6301",
+      "2398-9629",
+      "2590-3322",
+      "2352-5509",
+      "0959-6526",
+      "2210-4224",
+      "0095-0696",
+      "1750-6816",
+      "0924-6460",
+      "0140-9883",
+      "1862-4057",
+      "2731-9814",
+      "0028-0836",
+      "0036-8075",
+      "0027-8424",
+      "2041-1723",
+      "2375-2548",
+      "1758-678X",
+      "1752-0894",
+      "1748-9326",
+      "2662-4435",
+      "1543-5938",
+      "0022-1694",
+      "2731-6084",
+      "1352-2310",
+      "0013-9351",
+      "2542-5196",
+      "0304-3894",
+      "0045-6535",
+      "1364-8152",
+      "1866-3516",
+      "0169-2046",
+      "2212-0955",
+      "2661-8001",
+      "2731-9997",
+      "1568-9883",
+      "2211-9264",
+      "0018-8158",
+      "0046-5070",
+      "0024-3590",
+      "1541-5856",
+      "2044-2041",
+      "1015-1621",
+      "0025-326X",
+      "0272-7714",
+      "0171-8630",
+      "1385-1101",
+      "0964-5691",
+      "2296-7745",
+      "1470-160X",
+      "1574-9541",
+      "0167-6369",
+      "2296-665X",
+      "0924-2716",
+      "0196-2892",
+      "1548-1603",
+      "2352-9385",
+      "2666-0172",
+      "1939-1404"
+    ],
     "main_pool": [
-      "1088-1980", "0948-3349", "0921-3449", "0953-5314", "2352-5509",
-      "0013-936X", "2162-9570", "2590-3322", "2589-9155", "1748-9326",
-      "2398-9629", "2058-7546", "1758-6798", "2662-4435",
-      "0959-3780", "0959-6526", "0921-8009",
-      "0306-2619", "0360-5442", "1364-0321", "2542-4351"
+      "1088-1980",
+      "0948-3349",
+      "0921-3449",
+      "0953-5314",
+      "2352-5509",
+      "0013-936X",
+      "2162-9570",
+      "2590-3322",
+      "2589-9155",
+      "1748-9326",
+      "2398-9629",
+      "2058-7546",
+      "1758-6798",
+      "2662-4435",
+      "0959-3780",
+      "0959-6526",
+      "0921-8009",
+      "0306-2619",
+      "0360-5442",
+      "1364-0321",
+      "2542-4351"
     ],
     "pool_a1_sna_capital": [
-      "1475-4991", "0034-6535", "1572-3097", "0165-1765",
-      "0048-7333", "0167-6245", "0304-405X"
+      "1475-4991",
+      "0034-6535",
+      "1572-3097",
+      "0165-1765",
+      "0048-7333",
+      "0167-6245",
+      "0304-405X"
     ],
     "pool_a2_macro_growth": [
-      "0022-1996", "0304-3878", "1094-2025", "0014-2921", "0022-166X"
+      "0022-1996",
+      "0304-3878",
+      "1094-2025",
+      "0014-2921",
+      "0022-166X"
     ],
     "pool_b_built_environment": [
-      "0360-1323", "0378-7788", "0926-5805", "0950-0618",
-      "0301-4215", "0264-2751", "0197-3975", "2210-6707", "0959-6526",
-      "1361-9209", "0965-8564", "0967-070X", "2095-7564",
-      "0142-0615", "0043-1354", "0921-8009",
-      "0008-8846", "1359-6462"
+      "0360-1323",
+      "0378-7788",
+      "0926-5805",
+      "0950-0618",
+      "0301-4215",
+      "0264-2751",
+      "0197-3975",
+      "2210-6707",
+      "0959-6526",
+      "1361-9209",
+      "0965-8564",
+      "0967-070X",
+      "2095-7564",
+      "0142-0615",
+      "0043-1354",
+      "0921-8009",
+      "0008-8846",
+      "1359-6462"
     ],
     "pool_c_digital_infrastructure": [
-      "2210-5379", "0743-7315", "0167-739X", "2325-5870", "0885-7458",
-      "0140-9883", "2542-4351", "2666-3864", "0272-1732",
-      "1389-1286", "1084-8045", "0890-8044"
+      "2210-5379",
+      "0743-7315",
+      "0167-739X",
+      "2325-5870",
+      "0885-7458",
+      "0140-9883",
+      "2542-4351",
+      "2666-3864",
+      "0272-1732",
+      "1389-1286",
+      "1084-8045",
+      "0890-8044"
     ],
     "pool_general_high_impact": [
-      "0028-0836", "2041-1723", "1752-0894", "2524-7941",
-      "0036-8075", "2375-2548", "0027-8424",
-      "0095-0696", "1750-6816", "1469-3062", "2212-0963", "1543-5938"
+      "0028-0836",
+      "2041-1723",
+      "1752-0894",
+      "2524-7941",
+      "0036-8075",
+      "2375-2548",
+      "0027-8424",
+      "0095-0696",
+      "1750-6816",
+      "1469-3062",
+      "2212-0963",
+      "1543-5938"
     ]
   }
 }

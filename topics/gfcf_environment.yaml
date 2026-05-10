@@ -1,0 +1,288 @@
+# GFCF Environmental Impact — capital formation × environmental footprint research
+id: gfcf_environment
+name: GFCF Environmental Impact
+description: >
+  Capital formation (GFCF) and its environmental footprint research.
+  Covers investment-related carbon, water, material, land, biodiversity,
+  nitrogen, and energy footprints. Includes MRIO/EEIO methods, trade
+  implications, and policy pathways.
+version: "2.1"
+author: weekly-literature-monitor
+tags: [gfcf, environmental, capital, footprint, mrio]
+
+date_range:
+  date_from: "2020-01-01"
+
+journal_pool_ids:
+  - main_pool
+  - gfcf
+  - sna
+  - built_environment
+  - digital
+
+keyword_sets:
+  - name: investment_terms
+    description: >
+      Core GFCF and capital formation vocabulary (63 patterns).
+      These are the "capital/investment" side of the hard threshold.
+    keywords:
+      # Core GFCF
+      - "GFCF"
+      - "GCF"
+      - "FCF"
+      - "FBCF"
+      - "gross fixed capital formation"
+      - "capital formation"
+      - "fixed capital"
+      # Investment
+      - "investment"
+      - "fixed investment"
+      - "capital expenditure"
+      - "CAPEX"
+      - "capital goods"
+      - "capital spending"
+      - "infrastructure investment"
+      # Capital Stock
+      - "capital stock"
+      - "net stock"
+      - "capital accumulation"
+      - "capital deepening"
+      - "capital intensity"
+      # Depreciation
+      - "depreciation"
+      - "CFC"
+      - "consumption of fixed capital"
+      - "scrappage"
+      - "retirement"
+      - "decommissioning"
+      # Lifetime/PIM
+      - "perpetual inventory method"
+      - "PIM"
+      - "asset lifetime"
+      - "service life"
+      - "vintage"
+      # Capital Services
+      - "capital services"
+      - "KLEMS"
+      - "PWT"
+      - "Penn World Table"
+      # Capitalization
+      - "capitalization"
+      - "capitalized"
+      - "data capitalization"
+
+  - name: environmental_impact
+    description: Environmental footprint and impact vocabulary — multi-footprint coverage.
+    keywords:
+      # Carbon
+      - "carbon"
+      - "GHG"
+      - "CO2"
+      - "emissions"
+      - "embodied"
+      - "carbon accounting"
+      - "carbon footprint"
+      # Water
+      - "water footprint"
+      - "virtual water"
+      - "embodied water"
+      # Material
+      - "material footprint"
+      - "embodied materials"
+      # Land
+      - "land footprint"
+      - "land use change"
+      - "ecological footprint"
+      # Biodiversity
+      - "biodiversity footprint"
+      - "biodiversity loss"
+      # Nitrogen
+      - "nitrogen footprint"
+      # Energy
+      - "energy footprint"
+      - "embodied energy"
+      # Upfront
+      - "upfront emissions"
+      - "upfront carbon"
+
+  - name: mrio_eeio
+    description: MRIO/EEIO method terms.
+    keywords:
+      - "MRIO"
+      - "multi-regional input-output"
+      - "multi regional input output"
+      - "EEIO"
+      - "environmentally extended input-output"
+      - "input-output analysis"
+      - "IO analysis"
+      - "input output"
+      - "Leontief"
+      - "exiobase"
+      - "EXIOBASE"
+      - "GTAP"
+      - "WIOD"
+      - "ICIO"
+      - "OECD ICIO"
+
+  - name: trade_globalization
+    description: Trade, globalization, and cross-border transfer terms.
+    keywords:
+      - "trade"
+      - "international trade"
+      - "embodied trade"
+      - "virtual trade"
+      - "globalization"
+      - "globalization"
+      - "cross-border"
+      - "emission transfer"
+      - "responsibility allocation"
+
+  - name: policy_scenarios
+    description: Policy, scenarios, and transition pathway terms.
+    keywords:
+      - "scenario"
+      - "pathway"
+      - "decarbonization"
+      - "decarbonisation"
+      - "net-zero"
+      - "net zero"
+      - "lock-in"
+      - "lock in"
+      - "stranded assets"
+      - "transition risk"
+      - "carbon neutrality"
+      - "climate policy"
+
+  - name: asset_types
+    description: SNA asset type categories for consistency check.
+    keywords:
+      # Structures
+      - "buildings"
+      - "construction"
+      - "infrastructure"
+      - "civil engineering"
+      - "built environment"
+      - "housing"
+      # Machinery & Equipment
+      - "machinery"
+      - "industrial equipment"
+      - "plant and equipment"
+      - "capital equipment"
+      # Transport Equipment
+      - "vehicles"
+      - "fleet"
+      - "aircraft"
+      - "ships"
+      - "rolling stock"
+      - "trucks"
+      # ICT Equipment
+      - "servers"
+      - "semiconductors"
+      - "computers"
+      - "hardware"
+      - "GPU"
+      - "TPU"
+      - "processors"
+      # Intangibles
+      - "software"
+      - "databases"
+      - "data assets"
+      - "R&D capital"
+      - "intellectual property"
+      - "organizational capital"
+      - "digital assets"
+
+  - name: bonus_terms
+    description: Extra scoring terms (supplementary themes).
+    keywords:
+      # Digital Infrastructure (+5)
+      - "datacenters"
+      - "data centers"
+      - "cloud computing"
+      - "AI infrastructure"
+      - "hyperscale"
+      - "PUE"
+      - "WUE"
+      - "liquid cooling"
+      - "GPU energy"
+      - "LLM"
+      # Material Resources (+3)
+      - "circular economy"
+      - "steel"
+      - "cement"
+      - "aluminum"
+      - "copper"
+      - "rare earth"
+      # Water & Land (+3)
+      - "virtual water"
+      - "land use"
+
+pipelines:
+  - name: "GFCF x Environmental Impact"
+    description: "Core pipeline: investment/capital terms + environmental footprint terms"
+    priority: 1
+    hard_threshold:
+      required_sets: [investment_terms, environmental_impact]
+    keyword_sets: [investment_terms, environmental_impact, bonus_terms]
+    bonus_terms:
+      - "datacenter"
+      - "circular economy"
+    negative_keywords:
+      - "portfolio"
+      - "stock market"
+      - "hedge fund"
+      - "mutual fund"
+      - "asset pricing"
+      - "equity return"
+      - "dividend"
+      - "financial return"
+      - "ESG score"
+      - "ESG rating"
+
+  - name: "GFCF x MRIO/EEIO"
+    description: "Investment + IO methods"
+    priority: 2
+    hard_threshold:
+      required_sets: [investment_terms, mrio_eeio]
+    keyword_sets: [investment_terms, mrio_eeio]
+    negative_keywords:
+      - "portfolio"
+      - "stock market"
+      - "hedge fund"
+      - "mutual fund"
+
+  - name: "GFCF x Trade"
+    description: "Investment + trade/globalization"
+    priority: 3
+    hard_threshold:
+      required_sets: [investment_terms, trade_globalization]
+    keyword_sets: [investment_terms, trade_globalization]
+    negative_keywords: []
+
+  - name: "GFCF x Policy"
+    description: "Investment + policy/scenario pathways"
+    priority: 4
+    hard_threshold:
+      required_sets: [investment_terms, policy_scenarios]
+    keyword_sets: [investment_terms, policy_scenarios]
+    negative_keywords:
+      - "asset pricing"
+      - "equity return"
+
+scoring:
+  title_weight: 8
+  abstract_weight: 5
+  high_threshold: 20
+  medium_threshold: 12
+  negative_penalty: 20
+  consistency_check: true
+
+exporters:
+  - type: github_issue
+    enabled: true
+  - type: markdown
+    enabled: true
+  - type: csv
+    enabled: true
+  - type: bibtex
+    enabled: true

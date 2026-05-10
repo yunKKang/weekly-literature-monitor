@@ -1,0 +1,2 @@
+"""Productized literature search package."""
+

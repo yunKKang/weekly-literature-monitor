@@ -1,0 +1,152 @@
+# Algal Blooms + Machine Learning — cross-domain preset
+id: algal_bloom_ml
+name: "Algal Blooms + Machine Learning"
+description: >
+  HABs, cyanobacterial blooms, remote sensing, prediction,
+  monitoring, and machine learning cross-domain research.
+version: "1.0"
+author: weekly-literature-monitor
+tags: [algal-bloom, ml, remote-sensing, water-quality]
+
+date_range:
+  date_from: "2020-01-01"
+
+journal_pool_ids:
+  - pool_algal_bloom_ml
+
+keyword_sets:
+  - name: algal_bloom_terms
+    description: Core algal bloom terminology
+    keywords:
+      - "algal bloom"
+      - "harmful algal bloom"
+      - "HAB"
+      - "HABs"
+      - "cyanobacterial bloom"
+      - "cyanobacteria"
+      - "blue-green algae"
+      - "phytoplankton bloom"
+      - "red tide"
+      - "green tide"
+      - "Microcystis"
+      - "chlorophyll-a"
+      - "Chl-a"
+      - "phycocyanin"
+      - "microcystin"
+      - "eutrophication"
+      - "bloom dynamics"
+      - "bloom detection"
+      - "bloom monitoring"
+      - "bloom prediction"
+      - "bloom forecasting"
+
+  - name: ml_terms
+    description: Machine learning and AI methodology terms
+    keywords:
+      - "machine learning"
+      - "deep learning"
+      - "artificial intelligence"
+      - "neural network"
+      - "CNN"
+      - "RNN"
+      - "LSTM"
+      - "GRU"
+      - "Transformer"
+      - "random forest"
+      - "support vector machine"
+      - "SVM"
+      - "XGBoost"
+      - "LightGBM"
+      - "gradient boosting"
+      - "ensemble learning"
+      - "explainable AI"
+      - "XAI"
+      - "SHAP"
+      - "prediction"
+      - "forecasting"
+      - "early warning"
+      - "nowcasting"
+      - "detection"
+      - "classification"
+      - "regression"
+      - "clustering"
+
+  - name: remote_sensing_terms
+    description: Remote sensing and satellite observation terms
+    keywords:
+      - "remote sensing"
+      - "satellite"
+      - "ocean color"
+      - "Sentinel-2"
+      - "Sentinel-3"
+      - "Landsat"
+      - "MODIS"
+      - "hyperspectral"
+      - "multispectral"
+      - "spectral indices"
+      - "NDVI"
+      - "FAI"
+      - "NDCI"
+      - "cyanobacteria index"
+      - "water quality monitoring"
+      - "drone"
+      - "UAV"
+
+  - name: water_quality_terms
+    description: Water quality and aquatic environment terms
+    keywords:
+      - "water quality"
+      - "lake"
+      - "reservoir"
+      - "river"
+      - "coastal"
+      - "freshwater"
+      - "aquatic"
+      - "trophic state"
+      - "nutrient loading"
+      - "phosphorus"
+      - "nitrogen"
+      - "dissolved oxygen"
+      - "turbidity"
+      - "water temperature"
+
+pipelines:
+  - name: "Algal Bloom x ML Detection"
+    description: "Core pipeline: algal bloom terms + ML/AI methodology"
+    priority: 1
+    hard_threshold:
+      required_sets: [algal_bloom_terms, ml_terms]
+    keyword_sets: [algal_bloom_terms, ml_terms, remote_sensing_terms]
+    negative_keywords: []
+
+  - name: "Algal Bloom x Remote Sensing"
+    description: "Algal bloom monitoring with remote sensing + data analysis"
+    priority: 2
+    hard_threshold:
+      required_sets: [algal_bloom_terms, remote_sensing_terms]
+    keyword_sets: [algal_bloom_terms, remote_sensing_terms]
+    negative_keywords: []
+
+  - name: "HAB Prediction"
+    description: "Harmful algal bloom early warning and forecasting"
+    priority: 3
+    hard_threshold:
+      required_sets: [algal_bloom_terms, water_quality_terms]
+    keyword_sets: [algal_bloom_terms, water_quality_terms]
+    negative_keywords: []
+
+scoring:
+  title_weight: 8
+  abstract_weight: 5
+  high_threshold: 20
+  medium_threshold: 12
+  negative_penalty: 20
+  consistency_check: false
+
+exporters:
+  - type: markdown
+    enabled: true
+  - type: csv
+    enabled: true
+  - type: bibtex
+    enabled: true

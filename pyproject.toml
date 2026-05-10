@@ -1,7 +1,7 @@
 [project]
 name = "weekly-literature-monitor"
-version = "2.1.0"
-description = "Automated Crossref-based literature monitoring for GFCF environmental impact research."
+version = "2.2.0"
+description = "Literature monitoring workbench: manual search across Crossref and OpenAlex with scoring, dedup, and export."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
@@ -14,6 +14,23 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: Information Analysis",
 ]
+dependencies = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+    "pydantic>=2.0.0",
+    "pyyaml>=6.0",
+    "httpx>=0.24.0",
+    "aiosqlite>=0.19.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0", "pytest-asyncio>=0.21.0"]
+
+[project.scripts]
+litmon = "literature_monitor.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["literature_monitor*"]
 
 [tool.ruff]
 line-length = 88
@@ -21,3 +38,6 @@ target-version = "py310"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

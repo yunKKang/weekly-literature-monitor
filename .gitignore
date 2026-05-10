@@ -3,6 +3,9 @@ state/*.json
 !state/monitor_state.json
 obsidian-exports/
 
+# database
+data/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -46,3 +49,5 @@ Thumbs.db
 
 # Logs
 *.log
+baseline/*.json
+data/literature_monitor.sqlite3

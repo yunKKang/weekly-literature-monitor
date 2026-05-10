@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Literature Search Workbench</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/static/app.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="search-panel">
+        <div class="brand">
+          <span class="brand-mark">W</span>
+          <div>
+            <h1 data-i18n="appTitle">Literature Search</h1>
+            <p data-i18n="appSubtitle">Manual Crossref and OpenAlex search.</p>
+          </div>
+        </div>
+        <div class="language-switch" aria-label="Language">
+          <button type="button" data-lang="en" class="active">EN</button>
+          <button type="button" data-lang="zh">中文</button>
+        </div>
+
+        <form id="search-form">
+          <label>
+            <span data-i18n="topicPreset">Topic Preset</span>
+            <select id="topic-presets"></select>
+          </label>
+
+          <label>
+            <span data-i18n="keywords">Keywords</span>
+            <input
+              name="keywords"
+              data-i18n-placeholder="keywordsPlaceholder"
+              placeholder="climate adaptation, wastewater treatment, remote sensing"
+            />
+          </label>
+
+          <div class="row">
+            <label>
+              <span data-i18n="from">From</span>
+              <input type="date" name="date_from" required />
+            </label>
+            <label>
+              <span data-i18n="to">To</span>
+              <input type="date" name="date_to" required />
+            </label>
+          </div>
+
+          <label>
+            <span data-i18n="journalPool">Journal Pool</span>
+            <select name="journal_pool_ids" id="journal-pools"></select>
+          </label>
+
+          <details>
+            <summary data-i18n="advanced">Advanced</summary>
+            <label>
+              <span data-i18n="synonyms">Synonyms</span>
+              <input name="synonyms" data-i18n-placeholder="commaSeparated" placeholder="comma separated" />
+            </label>
+            <label>
+              <span data-i18n="negativeKeywords">Negative Keywords</span>
+              <input name="negative_keywords" data-i18n-placeholder="negativePlaceholder" placeholder="portfolio, stock market" />
+            </label>
+            <label>
+              <span data-i18n="issn">ISSN</span>
+              <input name="journal_issns" placeholder="1088-1980, 0953-5314" />
+            </label>
+            <label class="check-label">
+              <input type="checkbox" name="include_conferences" />
+              <span data-i18n="includeConferences">Include conferences</span>
+            </label>
+            <div class="row">
+              <label>
+                <span data-i18n="maxResults">Max results/source</span>
+                <input
+                  type="number"
+                  name="max_results_per_source"
+                  value="100"
+                  min="1"
+                  max="200"
+                />
+              </label>
+              <label>
+                <span data-i18n="minScore">Min score</span>
+                <input type="number" name="min_score" value="0" min="0" />
+              </label>
+            </div>
+          </details>
+
+          <button class="primary-action" type="submit" data-i18n="search">Search</button>
+        </form>
+      </section>
+
+      <section class="results-panel">
+        <header class="results-header">
+          <div>
+            <p class="eyebrow" data-i18n="results">Results</p>
+            <h2 data-i18n="rankedPapers">Ranked Papers</h2>
+          </div>
+          <div class="status" id="status" data-i18n="ready">Ready.</div>
+        </header>
+
+        <div class="toolbar">
+          <div class="filters">
+            <select id="filter-relevance">
+              <option value="" data-i18n="allRelevance">All relevance</option>
+              <option>HIGH</option>
+              <option>MEDIUM</option>
+              <option>LOW</option>
+            </select>
+            <select id="filter-sort">
+              <option value="score" data-i18n="sortScore">Sort: Score</option>
+              <option value="date" data-i18n="sortDate">Sort: Date</option>
+              <option value="title" data-i18n="sortTitle">Sort: Title</option>
+            </select>
+            <input id="filter-keyword" data-i18n-placeholder="filterKeyword" placeholder="Keyword" />
+            <input id="filter-journal" data-i18n-placeholder="filterJournal" placeholder="Journal" />
+            <input id="filter-year" data-i18n-placeholder="filterYear" placeholder="Year" />
+            <label class="check-label"><input type="checkbox" id="filter-has-doi" /> <span>DOI</span></label>
+            <label class="check-label">
+              <input type="checkbox" id="filter-has-abstract" />
+              <span data-i18n="abstract">Abstract</span>
+            </label>
+            <button id="refresh-results" type="button" data-i18n="apply">Apply</button>
+          </div>
+
+          <div class="exports" aria-label="Export results">
+            <button id="export-csv" class="secondary" type="button">CSV</button>
+            <button id="export-bibtex" class="secondary" type="button">BibTeX</button>
+            <button id="export-markdown" class="secondary" type="button">Markdown</button>
+          </div>
+        </div>
+
+        <div class="table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th data-i18n="title">Title</th>
+                <th data-i18n="journal">Journal</th>
+                <th data-i18n="year">Year</th>
+                <th data-i18n="relevance">Relevance</th>
+                <th data-i18n="score">Score</th>
+                <th data-i18n="links">Links</th>
+              </tr>
+            </thead>
+            <tbody id="results-body">
+              <tr><td colspan="6" class="empty" data-i18n="emptyInitial">Run a search to see results.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pagination" id="pagination" hidden>
+          <button id="page-prev" type="button" disabled>&#8592; <span data-i18n="prev">Prev</span></button>
+          <span id="page-info">0 results</span>
+          <button id="page-next" type="button" disabled><span data-i18n="next">Next</span> &#8594;</button>
+        </div>
+      </section>
+    </main>
+
+    <aside class="detail" id="detail" aria-hidden="true">
+      <button id="close-detail" class="close" type="button" data-i18n="close">Close</button>
+      <div id="detail-content"></div>
+    </aside>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
