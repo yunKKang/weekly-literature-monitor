@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 import tempfile
 from pathlib import Path
 from unittest.mock import patch
@@ -10,10 +9,6 @@ from unittest.mock import patch
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SRC = ROOT / "src"
-# Ensure legacy src is on path for imports used by literature_monitor.compat
-if str(SRC) not in sys.path:
-    sys.path.insert(0, str(SRC))
 
 from literature_monitor.core.dedup import (  # noqa: E402
     deduplicate_records,

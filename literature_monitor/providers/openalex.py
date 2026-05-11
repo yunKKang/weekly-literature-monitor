@@ -6,14 +6,13 @@ import json
 import urllib.parse
 from typing import Any
 
-from literature_monitor.compat import SRC  # noqa: F401
 from literature_monitor.core.models import (
     Paper,
     PaperSourceRecord,
     ProviderPaper,
     SearchRequest,
 )
-from paper_utils import clean_abstract, clean_title, fetch_url, normalize_doi
+from literature_monitor.core.utils import clean_abstract, clean_title, fetch_url, normalize_doi
 
 OPENALEX_WORKS = "https://api.openalex.org/works"
 OPENALEX_PER_PAGE_MAX = 200

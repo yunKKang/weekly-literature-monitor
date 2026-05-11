@@ -13,7 +13,6 @@ import asyncio
 from typing import Any
 
 from literature_monitor.core.models import ProviderPaper, SearchRequest
-from literature_monitor.compat import SRC  # noqa: F401  # ensures src/ on sys.path
 from literature_monitor.providers.crossref import (
     fetch_crossref,
     fetch_crossref_conferences,

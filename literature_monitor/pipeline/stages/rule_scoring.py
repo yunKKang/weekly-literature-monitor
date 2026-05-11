@@ -58,11 +58,11 @@ class RuleScoringStage:
     def _get_kw_config(self):
         """Lazy-load and cache keyword config."""
         if self._kw_config is None:
-            from literature_monitor.compat import CONFIG_DIR
-            from relevance_filter import load_keyword_config
+            from literature_monitor.config import CONFIG_DIR
+            from literature_monitor.core.relevance_filter import load_keyword_config
 
             from pathlib import Path
-            config_path = self.keyword_config_path or str(CONFIG_DIR / "keywords.json")
+            config_path = self.keyword_config_path or str(Path(__file__).resolve().parent.parent.parent.parent / "config" / "keywords.json")
             self._kw_config = load_keyword_config(Path(config_path))
         return self._kw_config
 
@@ -70,7 +70,7 @@ class RuleScoringStage:
         if not self.use_legacy:
             return state
 
-        from relevance_filter import score_paper
+        from literature_monitor.core.relevance_filter import score_paper
 
         kw_config = self._get_kw_config()
         result = score_paper(state.title, state.abstract, kw_config)

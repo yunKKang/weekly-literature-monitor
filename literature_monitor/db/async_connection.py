@@ -7,7 +7,8 @@ from pathlib import Path
 
 import aiosqlite
 
-from literature_monitor.compat import ROOT
+from pathlib import Path
+ROOT = Path(__file__).resolve().parent.parent.parent
 
 DEFAULT_DB_PATH = ROOT / "data" / "literature_monitor.sqlite3"
 

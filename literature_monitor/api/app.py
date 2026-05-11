@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from literature_monitor.compat import WEB_DIR
+from pathlib import Path
+WEB_DIR = Path(__file__).resolve().parent.parent.parent / "web"
 from literature_monitor.db.connection import connect
 from literature_monitor.db.schema import init_db
 

@@ -5,8 +5,7 @@ from __future__ import annotations
 import re
 from collections import defaultdict
 
-from literature_monitor.compat import SRC  # noqa: F401
-from paper_utils import normalize_doi
+from literature_monitor.core.utils import normalize_doi
 
 from .models import ProviderPaper
 

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from literature_monitor.compat import CONFIG_DIR, SRC  # noqa: F401
-from paper_utils import load_json
+from literature_monitor.config import CONFIG_DIR
+from literature_monitor.core.utils import load_json
 
 
 def load_topic_config() -> dict[str, Any]:

@@ -16,22 +16,20 @@ import argparse
 import hashlib
 import json
 import logging
-import sys
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent
-SRC = ROOT / "src"
-sys.path.insert(0, str(SRC))
 
-from config import config  # noqa: E402
-from paper_utils import get_issn_list, days_ago  # noqa: E402
-from crossref_client import (  # noqa: E402
+import literature_monitor.core.utils  # noqa: E401
+from literature_monitor.config import config  # noqa: E402
+from literature_monitor.core.utils import get_issn_list, days_ago  # noqa: E402
+from literature_monitor.providers.crossref_client import (  # noqa: E402
     search_crossref_page,
     SearchParams,
 )
-from relevance_filter import (  # noqa: E402
+from literature_monitor.core.relevance_filter import (  # noqa: E402
     load_keyword_config,
     filter_papers,
     score_paper,

@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import math
+from pathlib import Path
 import re
 import sqlite3
 from collections.abc import Iterable
 from datetime import datetime, timezone
 
-from literature_monitor.compat import CONFIG_DIR, SRC  # noqa: F401
-from relevance_filter import load_keyword_config, score_paper
+from literature_monitor.config import CONFIG_DIR
+from literature_monitor.core.relevance_filter import load_keyword_config, score_paper
 
 from .models import KeywordHit, Paper, ScoreResult, SearchRequest
 
@@ -24,7 +25,7 @@ def score_for_request(
     request: SearchRequest,
     selected_issns: set[str],
 ) -> ScoreResult:
-    keyword_config = load_keyword_config(CONFIG_DIR / "keywords.json")
+    keyword_config = load_keyword_config(Path(__file__).resolve().parent.parent.parent / "config" / "keywords.json")
     legacy = score_paper(paper.title, paper.abstract, keyword_config)
     is_gfcf_pool = should_apply_legacy_gfcf(request)
     if not is_gfcf_pool:

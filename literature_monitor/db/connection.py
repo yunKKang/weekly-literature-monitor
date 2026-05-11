@@ -6,7 +6,7 @@ import os
 import sqlite3
 from pathlib import Path
 
-from literature_monitor.compat import ROOT
+from literature_monitor.config import ROOT
 
 DEFAULT_DB_PATH = ROOT / "data" / "literature_monitor.sqlite3"
 

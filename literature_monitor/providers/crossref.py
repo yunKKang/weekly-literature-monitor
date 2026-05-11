@@ -1,20 +1,24 @@
 """Crossref provider adapter."""
 
 from __future__ import annotations
+from pathlib import Path
 
-from crossref_client import (
+from literature_monitor.core.utils import get_conference_titles
+from literature_monitor.providers.crossref_client import (
     SearchParams,
     fetch_conference_papers,
     fetch_recent_papers,
     search_crossref_page,
 )
-from literature_monitor.compat import CONFIG_DIR, SRC  # noqa: F401
 from literature_monitor.core.models import (
     Paper,
     PaperSourceRecord,
     ProviderPaper,
     SearchRequest,
 )
+
+# Backward-compatible path constants (no longer from compat)
+from literature_monitor.config import CONFIG_DIR
 
 
 def fetch_crossref(request: SearchRequest, issns: list[str]) -> list[ProviderPaper]:
@@ -71,9 +75,7 @@ def fetch_keyword_papers(request: SearchRequest, issns: list[str]):
 
 
 def fetch_crossref_conferences(request: SearchRequest) -> list[ProviderPaper]:
-    from paper_utils import get_conference_titles
-
-    conferences = get_conference_titles(None, CONFIG_DIR / "journals.json")
+    conferences = get_conference_titles(None, Path(__file__).resolve().parent.parent.parent / "config" / "journals.json")
     if not conferences:
         return []
     results = fetch_conference_papers(

@@ -11,7 +11,6 @@ import json
 from dataclasses import asdict
 from typing import Any
 
-from literature_monitor.compat import SRC  # noqa: F401
 from literature_monitor.core.dedup import deduplicate_records
 from literature_monitor.core.journals import resolve_issns
 from literature_monitor.core.models import (
