@@ -25,6 +25,7 @@ from literature_monitor.pipeline.stages.journal_boost import JournalBoostStage
 from literature_monitor.pipeline.stages.keyword_match import KeywordMatchStage
 from literature_monitor.pipeline.stages.negative_filter import NegativeFilterStage
 from literature_monitor.pipeline.stages.final_scoring import FinalScoringStage
+from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
 from literature_monitor.topic.schema import Topic
 
 
@@ -92,6 +93,20 @@ def build_pipeline(
     # 6. Journal boost
     if selected_issns:
         stages.append(JournalBoostStage(selected_issns))
+
+    # 6b. LLM review (optional)
+    if topic and topic.llm_review.enabled:
+        stages.append(LLMReviewStage(
+            topic_name=topic.name,
+            topic_description=topic.description,
+            provider=topic.llm_review.provider,
+            model=topic.llm_review.model,
+            min_level="MEDIUM",  # only review MEDIUM and above
+            max_papers=topic.llm_review.max_papers_per_run,
+            max_cost_usd=topic.llm_review.max_cost_usd,
+            prompt_template=topic.llm_review.prompt_template or None,
+            concurrency=topic.llm_review.concurrency,
+        ))
 
     # 7. Final scoring
     scoring = topic.scoring if topic else None
