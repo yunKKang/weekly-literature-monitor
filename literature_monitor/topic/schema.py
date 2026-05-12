@@ -113,6 +113,11 @@ class LLMReviewConfig(BaseModel):
     enabled: bool = False
     provider: str = "openai"
     model: str = "gpt-4o-mini"
+    base_url: str = Field(
+        "",
+        description="Custom API base URL for OpenAI-compatible providers. "
+        "Leave empty for official OpenAI. Examples: https://apihost.cn/v1",
+    )
     enabled_for_priorities: list[str] = Field(
         default_factory=lambda: ["HIGH", "MEDIUM"],
         description="Only run LLM review on papers with these priorities",

@@ -80,6 +80,7 @@ class LLMReviewStage:
         penalty_points: float = 100.0,
         prompt_template: str | None = None,
         api_key: str | None = None,
+        base_url: str = "",
         concurrency: int = 3,
     ) -> None:
         self.topic_name = topic_name
@@ -92,6 +93,7 @@ class LLMReviewStage:
         self.penalty_points = penalty_points
         self.prompt_template = prompt_template or DEFAULT_PROMPT
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
+        self.base_url = base_url or os.environ.get("OPENAI_BASE_URL", "")
         self.concurrency = concurrency
         self._calls_made = 0
         self._total_cost = 0.0
@@ -174,8 +176,18 @@ class LLMReviewStage:
             logger.warning("LLM review failed: %s", e)
             return None
 
+    def _resolve_url(self, path: str) -> str:
+        """Resolve API URL from base_url or provider default."""
+        if self.base_url:
+            base = self.base_url.rstrip("/")
+            # If base_url already ends with the path, use as-is
+            if base.endswith(path):
+                return base
+            return f"{base}{path}"
+        return f"https://api.openai.com/v1{path}"
+
     def _call_openai(self, prompt: str) -> dict[str, Any] | None:
-        """Call OpenAI API."""
+        """Call OpenAI-compatible API."""
         import urllib.request
         import urllib.error
 
@@ -193,7 +205,7 @@ class LLMReviewStage:
         }).encode("utf-8")
 
         req = urllib.request.Request(
-            "https://api.openai.com/v1/chat/completions",
+            self._resolve_url("/chat/completions"),
             data=body,
             headers={
                 "Authorization": f"Bearer {api_key}",
