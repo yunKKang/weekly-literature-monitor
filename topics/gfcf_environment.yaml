@@ -314,11 +314,11 @@ exporters:
 llm_review:
   enabled: true
   provider: openai
-  model: gpt-5.4-mini
+  model: v4flash
   max_papers_per_run: 30
   max_cost_usd: 2.0
   concurrency: 3
-  base_url: https://apihost.cn/v1
+  base_url: https://api.deepseek.com/v1
   prompt_template: 'You are a research assistant specializing in industrial ecology, environmental economics, and input-output
     analysis.
 
