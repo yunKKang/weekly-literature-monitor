@@ -72,6 +72,90 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
             repo.add_score(conn, search_run_id, paper_id, score)
             scored += 1
 
+    # Post-scoring: LLM review on MEDIUM+ papers
+    llm_review_count = 0
+    try:
+        from literature_monitor.topic.loader import load_topic
+        from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
+        from literature_monitor.pipeline.base import PipelineState
+
+        # Try to load topic from request's journal_pool_ids
+        topic = None
+        for pool_id in request.journal_pool_ids:
+            # Map pool IDs back to topic IDs
+            for tid in ["gfcf_environment", "algal_bloom_ml"]:
+                try:
+                    t = load_topic(tid)
+                    if any(pid in request.journal_pool_ids for pid in t.journal_pool_ids):
+                        topic = t
+                        break
+                except Exception:
+                    continue
+            if topic:
+                break
+
+        if topic and topic.llm_review.enabled:
+            llm_stage = LLMReviewStage(
+                topic_name=topic.name,
+                topic_description=topic.description,
+                provider=topic.llm_review.provider,
+                model=topic.llm_review.model,
+                base_url=topic.llm_review.base_url or "",
+                min_level="MEDIUM",
+                max_papers=topic.llm_review.max_papers_per_run,
+                max_cost_usd=topic.llm_review.max_cost_usd,
+                prompt_template=topic.llm_review.prompt_template or None,
+                concurrency=topic.llm_review.concurrency,
+            )
+
+            # Re-score MEDIUM+ papers through LLM
+            from literature_monitor.db import repositories as repo2
+            for group in grouped:
+                paper = merge_group(group)
+                paper_id = repo2.upsert_paper(conn, paper)
+                # Check if this paper was scored MEDIUM+
+                existing = conn.execute(
+                    "SELECT total_score, relevance_level, score_breakdown_json "
+                    "FROM scored_results WHERE search_run_id = ? AND paper_id = ?",
+                    (search_run_id, paper_id),
+                ).fetchone()
+                if not existing:
+                    continue
+                if existing["relevance_level"] not in ("HIGH", "MEDIUM"):
+                    continue
+
+                # Build PipelineState for LLM review
+                breakdown = json.loads(existing["score_breakdown_json"])
+                state = PipelineState(
+                    title=paper.title,
+                    abstract=paper.abstract or "",
+                    journal=paper.journal or "",
+                    year=paper.year,
+                    total_score=existing["total_score"],
+                    relevance_level=existing["relevance_level"],
+                    breakdown=breakdown,
+                )
+                result_state = llm_stage.run(state)
+
+                # If LLM changed the score/level, update DB
+                if result_state.total_score != existing["total_score"] or \
+                   result_state.relevance_level != existing["relevance_level"]:
+                    conn.execute(
+                        "UPDATE scored_results SET total_score = ?, relevance_level = ?, "
+                        "score_breakdown_json = ? WHERE search_run_id = ? AND paper_id = ?",
+                        (
+                            result_state.total_score,
+                            result_state.relevance_level,
+                            json.dumps(result_state.breakdown),
+                            search_run_id,
+                            paper_id,
+                        ),
+                    )
+                    llm_review_count += 1
+            conn.commit()
+    except Exception as e:
+        errors.append(f"llm_review: {e}")
+
     status = "partial_failed" if errors and records else "completed"
     if errors and not records:
         status = "failed"
@@ -85,6 +169,12 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
         total_scored=scored,
         completed=True,
     )
+    summary_msg = f"Scored {scored} papers"
+    if llm_review_count:
+        summary_msg += f", LLM reviewed {llm_review_count}"
+    if errors:
+        summary_msg += f", errors: {'; '.join(errors)}"
+
     return SearchSummary(
         search_run_id=search_run_id,
         status=status,
