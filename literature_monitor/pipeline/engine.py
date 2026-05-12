@@ -94,7 +94,18 @@ def build_pipeline(
     if selected_issns:
         stages.append(JournalBoostStage(selected_issns))
 
-    # 6b. LLM review (optional)
+    # 7. Final scoring (must run before LLM review so relevance_level is set)
+    scoring = topic.scoring if topic else None
+    stages.append(FinalScoringStage(
+        rule_weight=1.0,
+        text_weight=0.6,
+        legacy_high_threshold=scoring.high_threshold if scoring else 20,
+        legacy_medium_threshold=scoring.medium_threshold if scoring else 12,
+    ))
+
+    # 8. LLM review (optional — runs AFTER final scoring so it can see relevance_level)
+    # NOTE: Budget state is per-Pipeline instance. Use pipeline.run_batch()
+    # for multi-paper processing to preserve budget across papers.
     if topic and topic.llm_review.enabled:
         stages.append(LLMReviewStage(
             topic_name=topic.name,
@@ -107,15 +118,6 @@ def build_pipeline(
             prompt_template=topic.llm_review.prompt_template or None,
             concurrency=topic.llm_review.concurrency,
         ))
-
-    # 7. Final scoring
-    scoring = topic.scoring if topic else None
-    stages.append(FinalScoringStage(
-        rule_weight=1.0,
-        text_weight=0.6,
-        legacy_high_threshold=scoring.high_threshold if scoring else 20,
-        legacy_medium_threshold=scoring.medium_threshold if scoring else 12,
-    ))
 
     return Pipeline(stages)
 

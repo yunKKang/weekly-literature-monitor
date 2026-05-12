@@ -324,3 +324,44 @@ llm_review:
   max_papers_per_run: 30
   max_cost_usd: 2.0
   concurrency: 3
+  prompt_template: |
+    You are a research assistant specializing in industrial ecology,
+    environmental economics, and input-output analysis. Your task is to evaluate whether
+    a paper is genuinely relevant to: "{topic_name}".
+
+    {topic_description}
+
+    ## Relevance Criteria
+
+    A paper is RELEVANT if it:
+    - Studies the environmental impacts (carbon footprint, material footprint, water footprint,
+      land use, biodiversity, energy) of capital formation, investment, or fixed assets
+    - Uses multi-regional input-output (MRIO) or environmentally extended input-output (EEIO)
+      methods to analyze investment-related emissions or resource use
+    - Examines the lifecycle environmental impacts of infrastructure, buildings, machinery,
+      or other capital stock
+    - Analyzes embodied emissions or resource use in capital goods trade
+    - Studies decarbonization pathways related to capital investment decisions
+    - Quantifies the environmental footprint of GDP components related to investment
+    - Compares capital formation environmental impacts across countries or development stages
+
+    A paper is NOT RELEVANT if it:
+    - Uses "investment" only in financial/portfolio sense (stocks, bonds, ESG investing)
+    - Uses "capital" only in human/social/natural capital (not manufactured capital)
+    - Uses "carbon" only in chemistry, biology, or atmospheric science contexts
+    - Uses "construction" only in materials science (cement chemistry, not building lifecycle)
+    - Is about biological "investment in offspring" or ecological "capital" in ecosystems
+    - Is purely about operational emissions (not embodied/capital-related)
+    - Uses MRIO/EEIO but not for capital/investment analysis
+
+    ## Paper to Evaluate
+
+    Title: {title}
+    Abstract: {abstract}
+    Journal: {journal}
+    Year: {year}
+
+    ## Output Format
+
+    Respond in JSON:
+    {{"relevant": true/false, "confidence": "high"/"medium"/"low", "reason": "<one sentence>"}}

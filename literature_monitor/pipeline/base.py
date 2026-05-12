@@ -85,6 +85,9 @@ class Pipeline:
     Usage:
         pipeline = Pipeline([stage1, stage2, stage3])
         result = pipeline.run(initial_state)
+
+    For multi-paper processing with shared budget state (e.g., LLM review),
+    use run_batch() which reuses the same stage instances across all papers.
     """
 
     def __init__(self, stages: list[Stage]) -> None:
@@ -99,6 +102,18 @@ class Pipeline:
                 continue
             state = stage.run(state)
         return state
+
+    def run_batch(self, states: list[PipelineState]) -> list[PipelineState]:
+        """Run all states through the pipeline, reusing stage instances.
+
+        This preserves budget state (e.g., LLM call counts) across all papers.
+        Use this instead of calling run() in a loop when stages have
+        per-session state like LLM budget counters.
+        """
+        results: list[PipelineState] = []
+        for state in states:
+            results.append(self.run(state))
+        return results
 
     def describe(self) -> list[str]:
         """Return the ordered list of stage names."""

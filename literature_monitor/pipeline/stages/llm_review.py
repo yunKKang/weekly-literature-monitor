@@ -23,34 +23,12 @@ from literature_monitor.pipeline.base import PipelineState
 logger = logging.getLogger(__name__)
 
 # Default prompt template for GFCF research relevance judgment
-DEFAULT_PROMPT = """You are a research assistant specializing in industrial ecology,
-environmental economics, and input-output analysis. Your task is to evaluate whether
-a paper is genuinely relevant to the research topic: "{topic_name}".
+DEFAULT_PROMPT = """You are a research assistant helping to filter academic papers
+for relevance to a specific research topic.
 
-{topic_description}
+## Research Topic
 
-## Relevance Criteria
-
-A paper is RELEVANT if it:
-- Studies the environmental impacts (carbon footprint, material footprint, water footprint,
-  land use, biodiversity, energy) of capital formation, investment, or fixed assets
-- Uses multi-regional input-output (MRIO) or environmentally extended input-output (EEIO)
-  methods to analyze investment-related emissions or resource use
-- Examines the lifecycle environmental impacts of infrastructure, buildings, machinery,
-  or other capital stock
-- Analyzes embodied emissions or resource use in capital goods trade
-- Studies decarbonization pathways related to capital investment decisions
-- Quantifies the environmental footprint of GDP components related to investment
-- Compares capital formation environmental impacts across countries or development stages
-
-A paper is NOT RELEVANT if it:
-- Uses "investment" only in financial/portfolio sense (stocks, bonds, ESG investing)
-- Uses "capital" only in human capital, social capital, or natural capital (not manufactured capital)
-- Uses "carbon" only in chemistry, biology, or atmospheric science contexts
-- Uses "construction" only in materials science (cement chemistry, not building lifecycle)
-- Is about biological "investment in offspring" or ecological "capital" in ecosystems
-- Is purely about operational emissions (not embodied/capital-related)
-- Uses MRIO/EEIO but not for capital/investment analysis
+{topic_name}: {topic_description}
 
 ## Paper to Evaluate
 
@@ -59,14 +37,21 @@ Abstract: {abstract}
 Journal: {journal}
 Year: {year}
 
+## Your Task
+
+Based on the research topic description above, determine if this paper is genuinely
+relevant to the topic. Consider:
+- Does the paper's core research question align with the topic?
+- Does it use methods or address issues central to this research area?
+- Would a researcher in this field find this paper valuable?
+
 ## Output Format
 
 Respond in JSON:
 {{
   "relevant": true/false,
   "confidence": "high"/"medium"/"low",
-  "reason": "<one sentence explaining the judgment>",
-  "topics": ["<list of matching research themes if relevant>"]
+  "reason": "<one sentence explaining the judgment>"
 }}
 """
 
@@ -98,11 +83,7 @@ class LLMReviewStage:
         concurrency: int = 3,
     ) -> None:
         self.topic_name = topic_name
-        self.topic_description = topic_description or (
-            f"The research topic is: {topic_name}. "
-            "Evaluate whether this paper genuinely contributes to understanding "
-            "the environmental impacts of capital formation and investment."
-        )
+        self.topic_description = topic_description or topic_name
         self.provider = provider
         self.model = model
         self.min_level = min_level
@@ -227,10 +208,15 @@ class LLMReviewStage:
             logger.warning("OpenAI API error: %s", e.code)
             return None
 
-        # Estimate cost (rough: ~$0.15/1M input tokens for gpt-4o-mini)
+        # Estimate cost based on gpt-4o-mini pricing
+        # Input: $0.15/1M tokens, Output: $0.60/1M tokens
         usage = data.get("usage", {})
-        total_tokens = usage.get("total_tokens", 500)
-        self._total_cost += total_tokens * 0.15 / 1_000_000
+        prompt_tokens = usage.get("prompt_tokens", 200)
+        completion_tokens = usage.get("completion_tokens", 100)
+        self._total_cost += (
+            prompt_tokens * 0.15 / 1_000_000
+            + completion_tokens * 0.60 / 1_000_000
+        )
 
         content = data["choices"][0]["message"]["content"]
         try:

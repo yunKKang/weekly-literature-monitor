@@ -187,7 +187,7 @@ class TestLLMReviewStage:
         )
         assert "Test Topic" in prompt
         assert "Test Title" in prompt
-        assert "RELEVANT" in prompt
+        assert "relevant" in prompt.lower()
 
     @patch.object(LLMReviewStage, '_call_llm')
     def test_tracks_call_count(self, mock_call):
@@ -264,3 +264,109 @@ class TestLLMReviewWithPipeline:
         pipeline = build_pipeline(topic=topic, use_legacy=False)
         stage_names = pipeline.describe()
         assert "llm_review" not in stage_names
+
+
+class TestC1C2Fixes:
+    """Tests for Critical bug fixes C1 and C2."""
+
+    def test_c1_llm_runs_after_final_scoring(self):
+        """C1: LLM review stage must come AFTER final_scoring in the pipeline."""
+        from literature_monitor.pipeline.engine import build_pipeline
+        from literature_monitor.topic.schema import (
+            Topic, KeywordSet, PipelineConfig, HardThreshold, LLMReviewConfig
+        )
+
+        topic = Topic(
+            id="test",
+            name="Test",
+            keyword_sets=[KeywordSet(name="inv", keywords=["investment"])],
+            pipelines=[PipelineConfig(
+                name="pipe1",
+                hard_threshold=HardThreshold(required_sets=["inv"]),
+            )],
+            llm_review=LLMReviewConfig(enabled=True, model="gpt-4o-mini"),
+        )
+        pipeline = build_pipeline(topic=topic, use_legacy=True)
+        names = pipeline.describe()
+
+        # LLM review must be AFTER final_scoring
+        llm_idx = names.index("llm_review")
+        final_idx = names.index("final_scoring")
+        assert llm_idx > final_idx, (
+            f"llm_review at position {llm_idx} should be after "
+            f"final_scoring at position {final_idx}"
+        )
+
+    def test_c2_budget_persists_across_pipeline_instances(self):
+        """C2: LLM stage's budget counter persists across multiple pipeline.run() calls."""
+        from unittest.mock import patch
+        from literature_monitor.pipeline.base import PipelineState
+        from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
+
+        # Create a minimal pipeline: just FinalScoring + LLMReview
+        from literature_monitor.pipeline.stages.final_scoring import FinalScoringStage
+        from literature_monitor.pipeline.base import Pipeline
+
+        llm_stage = LLMReviewStage(
+            api_key="fake-key",
+            max_papers=2,
+            min_level="MEDIUM",
+        )
+        final_stage = FinalScoringStage()
+        pipeline = Pipeline([final_stage, llm_stage])
+
+        with patch.object(llm_stage, '_call_llm', return_value={
+            "relevant": True, "confidence": "high", "reason": "ok"
+        }):
+            # Run 5 papers through the SAME pipeline instance
+            for i in range(5):
+                state = PipelineState(
+                    title="Investment in carbon footprint of capital formation",
+                    abstract="This paper examines embodied carbon emissions in gross fixed capital formation. " * 5,
+                    year="2026",
+                    rule_score=80.0,  # HIGH score
+                    text_score=0.0,
+                    recency_score=6.0,
+                    journal_score=0.0,
+                    breakdown={"legacy_priority": "HIGH", "legacy_score": 80},
+                )
+                result = pipeline.run(state)
+
+            # Budget should be shared: only 2 out of 5 should have been reviewed
+            assert llm_stage._calls_made == 2, (
+                f"Expected 2 LLM calls (max_papers=2), got {llm_stage._calls_made}"
+            )
+
+    def test_c2_run_single_paper_still_works(self):
+        """C2: Single paper via pipeline.run() works with LLM budget tracking."""
+        from unittest.mock import patch
+        from literature_monitor.pipeline.base import PipelineState, Pipeline
+        from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
+        from literature_monitor.pipeline.stages.final_scoring import FinalScoringStage
+
+        llm_stage = LLMReviewStage(
+            api_key="fake-key",
+            max_papers=1,
+            min_level="MEDIUM",
+        )
+        final_stage = FinalScoringStage()
+        pipeline = Pipeline([final_stage, llm_stage])
+
+        with patch.object(llm_stage, '_call_llm', return_value={
+            "relevant": False, "confidence": "high", "reason": "not relevant"
+        }):
+            state = PipelineState(
+                title="Investment in carbon footprint of capital formation",
+                abstract="This paper examines embodied carbon emissions in gross fixed capital formation. " * 5,
+                year="2026",
+                rule_score=80.0,
+                text_score=0.0,
+                recency_score=6.0,
+                journal_score=0.0,
+                breakdown={"legacy_priority": "HIGH", "legacy_score": 80},
+            )
+            result = pipeline.run(state)
+
+            assert llm_stage._calls_made == 1
+            # Paper judged irrelevant → penalized
+            assert result.relevance_level == "LOW"
