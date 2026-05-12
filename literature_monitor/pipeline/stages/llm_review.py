@@ -14,6 +14,7 @@ Stage name: llm_review
 from __future__ import annotations
 
 import json
+import re
 import logging
 import os
 from typing import Any
@@ -176,6 +177,23 @@ class LLMReviewStage:
             logger.warning("LLM review failed: %s", e)
             return None
 
+    @staticmethod
+    def _parse_json_response(content: str) -> dict[str, Any] | None:
+        """Parse JSON from LLM response, stripping <think>...</think> tags if present."""
+        # Strip DeepSeek/R1 thinking tags
+        content = re.sub(r"<think>.*?</think>\s*", "", content, flags=re.DOTALL)
+        # Strip markdown code fences
+        content = re.sub(r"^```(?:json)?\s*", "", content.strip(), flags=re.MULTILINE)
+        content = re.sub(r"```\s*$", "", content.strip(), flags=re.MULTILINE)
+        content = content.strip()
+        if not content:
+            return None
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError:
+            logger.warning("LLM returned non-JSON: %s", content[:150])
+            return None
+
     def _resolve_url(self, path: str) -> str:
         """Resolve API URL from base_url or provider default."""
         if self.base_url:
@@ -199,7 +217,6 @@ class LLMReviewStage:
         body = json.dumps({
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
-            "response_format": {"type": "json_object"},
             "temperature": 0.1,
             "max_tokens": 300,
         }).encode("utf-8")
@@ -214,7 +231,7 @@ class LLMReviewStage:
         )
 
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
+            with urllib.request.urlopen(req, timeout=60) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             logger.warning("OpenAI API error: %s", e.code)
@@ -231,11 +248,7 @@ class LLMReviewStage:
         )
 
         content = data["choices"][0]["message"]["content"]
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            logger.warning("LLM returned non-JSON: %s", content[:100])
-            return None
+        return self._parse_json_response(content)
 
     def _call_anthropic(self, prompt: str) -> dict[str, Any] | None:
         """Call Anthropic API."""
@@ -271,8 +284,4 @@ class LLMReviewStage:
             return None
 
         content = data["content"][0]["text"]
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            logger.warning("LLM returned non-JSON: %s", content[:100])
-            return None
+        return self._parse_json_response(content)
