@@ -8,6 +8,14 @@ via environment variables. Other modules should import from here.
 from __future__ import annotations
 
 import os
+from pathlib import Path as _Path
+
+# Auto-load .env from project root (project-scoped secrets, not global)
+try:
+    from dotenv import load_dotenv as _load_dotenv
+    _load_dotenv(_Path(__file__).resolve().parent.parent / ".env", override=False)
+except ImportError:
+    pass  # python-dotenv not installed — skip
 
 
 class Config:
