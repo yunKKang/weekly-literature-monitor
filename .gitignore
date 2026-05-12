@@ -51,3 +51,4 @@ Thumbs.db
 *.log
 baseline/*.json
 data/literature_monitor.sqlite3
+.env
