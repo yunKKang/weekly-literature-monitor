@@ -212,7 +212,7 @@ class TestSynonymInLegacyDict:
         # gfcf_environment has no synonyms on investment_terms, but function
         # should not crash and should return valid list
         assert isinstance(inv_en, list)
-        assert len(inv_en) >= 40
+        assert len(inv_en) >= 25
 
     def test_algal_bloom_includes_synonyms_in_legacy(self):
         t = load_topic("algal_bloom_ml")

@@ -45,12 +45,20 @@ class KeywordSet(BaseModel):
 
 
 class HardThreshold(BaseModel):
-    """AND condition: paper must match at least one keyword from each required set."""
+    """AND/OR condition for paper filtering.
 
-    required_sets: list[str] = Field(
+    required_sets is a list of AND groups. Each AND group can be:
+    - A string: must match this keyword set
+    - A list of strings: must match at least one (OR within group)
+
+    Example: [["investment_terms", "capital_stock_terms"], "environmental_impact"]
+    Means: (investment_terms OR capital_stock_terms) AND environmental_impact
+    """
+
+    required_sets: list[str | list[str]] = Field(
         ...,
-        description="Names of keyword sets that must ALL have ≥1 match. "
-        "References KeywordSet.name within the same topic.",
+        description="AND groups. Each element is a keyword set name (string) "
+        "or a list of names (OR: match at least one).",
     )
 
 

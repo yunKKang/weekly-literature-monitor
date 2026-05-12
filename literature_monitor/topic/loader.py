@@ -87,11 +87,19 @@ def validate_topic(topic_id: str) -> tuple[bool, str]:
         errors: list[str] = []
         for pipe in topic.pipelines:
             for req in pipe.hard_threshold.required_sets:
-                if req not in ks_names:
-                    errors.append(
-                        f"Pipeline '{pipe.name}': required_set '{req}' "
-                        f"not found in keyword_sets (available: {ks_names})"
-                    )
+                if isinstance(req, list):
+                    for r in req:
+                        if r not in ks_names:
+                            errors.append(
+                                f"Pipeline '{pipe.name}': required_set '{r}' "
+                                f"not found in keyword_sets (available: {ks_names})"
+                            )
+                else:
+                    if req not in ks_names:
+                        errors.append(
+                            f"Pipeline '{pipe.name}': required_set '{req}' "
+                            f"not found in keyword_sets (available: {ks_names})"
+                        )
             for ks_ref in pipe.keyword_sets:
                 if ks_ref not in ks_names:
                     errors.append(
@@ -155,13 +163,21 @@ def topic_to_legacy_keywords_dict(topic: Topic) -> dict[str, Any]:
                 domain_ks = ks_map.get(ks_ref)
                 break
 
+        # Flatten OR groups for legacy format (use first set in each OR group)
+        flat_reqs = []
+        for s in pipe.hard_threshold.required_sets:
+            if isinstance(s, list):
+                flat_reqs.append(s[0])  # use first option in OR group
+            else:
+                flat_reqs.append(s)
+
         pipe_dict: dict[str, Any] = {
             "name": pipe.name,
             "priority": pipe.priority,
             "hard_threshold": {
                 "required": [
                     {"field": "both", "keyword_set": s}
-                    for s in pipe.hard_threshold.required_sets
+                    for s in flat_reqs
                 ],
             },
         }

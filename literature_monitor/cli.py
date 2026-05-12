@@ -62,8 +62,14 @@ def _cmd_topic_show(topic_id: str) -> int:
               f"{len(ks.synonyms)} synonyms, {len(ks.negative_keywords)} negatives")
     print(f"Pipelines ({len(topic.pipelines)}):")
     for p in topic.pipelines:
-        req = ", ".join(p.hard_threshold.required_sets)
-        print(f"  [{p.priority}] {p.name} — threshold: ({req})")
+        parts = []
+        for s in p.hard_threshold.required_sets:
+            if isinstance(s, list):
+                parts.append(" OR ".join(s))
+            else:
+                parts.append(s)
+        req = " AND ".join(f"({x})" if " OR " in x else x for x in parts)
+        print(f"  [{p.priority}] {p.name} — threshold: {req}")
         if p.negative_keywords:
             print(f"      negatives: {len(p.negative_keywords)}")
     print(f"Scoring: title_w={topic.scoring.title_weight} abstract_w={topic.scoring.abstract_weight} "

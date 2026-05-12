@@ -1,304 +1,300 @@
-# GFCF Environmental Impact — capital formation × environmental footprint research
 id: gfcf_environment
 name: GFCF Environmental Impact
-description: >
-  Capital formation (GFCF) and its environmental footprint research.
-  Covers investment-related carbon, water, material, land, biodiversity,
-  nitrogen, and energy footprints. Includes MRIO/EEIO methods, trade
-  implications, and policy pathways.
-version: "2.1"
+description: Capital formation (GFCF) and its environmental footprint research. Covers investment-related carbon, water, material,
+  land, biodiversity, nitrogen, and energy footprints. Includes MRIO/EEIO methods, trade implications, structural decomposition
+  analysis, and policy pathways.
+version: '2.2'
 author: weekly-literature-monitor
-tags: [gfcf, environmental, capital, footprint, mrio]
-
+tags:
+- gfcf
+- environmental
+- capital
+- footprint
+- mrio
 date_range:
-  date_from: "2020-01-01"
-
+  date_from: '2020-01-01'
 journal_pool_ids:
-  - main_pool
-  - pool_a1_sna_capital
-  - pool_a2_macro_growth
-  - pool_b_built_environment
-  - pool_c_digital_infrastructure
-  - pool_environment_high_quality
-  - pool_general_high_impact
-
+- main_pool
+- pool_a1_sna_capital
+- pool_a2_macro_growth
+- pool_b_built_environment
+- pool_c_digital_infrastructure
+- pool_environment_high_quality
+- pool_general_high_impact
 include_conferences: true
-
 keyword_sets:
-  - name: investment_terms
-    description: >
-      Core GFCF and capital formation vocabulary (63 patterns).
-      These are the "capital/investment" side of the hard threshold.
-    keywords:
-      # Core GFCF
-      - "GFCF"
-      - "GCF"
-      - "FCF"
-      - "FBCF"
-      - "gross fixed capital formation"
-      - "gross fixed capital"
-      - "fixed capital formation"
-      - "gross capital formation"
-      - "capital formation"
-      - "fixed capital"
-      - "fixed assets"
-      - "formation of fixed assets"
-      # Investment
-      - "investment"
-      - "fixed investment"
-      - "capital expenditure"
-      - "CAPEX"
-      - "capital goods"
-      - "investment goods"
-      - "capital spending"
-      - "infrastructure investment"
-      # Capital Stock
-      - "capital stock"
-      - "net stock"
-      - "capital accumulation"
-      - "capital deepening"
-      - "capital intensity"
-      # Depreciation
-      - "depreciation"
-      - "CFC"
-      - "consumption of fixed capital"
-      - "scrappage"
-      - "retirement"
-      - "decommissioning"
-      - "discard"
-      # Lifetime/PIM
-      - "perpetual inventory method"
-      - "PIM"
-      - "asset lifetime"
-      - "service life"
-      - "vintage"
-      - "vintaging"
-      # Capital Services
-      - "capital services"
-      - "KLEMS"
-      - "PWT"
-      - "Penn World Table"
-      # Capitalization
-      - "capitalization"
-      - "capitalized"
-      - "data capitalization"
-      # GFCF-adjacent (from benchmark papers)
-      - "manufactured capital"
-      - "investment structure"
-      - "capital turnover"
-      - "capital vintage"
-      - "gross capital"
-      - "fixed asset"
-      - "capital goods"
-      - "investment goods"
-      - "capital expenditure"
-      - "CAPEX"
-      - "infrastructure investment"
-      - "public investment"
-      - "private investment"
-      - "domestic investment"
-      - "foreign investment"
-      - "green investment"
-      - "climate investment"
-
-  - name: environmental_impact
-    description: Environmental footprint and impact vocabulary — multi-footprint coverage.
-    keywords:
-      # Carbon
-      - "carbon"
-      - "GHG"
-      - "CO2"
-      - "emissions"
-      - "embodied"
-      - "carbon accounting"
-      - "carbon footprint"
-      # Water
-      - "water footprint"
-      - "virtual water"
-      - "embodied water"
-      # Material
-      - "material footprint"
-      - "embodied materials"
-      # Land
-      - "land footprint"
-      - "land use change"
-      - "ecological footprint"
-      # Biodiversity
-      - "biodiversity footprint"
-      - "biodiversity loss"
-      # Nitrogen
-      - "nitrogen footprint"
-      # Energy
-      - "energy footprint"
-      - "embodied energy"
-      # Upfront
-      - "upfront emissions"
-      - "upfront carbon"
-
-  - name: mrio_eeio
-    description: MRIO/EEIO method terms.
-    keywords:
-      - "MRIO"
-      - "multi-regional input-output"
-      - "multi regional input output"
-      - "EEIO"
-      - "environmentally extended input-output"
-      - "input-output analysis"
-      - "IO analysis"
-      - "input output"
-      - "Leontief"
-      - "exiobase"
-      - "EXIOBASE"
-      - "GTAP"
-      - "WIOD"
-      - "ICIO"
-      - "OECD ICIO"
-
-  - name: trade_globalization
-    description: Trade, globalization, and cross-border transfer terms.
-    keywords:
-      - "trade"
-      - "international trade"
-      - "embodied trade"
-      - "virtual trade"
-      - "globalization"
-      - "globalization"
-      - "cross-border"
-      - "emission transfer"
-      - "responsibility allocation"
-
-  - name: policy_scenarios
-    description: Policy, scenarios, and transition pathway terms.
-    keywords:
-      - "scenario"
-      - "pathway"
-      - "decarbonization"
-      - "decarbonisation"
-      - "net-zero"
-      - "net zero"
-      - "lock-in"
-      - "lock in"
-      - "stranded assets"
-      - "transition risk"
-      - "carbon neutrality"
-      - "climate policy"
-
-  - name: asset_types
-    description: SNA asset type categories for consistency check.
-    keywords:
-      # Structures
-      - "buildings"
-      - "construction"
-      - "infrastructure"
-      - "civil engineering"
-      - "built environment"
-      - "housing"
-      # Machinery & Equipment
-      - "machinery"
-      - "industrial equipment"
-      - "plant and equipment"
-      - "capital equipment"
-      # Transport Equipment
-      - "vehicles"
-      - "fleet"
-      - "aircraft"
-      - "ships"
-      - "rolling stock"
-      - "trucks"
-      # ICT Equipment
-      - "servers"
-      - "semiconductors"
-      - "computers"
-      - "hardware"
-      - "GPU"
-      - "TPU"
-      - "processors"
-      # Intangibles
-      - "software"
-      - "databases"
-      - "data assets"
-      - "R&D capital"
-      - "intellectual property"
-      - "organizational capital"
-      - "digital assets"
-
-  - name: bonus_terms
-    description: Extra scoring terms (supplementary themes).
-    keywords:
-      # Digital Infrastructure (+5)
-      - "datacenters"
-      - "data centers"
-      - "cloud computing"
-      - "AI infrastructure"
-      - "hyperscale"
-      - "PUE"
-      - "WUE"
-      - "liquid cooling"
-      - "GPU energy"
-      - "LLM"
-      # Material Resources (+3)
-      - "circular economy"
-      - "steel"
-      - "cement"
-      - "aluminum"
-      - "copper"
-      - "rare earth"
-      # Water & Land (+3)
-      - "virtual water"
-      - "land use"
-
+- name: investment_terms
+  description: Core GFCF, investment, and capital formation vocabulary
+  keywords:
+  - GFCF
+  - GCF
+  - FCF
+  - FBCF
+  - gross fixed capital formation
+  - gross fixed capital
+  - fixed capital formation
+  - gross capital formation
+  - capital formation
+  - fixed capital
+  - investment
+  - fixed investment
+  - capital expenditure
+  - CAPEX
+  - capital goods
+  - investment goods
+  - capital spending
+  - infrastructure investment
+  - public investment
+  - private investment
+  - domestic investment
+  - foreign investment
+  - green investment
+  - climate investment
+  - manufactured capital
+  - capitalization
+  - capitalized
+- name: capital_stock_terms
+  description: Capital stock, depreciation, and lifecycle terms
+  keywords:
+  - capital stock
+  - net stock
+  - capital accumulation
+  - capital deepening
+  - capital intensity
+  - capital turnover
+  - depreciation
+  - consumption of fixed capital
+  - CFC
+  - scrappage
+  - decommissioning
+  - discard
+  - perpetual inventory method
+  - PIM
+  - asset lifetime
+  - service life
+  - vintage
+  - vintaging
+  - capital services
+  - KLEMS
+  - PWT
+  - Penn World Table
+  - fixed assets
+  - fixed asset
+  - formation of fixed assets
+- name: environmental_impact
+  description: Environmental footprint terms
+  keywords:
+  - carbon
+  - GHG
+  - CO2
+  - emissions
+  - embodied
+  - carbon accounting
+  - carbon footprint
+  - water footprint
+  - virtual water
+  - embodied water
+  - material footprint
+  - embodied materials
+  - land footprint
+  - land use change
+  - ecological footprint
+  - biodiversity footprint
+  - biodiversity loss
+  - nitrogen footprint
+  - energy footprint
+  - embodied energy
+  - life cycle assessment
+  - LCA
+  - supply chain
+  - upstream emissions
+  - consumption-based
+  - production-based
+  - footprint accounting
+  - structural decomposition
+  - SDA
+  - index decomposition
+  - IDA
+  - upfront emissions
+  - upfront carbon
+  - decoupling
+  - relative decoupling
+  - absolute decoupling
+- name: mrio_eeio
+  description: MRIO/EEIO method terms
+  keywords:
+  - MRIO
+  - multi-regional input-output
+  - EEIO
+  - environmentally extended input-output
+  - input-output analysis
+  - IO analysis
+  - Leontief
+  - EXIOBASE
+  - exiobase
+  - GTAP
+  - WIOD
+  - ICIO
+  - OECD ICIO
+  - Eora
+  - GLORIA
+  - FIGARO
+- name: trade_globalization
+  description: Trade and cross-border transfer terms
+  keywords:
+  - trade
+  - international trade
+  - embodied trade
+  - virtual trade
+  - cross-border
+  - emission transfer
+  - responsibility allocation
+- name: policy_scenarios
+  description: Policy, scenarios, and transition pathway terms
+  keywords:
+  - scenario
+  - pathway
+  - decarbonization
+  - decarbonisation
+  - net-zero
+  - net zero
+  - lock-in
+  - lock in
+  - stranded assets
+  - transition risk
+  - carbon neutrality
+  - climate policy
+- name: asset_types
+  description: SNA asset type categories
+  keywords:
+  - buildings
+  - construction
+  - infrastructure
+  - civil engineering
+  - built environment
+  - housing
+  - machinery
+  - industrial equipment
+  - plant and equipment
+  - vehicles
+  - fleet
+  - aircraft
+  - ships
+  - rolling stock
+  - trucks
+  - servers
+  - semiconductors
+  - computers
+  - processors
+  - software
+  - databases
+  - data assets
+  - R&D capital
+  - intellectual property
+- name: bonus_terms
+  description: Extra scoring terms
+  keywords:
+  - datacenters
+  - data centers
+  - cloud computing
+  - AI infrastructure
+  - hyperscale
+  - PUE
+  - WUE
+  - liquid cooling
+  - GPU energy
+  - circular economy
+  - steel
+  - cement
+  - aluminum
+  - copper
+  - rare earth
+  - land use
 pipelines:
-  - name: "GFCF x Environmental Impact"
-    description: "Core pipeline: investment/capital terms + environmental footprint terms"
-    priority: 1
-    hard_threshold:
-      required_sets: [investment_terms, environmental_impact]
-    keyword_sets: [investment_terms, environmental_impact, bonus_terms]
-    bonus_terms:
-      - "datacenter"
-      - "circular economy"
-    negative_keywords:
-      - "portfolio"
-      - "stock market"
-      - "hedge fund"
-      - "mutual fund"
-      - "asset pricing"
-      - "equity return"
-      - "dividend"
-      - "financial return"
-      - "ESG score"
-      - "ESG rating"
-
-  - name: "GFCF x MRIO/EEIO"
-    description: "Investment + IO methods"
-    priority: 2
-    hard_threshold:
-      required_sets: [investment_terms, mrio_eeio]
-    keyword_sets: [investment_terms, mrio_eeio]
-    negative_keywords:
-      - "portfolio"
-      - "stock market"
-      - "hedge fund"
-      - "mutual fund"
-
-  - name: "GFCF x Trade"
-    description: "Investment + trade/globalization"
-    priority: 3
-    hard_threshold:
-      required_sets: [investment_terms, trade_globalization]
-    keyword_sets: [investment_terms, trade_globalization]
-    negative_keywords: []
-
-  - name: "GFCF x Policy"
-    description: "Investment + policy/scenario pathways"
-    priority: 4
-    hard_threshold:
-      required_sets: [investment_terms, policy_scenarios]
-    keyword_sets: [investment_terms, policy_scenarios]
-    negative_keywords:
-      - "asset pricing"
-      - "equity return"
-
+- name: GFCF x Environmental Impact
+  description: 'Core: (investment OR capital_stock) AND environmental'
+  priority: 1
+  hard_threshold:
+    required_sets:
+    - - investment_terms
+      - capital_stock_terms
+    - environmental_impact
+  keyword_sets:
+  - investment_terms
+  - capital_stock_terms
+  - environmental_impact
+  - bonus_terms
+  negative_keywords:
+  - portfolio
+  - stock market
+  - hedge fund
+  - mutual fund
+  - asset pricing
+  - equity return
+  - dividend
+  - financial return
+  - ESG score
+  - ESG rating
+  - offspring
+  - reproduction
+  - organism
+  - cellular
+  - fecundity
+  - endocrine
+  - hormone
+  - enzyme
+  - phytoplankton
+  - cement hydration
+  - concrete compressive
+  - steel alloy
+  - corrosion
+  - polymer
+  - nanoparticle
+- name: GFCF x MRIO/EEIO
+  description: (investment OR capital_stock) AND MRIO methods
+  priority: 2
+  hard_threshold:
+    required_sets:
+    - - investment_terms
+      - capital_stock_terms
+    - mrio_eeio
+  keyword_sets:
+  - investment_terms
+  - capital_stock_terms
+  - mrio_eeio
+  negative_keywords:
+  - portfolio
+  - stock market
+  - hedge fund
+  - mutual fund
+- name: GFCF x Trade
+  description: (investment OR capital_stock) AND trade/globalization
+  priority: 3
+  hard_threshold:
+    required_sets:
+    - - investment_terms
+      - capital_stock_terms
+    - trade_globalization
+  keyword_sets:
+  - investment_terms
+  - capital_stock_terms
+  - trade_globalization
+  negative_keywords: []
+- name: GFCF x Policy
+  description: (investment OR capital_stock) AND policy/scenarios
+  priority: 4
+  hard_threshold:
+    required_sets:
+    - - investment_terms
+      - capital_stock_terms
+    - policy_scenarios
+  keyword_sets:
+  - investment_terms
+  - capital_stock_terms
+  - policy_scenarios
+  negative_keywords:
+  - asset pricing
+  - equity return
 scoring:
   title_weight: 8
   abstract_weight: 5
@@ -306,17 +302,15 @@ scoring:
   medium_threshold: 12
   negative_penalty: 20
   consistency_check: true
-
 exporters:
-  - type: github_issue
-    enabled: true
-  - type: markdown
-    enabled: true
-  - type: csv
-    enabled: true
-  - type: bibtex
-    enabled: true
-
+- type: github_issue
+  enabled: true
+- type: markdown
+  enabled: true
+- type: csv
+  enabled: true
+- type: bibtex
+  enabled: true
 llm_review:
   enabled: true
   provider: openai
@@ -324,44 +318,93 @@ llm_review:
   max_papers_per_run: 30
   max_cost_usd: 2.0
   concurrency: 3
-  prompt_template: |
-    You are a research assistant specializing in industrial ecology,
-    environmental economics, and input-output analysis. Your task is to evaluate whether
-    a paper is genuinely relevant to: "{topic_name}".
+  prompt_template: 'You are a research assistant specializing in industrial ecology, environmental economics, and input-output
+    analysis.
+
+
+    ## Research Topic
+
+
+    Topic: {topic_name}
 
     {topic_description}
 
+
     ## Relevance Criteria
 
+
     A paper is RELEVANT if it:
-    - Studies the environmental impacts (carbon footprint, material footprint, water footprint,
-      land use, biodiversity, energy) of capital formation, investment, or fixed assets
-    - Uses multi-regional input-output (MRIO) or environmentally extended input-output (EEIO)
-      methods to analyze investment-related emissions or resource use
-    - Examines the lifecycle environmental impacts of infrastructure, buildings, machinery,
-      or other capital stock
-    - Analyzes embodied emissions or resource use in capital goods trade
-    - Studies decarbonization pathways related to capital investment decisions
-    - Quantifies the environmental footprint of GDP components related to investment
+
+    - Studies environmental impacts (carbon, water, material, land, biodiversity, energy) of capital formation, investment,
+    or fixed assets
+
+    - Uses MRIO/EEIO methods to analyze investment-related emissions or resource use
+
+    - Examines lifecycle environmental impacts of infrastructure, buildings, machinery, or capital stock
+
+    - Analyzes embodied emissions in capital goods trade
+
+    - Studies decarbonization pathways related to capital investment
+
+    - Quantifies environmental footprint of GDP components related to investment
+
     - Compares capital formation environmental impacts across countries or development stages
 
+    - Uses structural decomposition analysis (SDA) on capital-related factors
+
+
     A paper is NOT RELEVANT if it:
+
     - Uses "investment" only in financial/portfolio sense (stocks, bonds, ESG investing)
+
     - Uses "capital" only in human/social/natural capital (not manufactured capital)
-    - Uses "carbon" only in chemistry, biology, or atmospheric science contexts
-    - Uses "construction" only in materials science (cement chemistry, not building lifecycle)
-    - Is about biological "investment in offspring" or ecological "capital" in ecosystems
+
+    - Uses "carbon" only in chemistry, biology, or atmospheric science
+
+    - Is about biological "investment in offspring" or ecological "capital"
+
     - Is purely about operational emissions (not embodied/capital-related)
+
     - Uses MRIO/EEIO but not for capital/investment analysis
+
+    - Is about cement/concrete chemistry, not building lifecycle impacts
+
+
+    ## Examples
+
+
+    RELEVANT: "Environmental Impacts of Capital Formation" (Sodersten et al., JIE, 2018) - Studies GFCF structure and carbon
+    footprint using MRIO. Compares across countries.
+
+    RELEVANT: "The legacy environmental footprints of manufactured capital" (Wang et al., PNAS, 2023) - Quantifies long-term
+    environmental footprint of capital accumulation using supply chain data.
+
+    RELEVANT: "Carbon emissions embodied in investment" (Liang et al., Applied Energy, 2024) - Uses MRIO to quantify embodied
+    carbon in investment and allocate emission responsibility.
+
+    NOT RELEVANT: "Early-life adversity shapes growth and reproduction..." - Uses "investment" in biological sense (offspring),
+    not capital formation.
+
+    NOT RELEVANT: "Precision indole skeletal editing for single-carbon replacement" - Uses "carbon" in chemistry context,
+    not environmental footprint.
+
 
     ## Paper to Evaluate
 
+
     Title: {title}
+
     Abstract: {abstract}
+
     Journal: {journal}
+
     Year: {year}
+
 
     ## Output Format
 
+
     Respond in JSON:
-    {{"relevant": true/false, "confidence": "high"/"medium"/"low", "reason": "<one sentence>"}}
+
+    {{"relevant": true/false, "confidence": "high"/"medium"/"low", "reason": "one sentence", "methodology": "MRIO/EEIO/LCA/SDA/IO/none",
+    "research_object": "GFCF/capital_stock/investment/infrastructure/none", "environmental_dimension": "carbon/water/material/land/energy/none"}}'
