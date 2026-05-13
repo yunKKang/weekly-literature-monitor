@@ -56,6 +56,18 @@ Respond in JSON:
 }}
 """
 
+# Stage 1: Title-only fast filter (cheap, ~100 tokens)
+TITLE_FILTER_PROMPT = """You are a research paper classifier. Quickly determine if a paper's title suggests it is relevant to a research topic.
+
+Topic: {topic_name}
+
+Title: {title}
+Journal: {journal}
+
+Is this paper likely relevant to the topic? Answer ONLY in JSON:
+{{"likely_relevant": true/false, "confidence": "high"/"medium"/"low", "reason": "brief"}}
+"""
+
 
 class LLMReviewStage:
     """Second-pass relevance judgment using LLM.
@@ -82,6 +94,7 @@ class LLMReviewStage:
         prompt_template: str | None = None,
         api_key: str | None = None,
         base_url: str = "",
+        two_stage: bool = True,
         concurrency: int = 3,
     ) -> None:
         self.topic_name = topic_name
@@ -95,12 +108,15 @@ class LLMReviewStage:
         self.prompt_template = prompt_template or DEFAULT_PROMPT
         self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         self.base_url = base_url or os.environ.get("OPENAI_BASE_URL", "")
+        self.two_stage = two_stage
         self.concurrency = concurrency
+        self._stage1_calls = 0
+        self._stage2_calls = 0
         self._calls_made = 0
         self._total_cost = 0.0
 
     def run(self, state: PipelineState) -> PipelineState:
-        """Run LLM review if paper meets threshold and budget allows."""
+        """Run LLM review. Two-stage mode: title filter → abstract deep judge."""
         # Check budget
         if self._calls_made >= self.max_papers:
             return state
@@ -112,11 +128,77 @@ class LLMReviewStage:
         if level_order.get(state.relevance_level, 0) < level_order.get(self.min_level, 0):
             return state
 
-        # Check if abstract is available
-        if not state.abstract or len(state.abstract) < 50:
+        if not self.two_stage:
+            return self._run_single_stage(state)
+
+        # === Two-stage mode ===
+
+        # Stage 1: Title-only fast filter (cheap)
+        if not state.title or len(state.title) < 10:
             return state
 
-        # Call LLM (catch any exception — never crash the pipeline)
+        try:
+            stage1_result = self._call_title_filter(state)
+        except Exception as e:
+            logger.warning("LLM stage1 failed: %s", e)
+            return state
+        if not stage1_result:
+            return state
+
+        self._stage1_calls += 1
+
+        # If Stage 1 says NOT likely relevant → penalize immediately
+        if not stage1_result.get("likely_relevant", True):
+            self._calls_made += 1
+            breakdown = dict(state.breakdown)
+            breakdown["llm_review"] = {
+                "stage": "title_filter",
+                "relevant": False,
+                "confidence": stage1_result.get("confidence", "low"),
+                "reason": stage1_result.get("reason", ""),
+                "model": self.model,
+            }
+            return state.with_(
+                total_score=max(0.0, state.total_score - self.penalty_points),
+                relevance_level="LOW",
+                breakdown=breakdown,
+            )
+
+        # Stage 2: Deep abstract judgment (only if Stage 1 says likely relevant)
+        if not state.abstract or len(state.abstract) < 50:
+            # No abstract — use Stage 1 result as final
+            self._calls_made += 1
+            breakdown = dict(state.breakdown)
+            breakdown["llm_review"] = {
+                "stage": "title_filter_only",
+                "relevant": True,
+                "confidence": stage1_result.get("confidence", "low"),
+                "reason": stage1_result.get("reason", ""),
+                "model": self.model,
+            }
+            boost = 2.0 if stage1_result.get("confidence") == "high" else 0.0
+            return state.with_(
+                total_score=round(state.total_score + boost, 3),
+                breakdown=breakdown,
+            )
+
+        try:
+            stage2_result = self._call_llm(state)
+        except Exception as e:
+            logger.warning("LLM stage2 failed: %s", e)
+            return state
+        if not stage2_result:
+            return state
+
+        self._stage2_calls += 1
+        self._calls_made += 1
+
+        return self._apply_llm_result(state, stage2_result, stage="abstract_judge")
+
+    def _run_single_stage(self, state: PipelineState) -> PipelineState:
+        """Single-stage LLM review (backward compat)."""
+        if not state.abstract or len(state.abstract) < 50:
+            return state
         try:
             result = self._call_llm(state)
         except Exception as e:
@@ -125,37 +207,55 @@ class LLMReviewStage:
         if not result:
             return state
         self._calls_made += 1
+        return self._apply_llm_result(state, result, stage="single")
 
-        # Apply LLM judgment
+    def _apply_llm_result(self, state: PipelineState, result: dict, stage: str = "") -> PipelineState:
+        """Apply LLM judgment to paper score."""
         relevant = result.get("relevant", True)
         confidence = result.get("confidence", "low")
         reason = result.get("reason", "")
 
         breakdown = dict(state.breakdown)
         breakdown["llm_review"] = {
+            "stage": stage,
             "relevant": relevant,
             "confidence": confidence,
             "reason": reason,
             "model": self.model,
         }
+        # Include 6D output if present
+        for dim in ("methodology", "research_object", "environmental_dimension"):
+            if dim in result:
+                breakdown["llm_review"][dim] = result[dim]
 
         if not relevant:
-            # Penalize: paper judged irrelevant by LLM
             return state.with_(
                 total_score=max(0.0, state.total_score - self.penalty_points),
                 relevance_level="LOW",
                 breakdown=breakdown,
             )
 
-        # Relevant: add LLM reasoning to breakdown, boost score slightly
         boost = 5.0 if confidence == "high" else 2.0 if confidence == "medium" else 0.0
         return state.with_(
             total_score=round(state.total_score + boost, 3),
             breakdown=breakdown,
         )
 
+    def _call_title_filter(self, state: PipelineState) -> dict[str, Any] | None:
+        """Stage 1: Fast title-only relevance filter (cheap, ~100 tokens)."""
+        prompt = TITLE_FILTER_PROMPT.format(
+            topic_name=self.topic_name,
+            title=state.title,
+            journal=state.journal or "unknown",
+        )
+        try:
+            return self._call_api(prompt)
+        except Exception as e:
+            logger.warning("Title filter API call failed: %s", e)
+            return None
+
     def _call_llm(self, state: PipelineState) -> dict[str, Any] | None:
-        """Call LLM API to judge paper relevance."""
+        """Stage 2: Full abstract-based LLM judgment."""
         prompt = self.prompt_template.format(
             topic_name=self.topic_name,
             topic_description=self.topic_description,
@@ -164,7 +264,10 @@ class LLMReviewStage:
             journal=state.journal,
             year=state.year or "unknown",
         )
+        return self._call_api(prompt)
 
+    def _call_api(self, prompt: str) -> dict[str, Any] | None:
+        """Dispatch to the appropriate LLM API provider."""
         try:
             if self.provider == "openai":
                 return self._call_openai(prompt)
@@ -174,7 +277,7 @@ class LLMReviewStage:
                 logger.warning("Unknown LLM provider: %s", self.provider)
                 return None
         except Exception as e:
-            logger.warning("LLM review failed: %s", e)
+            logger.warning("LLM API call failed: %s", e)
             return None
 
     @staticmethod

@@ -118,6 +118,12 @@ class LLMReviewConfig(BaseModel):
         description="Custom API base URL for OpenAI-compatible providers. "
         "Leave empty for official OpenAI. Examples: https://apihost.cn/v1",
     )
+    two_stage: bool = Field(
+        True,
+        description="Use two-stage LLM filtering: Stage 1 (title-only fast filter) "
+        "then Stage 2 (abstract deep judge). Saves cost by skipping abstract "
+        "analysis for clearly irrelevant papers.",
+    )
     enabled_for_priorities: list[str] = Field(
         default_factory=lambda: ["HIGH", "MEDIUM"],
         description="Only run LLM review on papers with these priorities",

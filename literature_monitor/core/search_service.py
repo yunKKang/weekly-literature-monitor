@@ -101,6 +101,7 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
                 provider=topic.llm_review.provider,
                 model=topic.llm_review.model,
                 base_url=topic.llm_review.base_url or "",
+                two_stage=topic.llm_review.two_stage,
                 min_level="MEDIUM",
                 max_papers=topic.llm_review.max_papers_per_run,
                 max_cost_usd=topic.llm_review.max_cost_usd,
