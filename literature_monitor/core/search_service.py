@@ -18,11 +18,15 @@ from literature_monitor.core.scoring import score_for_request
 from literature_monitor.db import repositories as repo
 from literature_monitor.db.connection import connect
 from literature_monitor.db.schema import init_db
+from literature_monitor.pipeline.base import PipelineState
+from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
 from literature_monitor.providers.crossref import (
     fetch_crossref,
     fetch_crossref_conferences,
 )
 from literature_monitor.providers.openalex import fetch_openalex
+from literature_monitor.topic.loader import load_all_topics, load_topic
+from literature_monitor.topic.schema import Topic
 
 
 def create_and_run_search(request: SearchRequest) -> SearchSummary:
@@ -75,85 +79,7 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
     # Post-scoring: LLM review on MEDIUM+ papers
     llm_review_count = 0
     try:
-        from literature_monitor.topic.loader import load_topic
-        from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
-        from literature_monitor.pipeline.base import PipelineState
-
-        # Try to load topic from request's journal_pool_ids
-        topic = None
-        for pool_id in request.journal_pool_ids:
-            # Map pool IDs back to topic IDs
-            for tid in ["gfcf_environment", "algal_bloom_ml"]:
-                try:
-                    t = load_topic(tid)
-                    if any(pid in request.journal_pool_ids for pid in t.journal_pool_ids):
-                        topic = t
-                        break
-                except Exception:
-                    continue
-            if topic:
-                break
-
-        if topic and topic.llm_review.enabled:
-            llm_stage = LLMReviewStage(
-                topic_name=topic.name,
-                topic_description=topic.description,
-                provider=topic.llm_review.provider,
-                model=topic.llm_review.model,
-                base_url=topic.llm_review.base_url or "",
-                two_stage=topic.llm_review.two_stage,
-                min_level="MEDIUM",
-                max_papers=topic.llm_review.max_papers_per_run,
-                max_cost_usd=topic.llm_review.max_cost_usd,
-                prompt_template=topic.llm_review.prompt_template or None,
-                concurrency=topic.llm_review.concurrency,
-            )
-
-            # Re-score MEDIUM+ papers through LLM
-            from literature_monitor.db import repositories as repo2
-            for group in grouped:
-                paper = merge_group(group)
-                paper_id = repo2.upsert_paper(conn, paper)
-                # Check if this paper was scored MEDIUM+
-                existing = conn.execute(
-                    "SELECT total_score, relevance_level, score_breakdown_json "
-                    "FROM scored_results WHERE search_run_id = ? AND paper_id = ?",
-                    (search_run_id, paper_id),
-                ).fetchone()
-                if not existing:
-                    continue
-                if existing["relevance_level"] not in ("HIGH", "MEDIUM"):
-                    continue
-
-                # Build PipelineState for LLM review
-                breakdown = json.loads(existing["score_breakdown_json"])
-                state = PipelineState(
-                    title=paper.title,
-                    abstract=paper.abstract or "",
-                    journal=paper.journal or "",
-                    year=paper.year,
-                    total_score=existing["total_score"],
-                    relevance_level=existing["relevance_level"],
-                    breakdown=breakdown,
-                )
-                result_state = llm_stage.run(state)
-
-                # If LLM changed the score/level, update DB
-                if result_state.total_score != existing["total_score"] or \
-                   result_state.relevance_level != existing["relevance_level"]:
-                    conn.execute(
-                        "UPDATE scored_results SET total_score = ?, relevance_level = ?, "
-                        "score_breakdown_json = ? WHERE search_run_id = ? AND paper_id = ?",
-                        (
-                            result_state.total_score,
-                            result_state.relevance_level,
-                            json.dumps(result_state.breakdown),
-                            search_run_id,
-                            paper_id,
-                        ),
-                    )
-                    llm_review_count += 1
-            conn.commit()
+        llm_review_count = _run_llm_review(conn, search_run_id, request, grouped)
     except Exception as e:
         errors.append(f"llm_review: {e}")
 
@@ -184,6 +110,77 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
         total_scored=scored,
         error_message="; ".join(errors) if errors else None,
     )
+
+
+def _resolve_topic_from_request(request: SearchRequest) -> Topic | None:
+    """Find the Topic that matches this request's journal pools.
+
+    Scans all loaded topics and returns the first one whose journal_pool_ids
+    overlap with the request. Returns None if no match.
+    """
+    request_pools = set(request.journal_pool_ids)
+    if not request_pools:
+        return None
+    for topic in load_all_topics().values():
+        if request_pools.intersection(topic.journal_pool_ids):
+            return topic
+    return None
+
+
+def _run_llm_review(
+    conn, search_run_id: int, request: SearchRequest, grouped: list[list[ProviderPaper]]
+) -> int:
+    """Run LLM review on MEDIUM+ papers. Returns count of papers updated."""
+    topic = _resolve_topic_from_request(request)
+    if not topic or not topic.llm_review.enabled:
+        return 0
+
+    llm_stage = LLMReviewStage(
+        topic_name=topic.name,
+        topic_description=topic.description,
+        provider=topic.llm_review.provider,
+        model=topic.llm_review.model,
+        base_url=topic.llm_review.base_url or "",
+        two_stage=topic.llm_review.two_stage,
+        min_level="MEDIUM",
+        max_papers=topic.llm_review.max_papers_per_run,
+        max_cost_usd=topic.llm_review.max_cost_usd,
+        prompt_template=topic.llm_review.prompt_template or None,
+        concurrency=topic.llm_review.concurrency,
+    )
+
+    updated = 0
+    for group in grouped:
+        paper = merge_group(group)
+        paper_id = repo.upsert_paper(conn, paper)
+        existing = conn.execute(
+            "SELECT total_score, relevance_level, score_breakdown_json "
+            "FROM scored_results WHERE search_run_id = ? AND paper_id = ?",
+            (search_run_id, paper_id),
+        ).fetchone()
+        if not existing or existing["relevance_level"] not in ("HIGH", "MEDIUM"):
+            continue
+
+        state = PipelineState(
+            title=paper.title,
+            abstract=paper.abstract or "",
+            journal=paper.journal or "",
+            year=paper.year,
+            total_score=existing["total_score"],
+            relevance_level=existing["relevance_level"],
+            breakdown=json.loads(existing["score_breakdown_json"]),
+        )
+        result = llm_stage.run(state)
+
+        if result.total_score != existing["total_score"] or result.relevance_level != existing["relevance_level"]:
+            conn.execute(
+                "UPDATE scored_results SET total_score = ?, relevance_level = ?, "
+                "score_breakdown_json = ? WHERE search_run_id = ? AND paper_id = ?",
+                (result.total_score, result.relevance_level, json.dumps(result.breakdown), search_run_id, paper_id),
+            )
+            updated += 1
+    conn.commit()
+    return updated
 
 
 def merge_group(group: list[ProviderPaper]) -> Paper:

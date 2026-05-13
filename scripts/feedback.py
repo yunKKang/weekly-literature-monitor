@@ -10,11 +10,15 @@ Usage:
     .venv/bin/python scripts/feedback.py --verdict relevant --doi "10.1073/pnas.2218828120" \
         --reason "Studies legacy environmental footprint of manufactured capital using MRIO"
 
-    # Show all feedback for a run
-    .venv/bin/python scripts/feedback.py --run-id 22 --show
+    # Show all feedback
+    .venv/bin/python scripts/feedback.py --show
 
-    # Export feedback as few-shot examples for LLM prompt
+    # Export feedback as few-shot examples
     .venv/bin/python scripts/feedback.py --export-examples
+
+    # Inject feedback examples into topic YAML prompt_template
+    .venv/bin/python scripts/feedback.py --update-prompt
+    .venv/bin/python scripts/feedback.py --update-prompt --topic-id algal_bloom_ml
 """
 
 from __future__ import annotations
@@ -82,22 +86,100 @@ def show_feedback(conn: sqlite3.Connection, search_run_id: int | None = None) ->
     return [dict(r) for r in rows]
 
 
-def export_examples(conn: sqlite3.Connection) -> str:
-    """Export feedback as few-shot examples for LLM prompt."""
-    relevant = conn.execute(
-        "SELECT title, reason FROM paper_feedback WHERE verdict = 'relevant' ORDER BY created_at DESC LIMIT 10"
+def export_examples(conn: sqlite3.Connection) -> list[dict[str, str]]:
+    """Export feedback as structured examples."""
+    rows = conn.execute(
+        "SELECT title, reason, verdict, doi FROM paper_feedback ORDER BY created_at DESC"
     ).fetchall()
-    not_relevant = conn.execute(
-        "SELECT title, reason FROM paper_feedback WHERE verdict = 'not-relevant' ORDER BY created_at DESC LIMIT 10"
-    ).fetchall()
+    return [dict(r) for r in rows]
 
-    examples = []
-    for r in relevant:
-        examples.append(f'RELEVANT: "{r["title"]}" - {r["reason"]}')
-    for r in not_relevant:
-        examples.append(f'NOT RELEVANT: "{r["title"]}" - {r["reason"]}')
 
-    return "\n".join(examples) if examples else "(no feedback examples yet)"
+def format_examples_block(examples: list[dict[str, str]]) -> str:
+    """Format examples into a prompt-ready block."""
+    if not examples:
+        return ""
+
+    lines = ["## Examples (from user feedback)\n"]
+    for ex in examples[:10]:  # max 10 examples
+        title = ex["title"] or ex.get("doi", "unknown")
+        label = "RELEVANT" if ex["verdict"] == "relevant" else "NOT RELEVANT"
+        lines.append(f'{label}: "{title}" — {ex["reason"]}')
+    return "\n".join(lines)
+
+
+def update_prompt_with_feedback(
+    topic_id: str = "gfcf_environment",
+    examples: list[dict[str, str]] | None = None,
+    conn: sqlite3.Connection | None = None,
+) -> str:
+    """Inject feedback examples into topic YAML prompt_template.
+
+    Finds the '## Examples' section in the prompt_template and replaces it
+    with the latest feedback examples. If no Examples section exists, appends one.
+
+    Returns: summary of what changed.
+    """
+    import yaml
+
+    yaml_path = ROOT / "topics" / f"{topic_id}.yaml"
+    if not yaml_path.exists():
+        return f"ERROR: Topic YAML not found: {yaml_path}"
+
+    if examples is None:
+        if conn is None:
+            conn = get_conn()
+        examples = export_examples(conn)
+
+    if not examples:
+        return "No feedback examples to inject."
+
+    with yaml_path.open("r", encoding="utf-8") as f:
+        data = yaml.safe_load(f)
+
+    llm = data.get("llm_review", {})
+    prompt = llm.get("prompt_template", "")
+    if not prompt:
+        return "ERROR: No prompt_template in topic YAML."
+
+    # Build new examples block
+    new_block = format_examples_block(examples)
+
+    # Replace or append the Examples section
+    import re
+    if "## Examples" in prompt:
+        # Replace existing Examples section (from ## Examples to next ## section)
+        prompt = re.sub(
+            r"## Examples.*?(?=\n## |\Z)",
+            new_block + "\n\n",
+            prompt,
+            flags=re.DOTALL,
+        )
+    else:
+        # Insert before "## Paper to Evaluate"
+        if "## Paper to Evaluate" in prompt:
+            prompt = prompt.replace(
+                "## Paper to Evaluate",
+                new_block + "\n\n## Paper to Evaluate",
+            )
+        else:
+            # Append at end
+            prompt = prompt.rstrip() + "\n\n" + new_block
+
+    # Write back to YAML
+    llm["prompt_template"] = prompt.rstrip() + "\n"
+    data["llm_review"] = llm
+
+    with yaml_path.open("w", encoding="utf-8") as f:
+        yaml.dump(data, f, default_flow_style=False, allow_unicode=True, sort_keys=False, width=120)
+
+    relevant_count = sum(1 for e in examples if e["verdict"] == "relevant")
+    not_relevant_count = sum(1 for e in examples if e["verdict"] == "not-relevant")
+    return (
+        f"Updated {yaml_path.name} prompt_template:\n"
+        f"  {relevant_count} RELEVANT examples\n"
+        f"  {not_relevant_count} NOT RELEVANT examples\n"
+        f"  Total: {len(examples)} examples injected"
+    )
 
 
 def main():
@@ -110,6 +192,8 @@ def main():
     parser.add_argument("--reason", type=str, default="")
     parser.add_argument("--show", action="store_true")
     parser.add_argument("--export-examples", action="store_true")
+    parser.add_argument("--update-prompt", action="store_true")
+    parser.add_argument("--topic-id", type=str, default="gfcf_environment")
     args = parser.parse_args()
 
     conn = get_conn()
@@ -129,14 +213,24 @@ def main():
         return
 
     if args.export_examples:
-        print(export_examples(conn))
+        examples = export_examples(conn)
+        if not examples:
+            print("(no feedback examples yet)")
+            return
+        print(format_examples_block(examples))
+        return
+
+    if args.update_prompt:
+        result = update_prompt_with_feedback(topic_id=args.topic_id, conn=conn)
+        print(result)
         return
 
     if args.verdict and args.reason:
-        # If --doi but no --title, look up title from papers table
         title = args.title
         if args.doi and not title:
-            row = conn.execute("SELECT title FROM papers WHERE doi LIKE ?", (f"%{args.doi}%",)).fetchone()
+            row = conn.execute(
+                "SELECT title FROM papers WHERE doi LIKE ?", (f"%{args.doi}%",)
+            ).fetchone()
             if row:
                 title = row["title"]
 
