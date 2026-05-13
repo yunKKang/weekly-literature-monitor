@@ -54,13 +54,13 @@ def fetch_crossref(request: SearchRequest, issns: list[str]) -> list[ProviderPap
     # Single query with higher per-journal cap.
     # Year-by-year splitting was tested but increased failure rate
     # (more API calls = more chances for any single call to fail).
-    # Instead, use max_per_journal=500 which gives Crossref enough
+    # Instead, use max_per_journal=200 which gives Crossref enough
     # rows per batch to cover multi-year ranges in one cursor pass.
     results = fetch_recent_papers(
         issns=issns,
         from_date=request.date_from,
         to_date=request.date_to,
-        max_per_journal=500,
+        max_per_journal=200,
     )
     return [_from_crossref_result(result) for result in results]
 
