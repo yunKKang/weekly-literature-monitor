@@ -308,40 +308,40 @@ class LLMReviewStage:
         return f"https://api.openai.com/v1{path}"
 
     def _call_openai(self, prompt: str) -> dict[str, Any] | None:
-        """Call OpenAI-compatible API."""
-        import urllib.request
-        import urllib.error
+        """Call OpenAI-compatible API via httpx (handles chunked encoding)."""
+        import httpx
 
         api_key = self.api_key
         if not api_key:
             logger.warning("No OpenAI API key — skipping LLM review")
             return None
 
-        body = json.dumps({
+        body = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1,
             "max_tokens": 300,
-        }).encode("utf-8")
-
-        req = urllib.request.Request(
-            self._resolve_url("/chat/completions"),
-            data=body,
-            headers={
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json",
-            },
-        )
+        }
 
         try:
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            logger.warning("OpenAI API error: %s", e.code)
+            with httpx.Client(timeout=60.0) as client:
+                resp = client.post(
+                    self._resolve_url("/chat/completions"),
+                    json=body,
+                    headers={
+                        "Authorization": f"Bearer {api_key}",
+                        "Content-Type": "application/json",
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+        except httpx.HTTPStatusError as e:
+            logger.warning("OpenAI API error: %s", e.response.status_code)
+            return None
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError) as e:
+            logger.warning("OpenAI API connection error: %s", e)
             return None
 
-        # Estimate cost based on gpt-4o-mini pricing
-        # Input: $0.15/1M tokens, Output: $0.60/1M tokens
         usage = data.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 200)
         completion_tokens = usage.get("completion_tokens", 100)
@@ -354,36 +354,35 @@ class LLMReviewStage:
         return self._parse_json_response(content)
 
     def _call_anthropic(self, prompt: str) -> dict[str, Any] | None:
-        """Call Anthropic API."""
-        import urllib.request
-        import urllib.error
+        """Call Anthropic API via httpx."""
+        import httpx
 
         api_key = self.api_key or os.environ.get("ANTHROPIC_API_KEY", "")
         if not api_key:
             logger.warning("No Anthropic API key — skipping LLM review")
             return None
 
-        body = json.dumps({
+        body = {
             "model": self.model,
             "max_tokens": 300,
             "messages": [{"role": "user", "content": prompt}],
-        }).encode("utf-8")
-
-        req = urllib.request.Request(
-            "https://api.anthropic.com/v1/messages",
-            data=body,
-            headers={
-                "x-api-key": api_key,
-                "Content-Type": "application/json",
-                "anthropic-version": "2023-06-01",
-            },
-        )
+        }
 
         try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            logger.warning("Anthropic API error: %s", e.code)
+            with httpx.Client(timeout=30.0) as client:
+                resp = client.post(
+                    "https://api.anthropic.com/v1/messages",
+                    json=body,
+                    headers={
+                        "x-api-key": api_key,
+                        "Content-Type": "application/json",
+                        "anthropic-version": "2023-06-01",
+                    },
+                )
+                resp.raise_for_status()
+                data = resp.json()
+        except (httpx.HTTPStatusError, httpx.TimeoutException, httpx.ConnectError) as e:
+            logger.warning("Anthropic API error: %s", e)
             return None
 
         content = data["content"][0]["text"]
