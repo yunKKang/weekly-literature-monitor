@@ -64,7 +64,6 @@ keyword_sets:
   - capital turnover
   - depreciation
   - consumption of fixed capital
-  - CFC
   - scrappage
   - decommissioning
   - discard
@@ -250,6 +249,27 @@ pipelines:
   - corrosion
   - polymer
   - nanoparticle
+  - accounting
+  - tax optimization
+  - tax planning
+  - financial statement
+  - balance sheet
+  - income tax
+  - auditing
+  - bookkeeping
+  - accounting standards
+  - chlorofluorocarbon
+  - ozone
+  - ozone depletion
+  - stratospheric
+  - CFCs
+  - CFC-11
+  - CFC-12
+  - Montreal Protocol
+  - radiative efficiency
+  - radiative forcing
+  - atmospheric lifetime
+  - greenhouse gas lifetime
 - name: GFCF x MRIO/EEIO
   description: (investment OR capital_stock) AND MRIO methods
   priority: 2

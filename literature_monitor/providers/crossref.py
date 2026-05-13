@@ -21,24 +21,55 @@ from literature_monitor.core.models import (
 from literature_monitor.config import CONFIG_DIR
 
 
+def _split_date_range(from_date: str, to_date: str) -> list[tuple[str, str]]:
+    """Split a large date range into per-year sub-ranges.
+
+    Crossref cursor pagination returns incomplete results for date ranges
+    spanning multiple years. Splitting into per-year queries ensures
+    complete coverage (verified: JIE 2017 returns 172/172 per-year,
+    but only 189/395 for 2017-2019 combined).
+    """
+    from datetime import datetime
+    start = datetime.strptime(from_date[:10], "%Y-%m-%d")
+    end = datetime.strptime(to_date[:10], "%Y-%m-%d")
+
+    ranges = []
+    current = start
+    while current <= end:
+        year_end = datetime(current.year, 12, 31)
+        if year_end > end:
+            year_end = end
+        ranges.append((current.strftime("%Y-%m-%d"), year_end.strftime("%Y-%m-%d")))
+        current = datetime(current.year + 1, 1, 1)
+    return ranges
+
+
 def fetch_crossref(request: SearchRequest, issns: list[str]) -> list[ProviderPaper]:
     if not issns:
-        # No ISSNs — fallback to keyword search (no journal constraint)
         if not request.query_text:
             return []
         results = fetch_keyword_papers(request, [])
         return [_from_crossref_result(r) for r in results]
 
-    # Have ISSNs — always fetch by ISSN (all papers from those journals).
-    # Keywords are for post-fetch scoring, NOT for the API query.
-    # This matches the legacy weekly_monitor.py strategy.
-    results = fetch_recent_papers(
-        issns=issns,
-        from_date=request.date_from,
-        to_date=request.date_to,
-        max_per_journal=200,  # per-journal cap, matching legacy default
-    )
-    return [_from_crossref_result(result) for result in results]
+    # Split large date ranges into per-year queries to avoid Crossref
+    # cursor pagination truncation on multi-year ranges.
+    date_ranges = _split_date_range(request.date_from, request.date_to)
+
+    all_results = []
+    seen_dois = set()
+    for from_date, to_date in date_ranges:
+        results = fetch_recent_papers(
+            issns=issns,
+            from_date=from_date,
+            to_date=to_date,
+            max_per_journal=200,
+        )
+        for r in results:
+            if r.doi not in seen_dois:
+                seen_dois.add(r.doi)
+                all_results.append(r)
+
+    return [_from_crossref_result(r) for r in all_results]
 
 
 def fetch_keyword_papers(request: SearchRequest, issns: list[str]):
