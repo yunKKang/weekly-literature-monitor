@@ -10,9 +10,6 @@ from __future__ import annotations
 import json
 import logging
 import re
-import urllib.error
-import urllib.request
-import socket
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone, timedelta
@@ -146,6 +143,23 @@ class SearchParams:
     cursor: str | None = None
 
 
+# Shared httpx client (lazy-initialized, handles chunked encoding properly)
+_httpx_client = None
+
+
+def _get_httpx_client():
+    """Get or create a shared httpx client with connection pooling."""
+    global _httpx_client
+    if _httpx_client is None:
+        import httpx
+        _httpx_client = httpx.Client(
+            timeout=httpx.Timeout(30.0, connect=10.0),
+            follow_redirects=True,
+            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
+        )
+    return _httpx_client
+
+
 def fetch_url(
     url: str,
     *,
@@ -155,6 +169,9 @@ def fetch_url(
     retry_delay_s: float | None = None,
 ) -> tuple[int | None, bytes]:
     """Fetch a URL and return status code and body.
+
+    Uses httpx instead of urllib to properly handle chunked transfer
+    encoding (Crossref returns chunked responses for large result sets).
 
     Args:
         url: URL to fetch
@@ -166,8 +183,11 @@ def fetch_url(
     Returns:
         Tuple of (status_code, body_bytes). Returns (None, b"") on failure.
     """
+    import httpx
+
     default_headers = {
         "User-Agent": config.USER_AGENT,
+        "Accept": "application/json",
     }
     if headers:
         default_headers.update(headers)
@@ -179,42 +199,34 @@ def fetch_url(
         config.CROSSREF_RETRY_DELAY if retry_delay_s is None else retry_delay_s
     )
 
-    last_error: Exception | None = None
+    client = _get_httpx_client()
 
     for attempt in range(effective_max_retries + 1):
-        req = urllib.request.Request(url, headers=default_headers)
-
         try:
-            with urllib.request.urlopen(req, timeout=timeout_s) as resp:
-                status = getattr(resp, "status", None)
-                return status, resp.read()
-        except urllib.error.HTTPError as e:
-            body = e.read() if hasattr(e, "read") else b""
-            last_error = e
-            if e.code in (500, 502, 503, 504) and attempt < effective_max_retries:
+            resp = client.get(url, headers=default_headers, timeout=timeout_s)
+            return resp.status_code, resp.content
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code
+            body = e.response.content
+            if status in (500, 502, 503, 504) and attempt < effective_max_retries:
                 logger.warning(
                     "HTTP %s for %s, retrying in %.1fs...",
-                    e.code,
-                    url,
-                    effective_retry_delay,
+                    status, url, effective_retry_delay,
                 )
                 time.sleep(effective_retry_delay * (2**attempt))
                 continue
-            return getattr(e, "code", None), body
-        except (urllib.error.URLError, socket.timeout, TimeoutError) as e:
-            last_error = e
+            return status, body
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError,
+                httpx.RemoteProtocolError, httpx.DecodingError) as e:
             if attempt < effective_max_retries:
                 logger.warning(
                     "Network error for %s, retrying in %.1fs...",
-                    url,
-                    effective_retry_delay,
+                    url, effective_retry_delay,
                 )
                 time.sleep(effective_retry_delay * (2**attempt))
                 continue
-            break
-
-    if last_error:
-        logger.error("Failed to fetch %s after %s attempts: %s", url, effective_max_retries + 1, last_error)
+            logger.error("Failed to fetch %s after %d attempts: %s", url, effective_max_retries + 1, e)
+            return None, b""
 
     return None, b""
 
