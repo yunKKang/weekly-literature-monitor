@@ -66,12 +66,29 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
     selected_issns = set(issns)
     scored = 0
 
+    # Resolve topic for negative keywords and LLM config
+    topic = _resolve_topic_from_request(request)
+    topic_negatives = _compile_topic_negatives(topic) if topic else []
+
     for group in grouped:
         paper = merge_group(group)
         paper_id = repo.upsert_paper(conn, paper)
         for provider_record in group:
             repo.add_source_record(conn, paper_id, provider_record.source_record)
         score = score_for_request(conn, paper_id, paper, request, selected_issns)
+
+        # Apply topic-level negative keyword filtering
+        # (Legacy score_for_request only uses config/keywords.json negatives,
+        #  but topic YAML has additional negatives like accounting/biology terms)
+        if topic_negatives and score.total_score > 0:
+            combined_text = f"{paper.title} {paper.abstract or ''} {paper.journal or ''}".lower()
+            for pattern, reason in topic_negatives:
+                if pattern.search(combined_text):
+                    score.total_score = 0
+                    score.relevance_level = "LOW"
+                    score.breakdown["topic_negative_hit"] = reason
+                    break
+
         if score.total_score >= request.min_score:
             repo.add_score(conn, search_run_id, paper_id, score)
             scored += 1
@@ -110,6 +127,24 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
         total_scored=scored,
         error_message="; ".join(errors) if errors else None,
     )
+
+
+def _compile_topic_negatives(topic: Topic) -> list[tuple]:
+    """Compile topic YAML negative keywords into regex patterns."""
+    import re
+    patterns = []
+    seen = set()
+    for pipe in topic.pipelines:
+        for neg in pipe.negative_keywords:
+            if neg and neg.lower() not in seen:
+                seen.add(neg.lower())
+                patterns.append((re.compile(re.escape(neg), re.IGNORECASE), neg))
+    for ks in topic.keyword_sets:
+        for neg in ks.negative_keywords:
+            if neg and neg.lower() not in seen:
+                seen.add(neg.lower())
+                patterns.append((re.compile(re.escape(neg), re.IGNORECASE), neg))
+    return patterns
 
 
 def _resolve_topic_from_request(request: SearchRequest) -> Topic | None:

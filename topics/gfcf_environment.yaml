@@ -429,3 +429,4 @@ llm_review:
 
     {{"relevant": true/false, "confidence": "high"/"medium"/"low", "reason": "one sentence", "methodology": "MRIO/EEIO/LCA/SDA/IO/none",
     "research_object": "GFCF/capital_stock/investment/infrastructure/none", "environmental_dimension": "carbon/water/material/land/energy/none"}}'
+  two_stage: true

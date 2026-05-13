@@ -51,25 +51,18 @@ def fetch_crossref(request: SearchRequest, issns: list[str]) -> list[ProviderPap
         results = fetch_keyword_papers(request, [])
         return [_from_crossref_result(r) for r in results]
 
-    # Split large date ranges into per-year queries to avoid Crossref
-    # cursor pagination truncation on multi-year ranges.
-    date_ranges = _split_date_range(request.date_from, request.date_to)
-
-    all_results = []
-    seen_dois = set()
-    for from_date, to_date in date_ranges:
-        results = fetch_recent_papers(
-            issns=issns,
-            from_date=from_date,
-            to_date=to_date,
-            max_per_journal=200,
-        )
-        for r in results:
-            if r.doi not in seen_dois:
-                seen_dois.add(r.doi)
-                all_results.append(r)
-
-    return [_from_crossref_result(r) for r in all_results]
+    # Single query with higher per-journal cap.
+    # Year-by-year splitting was tested but increased failure rate
+    # (more API calls = more chances for any single call to fail).
+    # Instead, use max_per_journal=500 which gives Crossref enough
+    # rows per batch to cover multi-year ranges in one cursor pass.
+    results = fetch_recent_papers(
+        issns=issns,
+        from_date=request.date_from,
+        to_date=request.date_to,
+        max_per_journal=500,
+    )
+    return [_from_crossref_result(result) for result in results]
 
 
 def fetch_keyword_papers(request: SearchRequest, issns: list[str]):
