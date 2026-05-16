@@ -350,7 +350,7 @@ def fetch_recent_papers(
     for i in range(0, len(issns), effective_batch_size):
         batch = issns[i : i + effective_batch_size]
         errors: list[str] = []
-        rows = min(max_per_journal * len(batch), config.MAX_PAPERS_PER_BATCH)
+        rows = min(max_per_journal * len(batch), config.MAX_PAPERS_PER_BATCH, 1000)
         cursor = "*"
         pages_fetched = 0
         try:
