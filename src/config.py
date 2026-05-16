@@ -21,9 +21,9 @@ class Config:
 
     API_DELAY_SECONDS: float = float(os.environ.get("API_DELAY_SECONDS", "0.3"))
 
-    MAX_PAPERS_PER_JOURNAL: int = int(os.environ.get("MAX_PAPERS_PER_JOURNAL", "200"))
+    MAX_PAPERS_PER_JOURNAL: int = int(os.environ.get("MAX_PAPERS_PER_JOURNAL", "1000"))
 
-    MAX_PAPERS_PER_BATCH: int = int(os.environ.get("MAX_PAPERS_PER_BATCH", "1000"))
+    MAX_PAPERS_PER_BATCH: int = int(os.environ.get("MAX_PAPERS_PER_BATCH", "5000"))
 
     MAX_CURSOR_PAGES: int = int(os.environ.get("MAX_CURSOR_PAGES", "100"))
 

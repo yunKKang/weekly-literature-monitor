@@ -271,6 +271,33 @@ pipelines:
   - financial accounting
   - tax accounting
   - management accounting
+  - ionic liquid
+  - hollow microsphere
+  - tartaric acid
+  - nanocomposite
+  - electrochemical
+  - catalyst
+  - catalytic
+  - photocatalytic
+  - adsorption
+  - sorption
+  - timberland
+  - forest land
+  - forestry investment
+  - REIT
+  - real estate investment trust
+  - species richness
+  - biodiversity conservation
+  - ecosystem service
+  - habitat
+  - pollinator
+  - tropospheric
+  - aerosol
+  - particulate matter
+  - PM2.5
+  - PM10
+  - air quality
+  - ambient air
 - name: GFCF x MRIO/EEIO
   description: (investment OR capital_stock) AND MRIO methods
   priority: 2
