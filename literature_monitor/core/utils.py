@@ -143,23 +143,6 @@ class SearchParams:
     cursor: str | None = None
 
 
-# Shared httpx client (lazy-initialized, handles chunked encoding properly)
-_httpx_client = None
-
-
-def _get_httpx_client():
-    """Get or create a shared httpx client with connection pooling."""
-    global _httpx_client
-    if _httpx_client is None:
-        import httpx
-        _httpx_client = httpx.Client(
-            timeout=httpx.Timeout(30.0, connect=10.0),
-            follow_redirects=True,
-            limits=httpx.Limits(max_connections=20, max_keepalive_connections=10),
-        )
-    return _httpx_client
-
-
 def fetch_url(
     url: str,
     *,
@@ -170,8 +153,8 @@ def fetch_url(
 ) -> tuple[int | None, bytes]:
     """Fetch a URL and return status code and body.
 
-    Uses httpx instead of urllib to properly handle chunked transfer
-    encoding (Crossref returns chunked responses for large result sets).
+    Uses httpx per-request (no shared client) to avoid SSL EOF errors
+    from stale connections during long Crossref cursor pagination.
 
     Args:
         url: URL to fetch
@@ -199,12 +182,14 @@ def fetch_url(
         config.CROSSREF_RETRY_DELAY if retry_delay_s is None else retry_delay_s
     )
 
-    client = _get_httpx_client()
-
     for attempt in range(effective_max_retries + 1):
         try:
-            resp = client.get(url, headers=default_headers, timeout=timeout_s)
-            return resp.status_code, resp.content
+            with httpx.Client(
+                timeout=httpx.Timeout(timeout_s, connect=10.0),
+                follow_redirects=True,
+            ) as client:
+                resp = client.get(url, headers=default_headers)
+                return resp.status_code, resp.content
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
             body = e.response.content
@@ -217,7 +202,7 @@ def fetch_url(
                 continue
             return status, body
         except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError,
-                httpx.RemoteProtocolError, httpx.DecodingError) as e:
+                httpx.RemoteProtocolError, httpx.DecodingError, Exception) as e:
             if attempt < effective_max_retries:
                 logger.warning(
                     "Network error for %s, retrying in %.1fs...",
