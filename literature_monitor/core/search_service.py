@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import asdict
 from typing import Any
 
 from literature_monitor.core.dedup import deduplicate_records
+from literature_monitor.core.utils import fetch_url
 from literature_monitor.core.journals import resolve_issns
 from literature_monitor.core.models import (
     Paper,
@@ -25,6 +27,8 @@ from literature_monitor.providers.crossref import (
     fetch_crossref_conferences,
 )
 from literature_monitor.providers.openalex import fetch_openalex
+
+logger = logging.getLogger(__name__)
 from literature_monitor.topic.loader import load_all_topics, load_topic
 from literature_monitor.topic.schema import Topic
 
