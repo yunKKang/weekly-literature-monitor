@@ -185,6 +185,7 @@ class Topic(BaseModel):
     exporters: list[ExporterConfig] = Field(default_factory=list)
 
     # --- Metadata ---
+    benchmark_dois: list[str] = Field(default_factory=list, description="DOIs of benchmark papers for recall verification")
     created_at: str = ""
     updated_at: str = ""
     author: str = ""

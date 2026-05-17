@@ -285,6 +285,8 @@ class LLMReviewStage:
         """Parse JSON from LLM response, stripping <think>...</think> tags if present."""
         # Strip DeepSeek/R1 thinking tags
         content = re.sub(r"<think>.*?</think>\s*", "", content, flags=re.DOTALL)
+        # Also strip leading whitespace/newlines that may precede JSON
+        content = content.lstrip()
         # Strip markdown code fences
         content = re.sub(r"^```(?:json)?\s*", "", content.strip(), flags=re.MULTILINE)
         content = re.sub(r"```\s*$", "", content.strip(), flags=re.MULTILINE)
