@@ -59,7 +59,7 @@ def fetch_openalex(
 def _fetch_openalex_chunk(
     request: SearchRequest, issns: list[str], *, timeout_s: int = 30
 ) -> list[ProviderPaper]:
-    per_page = min(max(request.max_results_per_source, 1), OPENALEX_PER_PAGE_MAX)
+    per_page = OPENALEX_PER_PAGE_MAX  # page size, not total limit
     results: list[ProviderPaper] = []
     cursor = "*"
     seen_ids: set[str] = set()

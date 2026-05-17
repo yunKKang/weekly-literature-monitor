@@ -48,7 +48,7 @@ class SearchRequest:
     journal_issns: list[str] = field(default_factory=list)
     include_conferences: bool = False
     min_score: float = 0
-    max_results_per_source: int = 200
+    max_results_per_source: int = 10000
 
     @property
     def query_terms(self) -> list[str]:
