@@ -111,7 +111,7 @@ def _resolve_topic(topic_id: str) -> dict:
                 "journal_pool_ids": t.journal_pool_ids,
                 "include_conferences": t.include_conferences,
                 "min_score": 0,
-                "max_results_per_source": 200,
+                "max_results_per_source": 10000,
             }
 
     # Fallback to legacy
