@@ -140,9 +140,8 @@ def _fetch_dois_fallback(
     conn, dois: list[str], issns: list[str], grouped: list[list[ProviderPaper]], records: list[ProviderPaper]
 ) -> int:
     """Fetch known DOIs directly from Crossref and add to results if missing."""
-    from literature_monitor.providers.crossref_client import CrossrefClient
-    from literature_monitor.providers.crossref import _from_crossref_result
     from literature_monitor.providers.crossref_client import parse_crossref_work
+    from literature_monitor.providers.crossref import _from_crossref_result
 
     existing_dois = set()
     for group in grouped:
@@ -151,7 +150,6 @@ def _fetch_dois_fallback(
                 existing_dois.add(item.paper.doi.lower())
 
     fetched = 0
-    client = CrossrefClient()
     for doi in dois:
         if doi.lower() in existing_dois:
             continue
@@ -159,7 +157,6 @@ def _fetch_dois_fallback(
             url = f"https://api.crossref.org/works/{doi}"
             status, body = fetch_url(url, timeout_s=15)
             if status == 200:
-                import json
                 data = json.loads(body.decode("utf-8", errors="replace"))
                 message = data.get("message", {})
                 result = parse_crossref_work(message)
@@ -168,6 +165,7 @@ def _fetch_dois_fallback(
                     records.append(provider_paper)
                     existing_dois.add(doi.lower())
                     fetched += 1
+                    logger.info("DOI fallback: fetched %s", doi)
         except Exception as e:
             logger.warning("DOI fallback fetch failed for %s: %s", doi, e)
     return fetched
