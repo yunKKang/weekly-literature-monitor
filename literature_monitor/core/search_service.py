@@ -70,6 +70,13 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
     topic = _resolve_topic_from_request(request)
     topic_negatives = _compile_topic_negatives(topic) if topic else []
 
+    # DOI-based fallback: fetch known important papers directly by DOI
+    # This ensures recall for papers that ISSN cursor pagination misses
+    if topic and hasattr(topic, 'benchmark_dois'):
+        fallback_count = _fetch_dois_fallback(conn, topic.benchmark_dois, issns, grouped, records)
+        if fallback_count:
+            errors.append(f"doi_fallback: fetched {fallback_count} papers by DOI")
+
     for group in grouped:
         paper = merge_group(group)
         paper_id = repo.upsert_paper(conn, paper)
@@ -127,6 +134,43 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
         total_scored=scored,
         error_message="; ".join(errors) if errors else None,
     )
+
+
+def _fetch_dois_fallback(
+    conn, dois: list[str], issns: list[str], grouped: list[list[ProviderPaper]], records: list[ProviderPaper]
+) -> int:
+    """Fetch known DOIs directly from Crossref and add to results if missing."""
+    from literature_monitor.providers.crossref_client import CrossrefClient
+    from literature_monitor.providers.crossref import _from_crossref_result
+    from literature_monitor.providers.crossref_client import parse_crossref_work
+
+    existing_dois = set()
+    for group in grouped:
+        for item in group:
+            if item.paper.doi:
+                existing_dois.add(item.paper.doi.lower())
+
+    fetched = 0
+    client = CrossrefClient()
+    for doi in dois:
+        if doi.lower() in existing_dois:
+            continue
+        try:
+            url = f"https://api.crossref.org/works/{doi}"
+            status, body = fetch_url(url, timeout_s=15)
+            if status == 200:
+                import json
+                data = json.loads(body.decode("utf-8", errors="replace"))
+                message = data.get("message", {})
+                result = parse_crossref_work(message)
+                if result:
+                    provider_paper = _from_crossref_result(result)
+                    records.append(provider_paper)
+                    existing_dois.add(doi.lower())
+                    fetched += 1
+        except Exception as e:
+            logger.warning("DOI fallback fetch failed for %s: %s", doi, e)
+    return fetched
 
 
 def _compile_topic_negatives(topic: Topic) -> list[tuple]:
