@@ -167,6 +167,7 @@ def _fetch_dois_fallback(
                 if result:
                     provider_paper = _from_crossref_result(result)
                     records.append(provider_paper)
+                    grouped.append([provider_paper])
                     existing_dois.add(doi.lower())
                     fetched += 1
                     logger.info("DOI fallback: fetched %s", doi)
