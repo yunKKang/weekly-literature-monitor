@@ -77,6 +77,7 @@ def score_for_request(
         "exclusion_reason": legacy.exclusion_reason,
         "negative_matches": legacy.negative_matches,
         "matched_asset_types": legacy.matched_asset_types,
+        "matched_keywords": matched_keywords,
         "matched_themes": legacy.matched_themes,
     }
     return ScoreResult(
