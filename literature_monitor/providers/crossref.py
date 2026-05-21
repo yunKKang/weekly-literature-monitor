@@ -106,7 +106,7 @@ def fetch_crossref_conferences(request: SearchRequest) -> list[ProviderPaper]:
         container_titles=[item["container_title"] for item in conferences],
         from_date=request.date_from,
         to_date=request.date_to,
-        max_per_conference=max(1, request.max_results_per_source // len(conferences)),
+        max_per_conference=max(1, min(request.max_results_per_source // len(conferences), 1000)),
     )
     return [_from_crossref_result(result) for result in results]
 
