@@ -288,22 +288,41 @@ class LLMReviewStage:
 
     @staticmethod
     def _parse_json_response(content: str) -> dict[str, Any] | None:
-        """Parse JSON from LLM response, stripping <think>...</think> tags if present."""
-        # Strip DeepSeek/R1 thinking tags
-        content = re.sub(r"<think>.*?</think>\s*", "", content, flags=re.DOTALL)
-        # Also strip leading whitespace/newlines that may precede JSON
-        content = content.lstrip()
-        # Strip markdown code fences
-        content = re.sub(r"^```(?:json)?\s*", "", content.strip(), flags=re.MULTILINE)
-        content = re.sub(r"```\s*$", "", content.strip(), flags=re.MULTILINE)
+        """Parse JSON from LLM response, stripping <think>... tags if present."""
+        import re as _re
+        # Strip all <> tags (DeepSeek/R1 thinking tags, markdown, etc.)
+        content = _re.sub(r"<[^>]*>", "", content)
         content = content.strip()
         if not content:
             return None
-        try:
-            return json.loads(content)
-        except json.JSONDecodeError:
-            logger.warning("LLM returned non-JSON: %s", content[:150])
-            return None
+
+        # Try direct parse first
+        if content.startswith("{"):
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                pass
+
+        # Try extracting first {...} block (handles commentary-before-JSON)
+        m = _re.search(r"\{.*\}", content, _re.DOTALL)
+        if m:
+            try:
+                return json.loads(m.group())
+            except json.JSONDecodeError:
+                pass
+
+        # Try stripping markdown code fences
+        cleaned = _re.sub(r"^```(?:json)?\s*", "", content, flags=_re.MULTILINE)
+        cleaned = _re.sub(r"```\s*$", "", cleaned, flags=_re.MULTILINE).strip()
+        if cleaned.startswith("{"):
+            try:
+                return json.loads(cleaned)
+            except json.JSONDecodeError:
+                pass
+
+        logger.warning("LLM returned non-JSON: %s", content[:150])
+        return None
+
 
     def _resolve_url(self, path: str) -> str:
         """Resolve API URL from base_url or provider default."""
