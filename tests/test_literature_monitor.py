@@ -211,7 +211,7 @@ class TestScoring:
         assert negative_keyword_penalty(paper, []) == 0.0
 
     def test_recency_bonus_recent(self):
-        bonus = recency_bonus("2026-05-01")
+        bonus = recency_bonus("2026-05-11")
         assert bonus > 5.0
 
     def test_recency_bonus_old(self):
