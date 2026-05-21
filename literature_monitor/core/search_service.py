@@ -243,6 +243,8 @@ def _run_llm_review(
         if not existing or existing["relevance_level"] not in ("HIGH", "MEDIUM"):
             continue
 
+        breakdown = json.loads(existing["score_breakdown_json"])
+        matched_keywords = tuple(json.loads(existing["matched_keywords_json"])) if existing["matched_keywords_json"] else ()
         state = PipelineState(
             title=paper.title,
             abstract=paper.abstract or "",
@@ -250,7 +252,8 @@ def _run_llm_review(
             year=paper.year,
             total_score=existing["total_score"],
             relevance_level=existing["relevance_level"],
-            breakdown=json.loads(existing["score_breakdown_json"]),
+            matched_keywords=matched_keywords,
+            breakdown=breakdown,
         )
         result = llm_stage.run(state)
 

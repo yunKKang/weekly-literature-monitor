@@ -133,9 +133,15 @@ class LLMReviewStage:
 
         # === Two-stage mode ===
 
+        # Legacy-protected papers: skip title filter, go straight to deep review
+        # (they score HIGH on legacy mechanism and must not be penalized)
+        if state.breakdown.get('legacy_priority') in ('HIGH', 'MEDIUM'):
+            # Force single-stage deep review
+            return self._run_single_stage(state)
+
         # Stage 1: Title-only fast filter (cheap)
         if not state.title or len(state.title) < 10:
-            return state
+            return self._run_single_stage(state)
 
         try:
             stage1_result = self._call_title_filter(state)
