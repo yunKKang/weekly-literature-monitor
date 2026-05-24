@@ -9,7 +9,7 @@ from literature_monitor.core.search_service import (
     create_and_run_search,
     request_from_dict,
 )
-from literature_monitor.core.topics import list_search_topics
+from literature_monitor.core.topics import topic_to_search_preset
 from literature_monitor.db.connection import connect
 from literature_monitor.db.schema import init_db
 from literature_monitor.topic.loader import load_topic, list_topics, validate_topic
@@ -89,37 +89,12 @@ def _cmd_topic_show(topic_id: str) -> int:
 # ---------------------------------------------------------------------------
 
 def _resolve_topic(topic_id: str) -> dict:
-    """Try new Topic YAML first, then legacy search_topics.json fallback."""
-    # Try new system
+    """Resolve a search topic from YAML Topic definitions only."""
     for tid in list_topics():
         if tid == topic_id:
-            t = load_topic(topic_id)
-            # Flatten all keywords from all keyword_sets into a single list
-            all_keywords = []
-            all_synonyms = []
-            all_negatives = []
-            for ks in t.keyword_sets:
-                all_keywords.extend(ks.keywords)
-                all_synonyms.extend(ks.synonyms)
-                all_negatives.extend(ks.negative_keywords)
-            return {
-                "id": t.id,
-                "date_from": t.date_range.date_from,
-                "keywords": all_keywords,
-                "synonyms": all_synonyms,
-                "negative_keywords": all_negatives,
-                "journal_pool_ids": t.journal_pool_ids,
-                "include_conferences": t.include_conferences,
-                "min_score": 0,
-                "max_results_per_source": 10000,
-            }
+            return topic_to_search_preset(load_topic(topic_id))
 
-    # Fallback to legacy
-    for topic in list_search_topics():
-        if topic.get("id") == topic_id:
-            return topic
-
-    raise SystemExit(f"Unknown topic: {topic_id} (checked topics/ and config/search_topics.json)")
+    raise SystemExit(f"Unknown topic: {topic_id} (checked topics/*.yaml)")
 
 
 # ---------------------------------------------------------------------------

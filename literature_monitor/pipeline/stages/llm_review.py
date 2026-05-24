@@ -460,6 +460,7 @@ class LLMReviewStage:
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1,
             "max_tokens": 300,
+            "response_format": {"type": "json_object"},
         }
 
         data = self._post_openai_chat(body)
@@ -487,6 +488,7 @@ class LLMReviewStage:
             }],
             "temperature": 0.0,
             "max_tokens": 200,
+            "response_format": {"type": "json_object"},
         }
         repair_data = self._post_openai_chat(repair_body)
         if repair_data is None:

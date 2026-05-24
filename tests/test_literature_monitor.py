@@ -377,15 +377,33 @@ class TestJournalResolution:
 
 
 class TestSearchTopics:
-    def test_algal_bloom_ml_topic_exists(self):
+    def test_topics_are_projected_from_yaml(self):
         from literature_monitor.core.topics import list_search_topics
 
         topics = list_search_topics()
+        ids = {item["id"] for item in topics}
+        assert "gfcf_environment" in ids
+        assert "algal_bloom_ml" in ids
+
         topic = next(item for item in topics if item["id"] == "algal_bloom_ml")
         assert topic["journal_pool_ids"] == ["pool_algal_bloom_ml"]
         assert topic["date_from"] == "2020-01-01"
         assert any("harmful algal bloom" in kw for kw in topic["keywords"])
         assert "biofuel" in topic["negative_keywords"]
+        assert topic["min_score"] == 0
+        assert topic["max_results_per_source"] == 10000
+
+    def test_gfcf_topic_yaml_projection_preserves_runtime_options(self):
+        from literature_monitor.core.topics import list_search_topics
+
+        topics = list_search_topics()
+        topic = next(item for item in topics if item["id"] == "gfcf_environment")
+        assert topic["include_conferences"] is True
+        assert topic["date_from"] == "2020-01-01"
+        assert "main_pool" in topic["journal_pool_ids"]
+        assert "GFCF" in topic["keywords"]
+        assert "offspring" in topic["negative_keywords"]
+        assert topic["source"] == "yaml"
 
 
 # ---------------------------------------------------------------------------

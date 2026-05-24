@@ -117,7 +117,17 @@ pipelines:
     hard_threshold:
       required_sets: [algal_bloom_terms, ml_terms]
     keyword_sets: [algal_bloom_terms, ml_terms, remote_sensing_terms]
-    negative_keywords: []
+    negative_keywords:
+      - "biofuel"
+      - "biodiesel"
+      - "bioreactor"
+      - "photobioreactor"
+      - "lipid accumulation"
+      - "algal cultivation"
+      - "microalgae production"
+      - "astaxanthin"
+      - "spirulina"
+      - "food supplement"
 
   - name: "Algal Bloom x Remote Sensing"
     description: "Algal bloom monitoring with remote sensing + data analysis"
