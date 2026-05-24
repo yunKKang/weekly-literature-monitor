@@ -27,4 +27,4 @@ class SearchRunCreate(BaseModel):
     journal_issns: list[str] = Field(default_factory=list)
     include_conferences: bool = False
     min_score: float = 0
-    max_results_per_source: int = 200
+    max_results_per_source: int = 10000

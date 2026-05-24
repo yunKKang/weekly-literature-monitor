@@ -89,7 +89,7 @@
         "spirulina",
         "food supplement"
       ],
-      "max_results_per_source": 200,
+      "max_results_per_source": 10000,
       "min_score": 0,
       "include_conferences": false,
       "notes": [

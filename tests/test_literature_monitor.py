@@ -886,7 +886,7 @@ class TestSearchServiceHelpers:
         from literature_monitor.core.search_service import request_from_dict
         req = request_from_dict({"date_from": "2026-01-01", "date_to": "2026-02-01"})
         assert req.min_score == 0
-        assert req.max_results_per_source == 200
+        assert req.max_results_per_source == 10000
 
 
 # ---------------------------------------------------------------------------

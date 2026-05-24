@@ -219,7 +219,7 @@ document.getElementById("search-form").addEventListener("submit", async event =>
     journal_issns: listValue(form, "journal_issns"),
     include_conferences: form.get("include_conferences") === "on",
     min_score: Number(form.get("min_score") || 0),
-    max_results_per_source: Number(form.get("max_results_per_source") || 100)
+    max_results_per_source: Number(form.get("max_results_per_source") || 10000)
   };
   setStatus(t("searching"));
   try {
@@ -468,7 +468,7 @@ function applyTopicPreset(topic) {
   setField(form, "synonyms", topic.synonyms);
   setField(form, "negative_keywords", topic.negative_keywords);
   setField(form, "journal_issns", []);
-  setField(form, "max_results_per_source", topic.max_results_per_source || 100);
+  setField(form, "max_results_per_source", topic.max_results_per_source || 10000);
   setField(form, "min_score", topic.min_score || 0);
   if (topic.date_from) form.elements.date_from.value = topic.date_from;
   form.elements.include_conferences.checked = Boolean(topic.include_conferences);

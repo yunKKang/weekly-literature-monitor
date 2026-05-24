@@ -199,7 +199,7 @@ def main() -> int:
                 "max_results_per_source": (
                     args.max_results_per_source
                     if args.max_results_per_source is not None
-                    else preset.get("max_results_per_source", 100)
+                    else preset.get("max_results_per_source", 10000)
                 ),
             }
         )

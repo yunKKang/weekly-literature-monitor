@@ -236,7 +236,7 @@ def _run_llm_review(
         paper = merge_group(group)
         paper_id = repo.upsert_paper(conn, paper)
         existing = conn.execute(
-            "SELECT total_score, relevance_level, score_breakdown_json "
+            "SELECT total_score, relevance_level, matched_keywords_json, score_breakdown_json "
             "FROM scored_results WHERE search_run_id = ? AND paper_id = ?",
             (search_run_id, paper_id),
         ).fetchone()
@@ -329,7 +329,7 @@ def request_from_dict(data: dict[str, Any]) -> SearchRequest:
         journal_issns=list_field("journal_issns"),
         include_conferences=bool(data.get("include_conferences", False)),
         min_score=float(data.get("min_score") or 0),
-        max_results_per_source=int(data.get("max_results_per_source") or 200),
+        max_results_per_source=int(data.get("max_results_per_source") or 10000),
     )
 
 
