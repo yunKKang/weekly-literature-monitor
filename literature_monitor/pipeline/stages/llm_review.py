@@ -136,6 +136,7 @@ class LLMReviewStage:
         # Legacy-protected papers: skip title filter, go straight to deep review
         # (they score HIGH on legacy mechanism and must not be penalized)
         if state.breakdown.get('legacy_priority') in ('HIGH', 'MEDIUM'):
+            logger.info("Legacy bypass for paper: %s", state.title[:40])
             # Force single-stage deep review
             return self._run_single_stage(state)
 
