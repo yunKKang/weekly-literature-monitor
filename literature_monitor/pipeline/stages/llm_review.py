@@ -256,7 +256,7 @@ class LLMReviewStage:
             journal=state.journal or "unknown",
         )
         try:
-            return self._call_api(prompt)
+            return self._call_api(prompt, response_contract="title_filter")
         except Exception as e:
             logger.warning("Title filter API call failed: %s", e)
             return None
@@ -271,15 +271,15 @@ class LLMReviewStage:
             journal=state.journal,
             year=state.year or "unknown",
         )
-        return self._call_api(prompt)
+        return self._call_api(prompt, response_contract="abstract_review")
 
-    def _call_api(self, prompt: str) -> dict[str, Any] | None:
+    def _call_api(self, prompt: str, response_contract: str = "abstract_review") -> dict[str, Any] | None:
         """Dispatch to the appropriate LLM API provider."""
         try:
             if self.provider == "openai":
-                return self._call_openai(prompt)
+                return self._call_openai(prompt, response_contract=response_contract)
             elif self.provider == "anthropic":
-                return self._call_anthropic(prompt)
+                return self._call_anthropic(prompt, response_contract=response_contract)
             else:
                 logger.warning("Unknown LLM provider: %s", self.provider)
                 return None
@@ -288,41 +288,150 @@ class LLMReviewStage:
             return None
 
     @staticmethod
-    def _parse_json_response(content: str) -> dict[str, Any] | None:
-        """Parse JSON from LLM response, stripping <think>... tags if present."""
+    def _parse_json_response(
+        content: str,
+        response_contract: str = "abstract_review",
+    ) -> dict[str, Any] | None:
+        """Parse, normalize, and validate an LLM JSON response contract."""
+        parsed = LLMReviewStage._extract_json_object(content)
+        if parsed is None:
+            logger.warning("LLM returned non-JSON: %s", content[:150])
+            return None
+        return LLMReviewStage._normalize_json_contract(parsed, response_contract)
+
+    @staticmethod
+    def _extract_json_object(content: str) -> dict[str, Any] | None:
+        """Extract the first JSON object from common LLM response wrappers."""
         import re as _re
-        # Strip all <> tags (DeepSeek/R1 thinking tags, markdown, etc.)
-        content = _re.sub(r"<[^>]*>", "", content)
-        content = content.strip()
+
+        content = _re.sub(r"<[^>]*>", "", content).strip()
         if not content:
             return None
 
-        # Try direct parse first
-        if content.startswith("{"):
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError:
-                pass
-
-        # Try extracting first {...} block (handles commentary-before-JSON)
+        candidates = [content]
+        fenced = _re.sub(r"^```(?:json)?\s*", "", content, flags=_re.MULTILINE)
+        fenced = _re.sub(r"```\s*$", "", fenced, flags=_re.MULTILINE).strip()
+        if fenced != content:
+            candidates.append(fenced)
         m = _re.search(r"\{.*\}", content, _re.DOTALL)
         if m:
-            try:
-                return json.loads(m.group())
-            except json.JSONDecodeError:
-                pass
+            candidates.append(m.group())
 
-        # Try stripping markdown code fences
-        cleaned = _re.sub(r"^```(?:json)?\s*", "", content, flags=_re.MULTILINE)
-        cleaned = _re.sub(r"```\s*$", "", cleaned, flags=_re.MULTILINE).strip()
-        if cleaned.startswith("{"):
+        for candidate in candidates:
+            if not candidate.startswith("{"):
+                continue
             try:
-                return json.loads(cleaned)
+                value = json.loads(candidate)
             except json.JSONDecodeError:
-                pass
-
-        logger.warning("LLM returned non-JSON: %s", content[:150])
+                continue
+            if isinstance(value, dict):
+                return value
         return None
+
+    @staticmethod
+    def _normalize_json_contract(
+        value: dict[str, Any],
+        response_contract: str,
+    ) -> dict[str, Any] | None:
+        """Normalize aliases and enforce the required LLM response shape."""
+        confidence = LLMReviewStage._normalize_confidence(value.get("confidence"))
+        reason = value.get("reason", value.get("rationale", value.get("explanation", "")))
+        reason = str(reason).strip() if reason is not None else ""
+
+        if response_contract == "title_filter":
+            verdict = LLMReviewStage._coerce_bool(
+                value.get("likely_relevant", value.get("relevant", value.get("is_relevant")))
+            )
+            verdict_key = "likely_relevant"
+        else:
+            verdict = LLMReviewStage._coerce_bool(
+                value.get("relevant", value.get("is_relevant", value.get("likely_relevant")))
+            )
+            verdict_key = "relevant"
+
+        if verdict is None or confidence is None:
+            logger.warning(
+                "LLM JSON failed %s contract validation: %s",
+                response_contract,
+                value,
+            )
+            return None
+
+        normalized: dict[str, Any] = {
+            verdict_key: verdict,
+            "confidence": confidence,
+            "reason": reason,
+        }
+        if response_contract != "title_filter":
+            for dim in ("methodology", "research_object", "environmental_dimension"):
+                if dim in value and value[dim] is not None:
+                    normalized[dim] = str(value[dim]).strip()
+        return normalized
+
+    @staticmethod
+    def _coerce_bool(value: Any) -> bool | None:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"true", "yes", "y", "1"}:
+                return True
+            if normalized in {"false", "no", "n", "0"}:
+                return False
+        if isinstance(value, int) and value in {0, 1}:
+            return bool(value)
+        return None
+
+    @staticmethod
+    def _normalize_confidence(value: Any) -> str | None:
+        if value is None:
+            return "low"
+        normalized = str(value).strip().lower()
+        if normalized in {"high", "medium", "low"}:
+            return normalized
+        return None
+
+    @staticmethod
+    def _repair_prompt(original_prompt: str, malformed_response: str, response_contract: str) -> str:
+        if response_contract == "title_filter":
+            schema = '{"likely_relevant": true/false, "confidence": "high"/"medium"/"low", "reason": "brief"}'
+        else:
+            schema = '{"relevant": true/false, "confidence": "high"/"medium"/"low", "reason": "brief"}'
+        return (
+            "Repair the malformed LLM JSON response below. "
+            "Return ONLY one valid JSON object matching this schema:\n"
+            f"{schema}\n\n"
+            "Original task prompt:\n"
+            f"{original_prompt[:1200]}\n\n"
+            "Malformed response:\n"
+            f"{malformed_response[:1200]}"
+        )
+
+    def _post_openai_chat(self, body: dict[str, Any]) -> dict[str, Any] | None:
+        import httpx
+
+        try:
+            with httpx.Client(timeout=60.0) as client:
+                resp = client.post(
+                    self._resolve_url("/chat/completions"),
+                    json=body,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json",
+                    },
+                )
+                resp.raise_for_status()
+                return resp.json()
+        except httpx.HTTPStatusError as e:
+            logger.warning("OpenAI API error: %s", e.response.status_code)
+            return None
+        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError) as e:
+            logger.warning("OpenAI API connection error: %s", e)
+            return None
+
+    @staticmethod
+    def _extract_openai_content(data: dict[str, Any]) -> str:
+        return data["choices"][0]["message"]["content"]
 
 
     def _resolve_url(self, path: str) -> str:
@@ -335,10 +444,12 @@ class LLMReviewStage:
             return f"{base}{path}"
         return f"https://api.openai.com/v1{path}"
 
-    def _call_openai(self, prompt: str) -> dict[str, Any] | None:
+    def _call_openai(
+        self,
+        prompt: str,
+        response_contract: str = "abstract_review",
+    ) -> dict[str, Any] | None:
         """Call OpenAI-compatible API via httpx (handles chunked encoding)."""
-        import httpx
-
         api_key = self.api_key
         if not api_key:
             logger.warning("No OpenAI API key — skipping LLM review")
@@ -351,23 +462,8 @@ class LLMReviewStage:
             "max_tokens": 300,
         }
 
-        try:
-            with httpx.Client(timeout=60.0) as client:
-                resp = client.post(
-                    self._resolve_url("/chat/completions"),
-                    json=body,
-                    headers={
-                        "Authorization": f"Bearer {api_key}",
-                        "Content-Type": "application/json",
-                    },
-                )
-                resp.raise_for_status()
-                data = resp.json()
-        except httpx.HTTPStatusError as e:
-            logger.warning("OpenAI API error: %s", e.response.status_code)
-            return None
-        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError) as e:
-            logger.warning("OpenAI API connection error: %s", e)
+        data = self._post_openai_chat(body)
+        if data is None:
             return None
 
         usage = data.get("usage", {})
@@ -378,10 +474,36 @@ class LLMReviewStage:
             + completion_tokens * 0.60 / 1_000_000
         )
 
-        content = data["choices"][0]["message"]["content"]
-        return self._parse_json_response(content)
+        content = self._extract_openai_content(data)
+        parsed = self._parse_json_response(content, response_contract=response_contract)
+        if parsed is not None:
+            return parsed
 
-    def _call_anthropic(self, prompt: str) -> dict[str, Any] | None:
+        repair_body = {
+            "model": self.model,
+            "messages": [{
+                "role": "user",
+                "content": self._repair_prompt(prompt, content, response_contract),
+            }],
+            "temperature": 0.0,
+            "max_tokens": 200,
+        }
+        repair_data = self._post_openai_chat(repair_body)
+        if repair_data is None:
+            return None
+        repair_usage = repair_data.get("usage", {})
+        self._total_cost += (
+            repair_usage.get("prompt_tokens", 200) * 0.15 / 1_000_000
+            + repair_usage.get("completion_tokens", 100) * 0.60 / 1_000_000
+        )
+        repair_content = self._extract_openai_content(repair_data)
+        return self._parse_json_response(repair_content, response_contract=response_contract)
+
+    def _call_anthropic(
+        self,
+        prompt: str,
+        response_contract: str = "abstract_review",
+    ) -> dict[str, Any] | None:
         """Call Anthropic API via httpx."""
         import httpx
 
@@ -414,4 +536,4 @@ class LLMReviewStage:
             return None
 
         content = data["content"][0]["text"]
-        return self._parse_json_response(content)
+        return self._parse_json_response(content, response_contract=response_contract)

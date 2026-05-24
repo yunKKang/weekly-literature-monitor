@@ -220,6 +220,89 @@ class TestLLMReviewStage:
         assert result.total_score == 40.0  # unchanged
 
 
+class TestLLMJsonContract:
+    """Tests for strict LLM JSON parsing/normalization contracts."""
+
+    def test_parse_abstract_contract_normalizes_common_aliases(self):
+        result = LLMReviewStage._parse_json_response(
+            '{"is_relevant": "yes", "confidence": "HIGH", "rationale": "MRIO and GFCF."}',
+            response_contract="abstract_review",
+        )
+
+        assert result == {
+            "relevant": True,
+            "confidence": "high",
+            "reason": "MRIO and GFCF.",
+        }
+
+    def test_parse_title_contract_normalizes_likely_relevant_alias(self):
+        result = LLMReviewStage._parse_json_response(
+            '{"relevant": false, "confidence": "medium", "reason": "title is biological"}',
+            response_contract="title_filter",
+        )
+
+        assert result == {
+            "likely_relevant": False,
+            "confidence": "medium",
+            "reason": "title is biological",
+        }
+
+    def test_parse_rejects_missing_required_boolean(self):
+        assert LLMReviewStage._parse_json_response(
+            '{"confidence": "high", "reason": "missing verdict"}',
+            response_contract="abstract_review",
+        ) is None
+
+    def test_parse_rejects_invalid_confidence(self):
+        assert LLMReviewStage._parse_json_response(
+            '{"relevant": true, "confidence": "certain", "reason": "bad enum"}',
+            response_contract="abstract_review",
+        ) is None
+
+    def test_openai_repairs_malformed_json_once(self):
+        stage = LLMReviewStage(api_key="fake-key", provider="openai")
+
+        class FakeResponse:
+            def __init__(self, content):
+                self._content = content
+
+            def raise_for_status(self):
+                return None
+
+            def json(self):
+                return {
+                    "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+                    "choices": [{"message": {"content": self._content}}],
+                }
+
+        responses = [
+            FakeResponse("The answer is relevant with high confidence."),
+            FakeResponse('{"relevant": true, "confidence": "high", "reason": "fixed json"}'),
+        ]
+        posted_bodies = []
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def post(self, url, json, headers):
+                posted_bodies.append(json)
+                return responses.pop(0)
+
+        with patch("httpx.Client", FakeClient):
+            result = stage._call_openai("judge this", response_contract="abstract_review")
+
+        assert result == {"relevant": True, "confidence": "high", "reason": "fixed json"}
+        assert len(posted_bodies) == 2
+        assert "Repair the malformed LLM JSON response" in posted_bodies[1]["messages"][-1]["content"]
+
+
 class TestLLMReviewWithPipeline:
     """Test LLM review integrated into the full pipeline."""
 
@@ -409,7 +492,7 @@ class TestTwoStageLLMReview:
         stage = LLMReviewStage(api_key="fake-key", two_stage=True)
 
         call_count = [0]
-        def mock_api(prompt):
+        def mock_api(prompt, response_contract="abstract_review"):
             call_count[0] += 1
             if call_count[0] == 1:
                 # Stage 1: likely relevant
@@ -445,7 +528,7 @@ class TestTwoStageLLMReview:
         stage = LLMReviewStage(api_key="fake-key", two_stage=True)
 
         call_count = [0]
-        def mock_api(prompt):
+        def mock_api(prompt, response_contract="abstract_review"):
             call_count[0] += 1
             if call_count[0] == 1:
                 return {"likely_relevant": True, "confidence": "medium", "reason": "maybe"}
@@ -520,7 +603,7 @@ class TestTwoStageLLMReview:
         stage = LLMReviewStage(api_key="fake-key", two_stage=True, max_papers=1)
 
         call_count = [0]
-        def mock_api(prompt):
+        def mock_api(prompt, response_contract="abstract_review"):
             call_count[0] += 1
             if call_count[0] <= 2:
                 # First paper: Stage 1 pass, Stage 2 pass
