@@ -189,6 +189,7 @@ def fetch_url(
                 follow_redirects=True,
             ) as client:
                 resp = client.get(url, headers=default_headers)
+                resp.raise_for_status()
                 return resp.status_code, resp.content
         except httpx.HTTPStatusError as e:
             status = e.response.status_code

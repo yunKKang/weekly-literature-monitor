@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from fastapi import BackgroundTasks, HTTPException
+from fastapi import BackgroundTasks, Depends, HTTPException
 
 from literature_monitor.api.schemas import SearchRunCreate
 from literature_monitor.core.export import export_results
@@ -15,11 +15,16 @@ from literature_monitor.core.search_service import (
 )
 from literature_monitor.core.topics import list_search_topics
 from literature_monitor.db import repositories as repo
-from literature_monitor.db.connection import connect
+from literature_monitor.db.connection import get_connection
 from literature_monitor.db.schema import init_db
 
 
 def register_routes(app):
+    def _get_conn():
+        with get_connection() as conn:
+            init_db(conn)
+            yield conn
+
     @app.get("/api/health")
     def health():
         return {"ok": True}
@@ -37,11 +42,11 @@ def register_routes(app):
         dump = getattr(payload, "model_dump", None)
         data = dump() if dump else payload.__dict__
         request = request_from_dict(data)
-        conn = connect()
-        init_db(conn)
-        search_run_id = repo.create_search_run(
-            conn, asdict(request), request.date_from, request.date_to
-        )
+        with get_connection() as conn:
+            init_db(conn)
+            search_run_id = repo.create_search_run(
+                conn, asdict(request), request.date_from, request.date_to
+            )
         background_tasks.add_task(run_search, search_run_id, request)
         return {
             "search_run_id": search_run_id,
@@ -54,9 +59,9 @@ def register_routes(app):
 
     @app.get("/api/search-runs/{search_run_id}")
     def get_search_run(search_run_id: int):
-        conn = connect()
-        init_db(conn)
-        row = repo.get_search_run(conn, search_run_id)
+        with get_connection() as conn:
+            init_db(conn)
+            row = repo.get_search_run(conn, search_run_id)
         if not row:
             raise HTTPException(status_code=404, detail="not_found")
         return row
@@ -78,32 +83,32 @@ def register_routes(app):
         date_to: str | None = None,
         sort: str = "score",
     ):
-        conn = connect()
-        init_db(conn)
-        total, rows = repo.list_results(
-            conn,
-            search_run_id,
-            limit=limit,
-            offset=offset,
-            relevance=relevance,
-            min_score=min_score,
-            keyword=keyword,
-            journal=journal,
-            source=source,
-            has_doi=has_doi,
-            has_abstract=has_abstract,
-            year=year,
-            date_from=date_from,
-            date_to=date_to,
-            sort=sort,
-        )
+        with get_connection() as conn:
+            init_db(conn)
+            total, rows = repo.list_results(
+                conn,
+                search_run_id,
+                limit=limit,
+                offset=offset,
+                relevance=relevance,
+                min_score=min_score,
+                keyword=keyword,
+                journal=journal,
+                source=source,
+                has_doi=has_doi,
+                has_abstract=has_abstract,
+                year=year,
+                date_from=date_from,
+                date_to=date_to,
+                sort=sort,
+            )
         return {"total": total, "results": rows}
 
     @app.get("/api/search-runs/{search_run_id}/results/{paper_id}")
     def get_result_detail(search_run_id: int, paper_id: int):
-        conn = connect()
-        init_db(conn)
-        detail = repo.get_result_detail(conn, search_run_id, paper_id)
+        with get_connection() as conn:
+            init_db(conn)
+            detail = repo.get_result_detail(conn, search_run_id, paper_id)
         if not detail:
             raise HTTPException(status_code=404, detail="not_found")
         return detail
@@ -124,24 +129,24 @@ def register_routes(app):
         date_to: str | None = None,
         sort: str = "score",
     ):
-        conn = connect()
-        init_db(conn)
-        _, rows = repo.list_results(
-            conn,
-            search_run_id,
-            limit=10000,
-            relevance=relevance,
-            min_score=min_score,
-            keyword=keyword,
-            journal=journal,
-            source=source,
-            has_doi=has_doi,
-            has_abstract=has_abstract,
-            year=year,
-            date_from=date_from,
-            date_to=date_to,
-            sort=sort,
-        )
+        with get_connection() as conn:
+            init_db(conn)
+            _, rows = repo.list_results(
+                conn,
+                search_run_id,
+                limit=10000,
+                relevance=relevance,
+                min_score=min_score,
+                keyword=keyword,
+                journal=journal,
+                source=source,
+                has_doi=has_doi,
+                has_abstract=has_abstract,
+                year=year,
+                date_from=date_from,
+                date_to=date_to,
+                sort=sort,
+            )
         try:
             media_type, content = export_results(rows, format)
         except ValueError as exc:

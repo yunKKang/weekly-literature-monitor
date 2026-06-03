@@ -41,7 +41,7 @@ class TextRelevanceStage:
         if not tokens:
             return state
 
-        fts_query = " OR ".join(tokens[:8])
+        fts_query = " OR ".join(f'"{t}"' for t in tokens[:8])
         try:
             row = self.conn.execute(
                 "SELECT bm25(paper_fts) AS rank FROM paper_fts"

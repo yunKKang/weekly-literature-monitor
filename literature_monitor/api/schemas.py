@@ -1,9 +1,10 @@
 """API schemas with a small fallback when pydantic is unavailable."""
 
 from __future__ import annotations
+from datetime import datetime
 
 try:
-    from pydantic import BaseModel, Field
+    from pydantic import BaseModel, Field, field_validator
 except Exception:  # pragma: no cover - fallback for core-only test envs
     class BaseModel:  # type: ignore
         def __init__(self, **data):
@@ -15,6 +16,11 @@ except Exception:  # pragma: no cover - fallback for core-only test envs
 
     def Field(default_factory=None, default=None):  # type: ignore
         return default_factory() if default_factory else default
+
+    def field_validator(*args, **kwargs):  # type: ignore
+        def decorator(fn):
+            return fn
+        return decorator
 
 
 class SearchRunCreate(BaseModel):
@@ -28,3 +34,9 @@ class SearchRunCreate(BaseModel):
     include_conferences: bool = False
     min_score: float = 0
     max_results_per_source: int = 10000
+
+    @field_validator("date_from", "date_to")
+    @classmethod
+    def validate_date(cls, v: str) -> str:
+        datetime.strptime(v, "%Y-%m-%d")
+        return v

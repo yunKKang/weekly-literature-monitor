@@ -342,6 +342,7 @@ def fetch_recent_papers(
     """
     all_results: list[CrossrefResult] = []
     seen_dois: set[str] = set()
+    errors: list[str] = []
 
     effective_batch_size: int = (
         batch_size if batch_size is not None else config.ISSN_BATCH_SIZE
@@ -349,7 +350,6 @@ def fetch_recent_papers(
 
     for i in range(0, len(issns), effective_batch_size):
         batch = issns[i : i + effective_batch_size]
-        errors: list[str] = []
         rows = min(max_per_journal * len(batch), config.MAX_PAPERS_PER_BATCH, 1000)
         cursor = "*"
         pages_fetched = 0
@@ -391,8 +391,8 @@ def fetch_recent_papers(
         if delay_s > 0:
             time.sleep(delay_s)
 
-        if errors:
-            raise CrossrefBatchError("; ".join(errors))
+    if errors:
+        raise CrossrefBatchError("; ".join(errors))
 
     return all_results
 

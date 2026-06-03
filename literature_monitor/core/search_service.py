@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import asdict
 from typing import Any
 
@@ -18,7 +19,7 @@ from literature_monitor.core.models import (
 )
 from literature_monitor.core.scoring import score_for_request
 from literature_monitor.db import repositories as repo
-from literature_monitor.db.connection import connect
+from literature_monitor.db.connection import get_connection
 from literature_monitor.db.schema import init_db
 from literature_monitor.pipeline.base import PipelineState
 from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
@@ -32,19 +33,35 @@ logger = logging.getLogger(__name__)
 from literature_monitor.topic.loader import load_all_topics, load_topic
 from literature_monitor.topic.schema import Topic
 
+_DOI_RE = re.compile(r"^10\.\d{4,9}/.+$")
+
 
 def create_and_run_search(request: SearchRequest) -> SearchSummary:
-    conn = connect()
-    init_db(conn)
-    search_run_id = repo.create_search_run(
-        conn, asdict(request), request.date_from, request.date_to
-    )
-    return run_search(search_run_id, request)
+    with get_connection() as conn:
+        init_db(conn)
+        search_run_id = repo.create_search_run(
+            conn, asdict(request), request.date_from, request.date_to
+        )
+        return run_search(search_run_id, request, conn=conn)
 
 
-def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
-    conn = connect()
-    init_db(conn)
+def run_search(
+    search_run_id: int,
+    request: SearchRequest,
+    conn=None,
+) -> SearchSummary:
+    own_conn = conn is None
+    if own_conn:
+        conn = __import__("literature_monitor.db.connection", fromlist=["connect"]).connect()
+        init_db(conn)
+    try:
+        return _run_search_inner(conn, search_run_id, request)
+    finally:
+        if own_conn:
+            conn.close()
+
+
+def _run_search_inner(conn, search_run_id: int, request: SearchRequest) -> SearchSummary:
     repo.update_search_run(conn, search_run_id, status="running", started=True)
 
     issns = resolve_issns(request.journal_pool_ids, request.journal_issns)
@@ -70,12 +87,11 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
     selected_issns = set(issns)
     scored = 0
 
-    # Resolve topic for negative keywords and LLM config
+    # Resolve topic once, pass to LLM review to avoid duplicate load
     topic = _resolve_topic_from_request(request)
     topic_negatives = _compile_topic_negatives(topic) if topic else []
 
     # DOI-based fallback: fetch known important papers directly by DOI
-    # This ensures recall for papers that ISSN cursor pagination misses
     if topic and hasattr(topic, 'benchmark_dois'):
         fallback_count = _fetch_dois_fallback(conn, topic.benchmark_dois, issns, grouped, records)
         if fallback_count:
@@ -89,8 +105,6 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
         score = score_for_request(conn, paper_id, paper, request, selected_issns)
 
         # Apply topic-level negative keyword filtering
-        # (Legacy score_for_request only uses config/keywords.json negatives,
-        #  but topic YAML has additional negatives like accounting/biology terms)
         if topic_negatives and score.total_score > 0:
             combined_text = f"{paper.title} {paper.abstract or ''} {paper.journal or ''}".lower()
             for pattern, reason in topic_negatives:
@@ -107,7 +121,7 @@ def run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
     # Post-scoring: LLM review on MEDIUM+ papers
     llm_review_count = 0
     try:
-        llm_review_count = _run_llm_review(conn, search_run_id, request, grouped)
+        llm_review_count = _run_llm_review(conn, search_run_id, request, grouped, topic)
     except Exception as e:
         errors.append(f"llm_review: {e}")
 
@@ -157,6 +171,10 @@ def _fetch_dois_fallback(
     for doi in dois:
         if doi.lower() in existing_dois:
             continue
+        # Validate DOI format to prevent injection
+        if not _DOI_RE.match(doi):
+            logger.warning("Skipping invalid DOI format: %s", doi)
+            continue
         try:
             url = f"https://api.crossref.org/works/{doi}"
             status, body = fetch_url(url, timeout_s=15)
@@ -178,7 +196,6 @@ def _fetch_dois_fallback(
 
 def _compile_topic_negatives(topic: Topic) -> list[tuple]:
     """Compile topic YAML negative keywords into regex patterns."""
-    import re
     patterns = []
     seen = set()
     for pipe in topic.pipelines:
@@ -195,11 +212,7 @@ def _compile_topic_negatives(topic: Topic) -> list[tuple]:
 
 
 def _resolve_topic_from_request(request: SearchRequest) -> Topic | None:
-    """Find the Topic that matches this request's journal pools.
-
-    Scans all loaded topics and returns the first one whose journal_pool_ids
-    overlap with the request. Returns None if no match.
-    """
+    """Find the Topic that matches this request's journal pools."""
     request_pools = set(request.journal_pool_ids)
     if not request_pools:
         return None
@@ -210,10 +223,11 @@ def _resolve_topic_from_request(request: SearchRequest) -> Topic | None:
 
 
 def _run_llm_review(
-    conn, search_run_id: int, request: SearchRequest, grouped: list[list[ProviderPaper]]
+    conn, search_run_id: int, request: SearchRequest, grouped: list[list[ProviderPaper]], topic: Topic | None = None,
 ) -> int:
     """Run LLM review on MEDIUM+ papers. Returns count of papers updated."""
-    topic = _resolve_topic_from_request(request)
+    if topic is None:
+        topic = _resolve_topic_from_request(request)
     if not topic or not topic.llm_review.enabled:
         return 0
 

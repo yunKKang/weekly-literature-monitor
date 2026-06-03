@@ -1,10 +1,14 @@
-# state files
+# State files
 state/*.json
 !state/monitor_state.json
 obsidian-exports/
 
-# database
+# Database files
+*.db
 data/
+
+# Secrets
+.env
 
 # Python
 __pycache__/
@@ -49,6 +53,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Baseline snapshots
 baseline/*.json
-data/literature_monitor.sqlite3
-.env

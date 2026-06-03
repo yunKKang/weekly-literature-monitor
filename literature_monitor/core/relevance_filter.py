@@ -83,6 +83,8 @@ class KeywordConfig:
 
 
 def compile_patterns(keywords: list[str], escape_cn: bool = False) -> list[re.Pattern]:
+    import logging
+    _logger = logging.getLogger(__name__)
     if escape_cn:
         patterns = []
         for kw in keywords:
@@ -91,11 +93,15 @@ def compile_patterns(keywords: list[str], escape_cn: bool = False) -> list[re.Pa
             pattern = re.escape(kw.strip())
             patterns.append(re.compile(pattern, re.IGNORECASE))
         return patterns
-    return [
-        re.compile(kw, re.IGNORECASE)
-        for kw in keywords
-        if kw and kw.strip() and not kw.startswith("#")
-    ]
+    patterns = []
+    for kw in keywords:
+        if not kw or not kw.strip() or kw.startswith("#"):
+            continue
+        try:
+            patterns.append(re.compile(kw, re.IGNORECASE))
+        except re.error:
+            _logger.warning("Invalid regex pattern, skipping: %s", kw)
+    return patterns
 
 
 def load_keyword_config(config_path: Path | None = None) -> KeywordConfig:
@@ -232,11 +238,16 @@ def deduplicate_by_concept_groups(
     matched_groups: set[str] = set()
     deduplicated: list[str] = []
 
+    # Pre-compute lowercase lookup to avoid O(n²) rebuild
+    lower_groups: dict[str, set[str]] = {
+        gn: {m.lower() for m in gm} for gn, gm in concept_groups.items()
+    }
+
     for match in matches:
         match_lower = match.lower()
         group_found = False
-        for group_name, group_members in concept_groups.items():
-            if match_lower in [m.lower() for m in group_members]:
+        for group_name, lower_members in lower_groups.items():
+            if match_lower in lower_members:
                 if group_name not in matched_groups:
                     matched_groups.add(group_name)
                     deduplicated.append(match)

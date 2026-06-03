@@ -182,14 +182,6 @@ def upsert_paper(conn: sqlite3.Connection, paper: Paper) -> int:
         )
         paper_id = int(cur.lastrowid)
 
-    conn.execute(
-        """
-        INSERT OR REPLACE INTO paper_fts(rowid, title, abstract, journal, topics)
-        SELECT id, title, COALESCE(abstract, ''), COALESCE(journal, ''), topics_json
-        FROM papers WHERE id = ?
-        """,
-        (paper_id,),
-    )
     conn.commit()
     return paper_id
 

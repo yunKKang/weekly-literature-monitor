@@ -176,7 +176,7 @@ def text_relevance(conn: sqlite3.Connection, paper_id: int, query: str) -> float
     tokens = [token for token in re.findall(r"[\w\u4e00-\u9fff]+", query) if token]
     if not tokens:
         return 0.0
-    fts_query = " OR ".join(tokens[:8])
+    fts_query = " OR ".join(f'"{t}"' for t in tokens[:8])
     try:
         row = conn.execute(
             "SELECT bm25(paper_fts) AS rank FROM paper_fts"

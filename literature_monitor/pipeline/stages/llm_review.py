@@ -385,7 +385,7 @@ class LLMReviewStage:
     @staticmethod
     def _normalize_confidence(value: Any) -> str | None:
         if value is None:
-            return "low"
+            return None
         normalized = str(value).strip().lower()
         if normalized in {"high", "medium", "low"}:
             return normalized
@@ -431,7 +431,11 @@ class LLMReviewStage:
 
     @staticmethod
     def _extract_openai_content(data: dict[str, Any]) -> str:
-        return data["choices"][0]["message"]["content"]
+        try:
+            return data["choices"][0]["message"]["content"]
+        except (KeyError, IndexError) as e:
+            logger.warning("Unexpected OpenAI response structure: %s", list(data.keys()))
+            raise
 
 
     def _resolve_url(self, path: str) -> str:

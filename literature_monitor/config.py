@@ -66,9 +66,5 @@ class Config:
 
 config = Config()
 
-
-
-
-from pathlib import Path as _Path
 CONFIG_DIR = _Path(__file__).resolve().parent.parent / "config"
 ROOT = _Path(__file__).resolve().parent.parent

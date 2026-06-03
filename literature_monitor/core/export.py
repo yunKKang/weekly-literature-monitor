@@ -94,5 +94,8 @@ def bib_key(item: dict[str, Any], index: int) -> str:
 
 
 def escape_bibtex(value: Any) -> str:
-    return str(value).replace("{", "\\{").replace("}", "\\}")
+    s = str(value)
+    for ch in ("\\", "{", "}", "~", "^", "%", "$", "#", "&"):
+        s = s.replace(ch, "\\" + ch)
+    return s
 

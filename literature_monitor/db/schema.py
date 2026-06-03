@@ -90,6 +90,24 @@ def init_db(conn: sqlite3.Connection) -> None:
           content_rowid='id'
         );
 
+        -- FTS5 content-sync triggers: keep paper_fts in sync with papers
+        CREATE TRIGGER IF NOT EXISTS papers_ai AFTER INSERT ON papers BEGIN
+          INSERT INTO paper_fts(rowid, title, abstract, journal, topics)
+          VALUES (new.id, new.title, COALESCE(new.abstract, ''), COALESCE(new.journal, ''), new.topics_json);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS papers_ad AFTER DELETE ON papers BEGIN
+          INSERT INTO paper_fts(paper_fts, rowid, title, abstract, journal, topics)
+          VALUES ('delete', old.id, old.title, COALESCE(old.abstract, ''), COALESCE(old.journal, ''), old.topics_json);
+        END;
+
+        CREATE TRIGGER IF NOT EXISTS papers_au AFTER UPDATE ON papers BEGIN
+          INSERT INTO paper_fts(paper_fts, rowid, title, abstract, journal, topics)
+          VALUES ('delete', old.id, old.title, COALESCE(old.abstract, ''), COALESCE(old.journal, ''), old.topics_json);
+          INSERT INTO paper_fts(rowid, title, abstract, journal, topics)
+          VALUES (new.id, new.title, COALESCE(new.abstract, ''), COALESCE(new.journal, ''), new.topics_json);
+        END;
+
         -- Phase 3: Global DOI dedup table (replaces state/monitor_state.json)
         CREATE TABLE IF NOT EXISTS seen_dois (
           doi TEXT NOT NULL,

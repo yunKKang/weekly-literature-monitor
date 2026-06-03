@@ -241,7 +241,7 @@ class WorkflowSafetyTests(unittest.TestCase):
         )
 
         self.assertIn('[[ "$DAYS_BACK" =~ ^[0-9]+$ ]]', workflow)
-        self.assertIn('python weekly_monitor.py --days "$DAYS_BACK"', workflow)
+        self.assertIn('litmon search --days "$DAYS_BACK"', workflow)
 
 
 if __name__ == "__main__":

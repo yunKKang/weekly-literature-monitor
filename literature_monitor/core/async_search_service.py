@@ -21,8 +21,7 @@ from literature_monitor.core.models import (
 )
 from literature_monitor.core.scoring import score_for_request
 from literature_monitor.db import repositories as repo
-from literature_monitor.db.async_connection import async_connect
-from literature_monitor.db.connection import connect
+from literature_monitor.db.connection import connect, get_connection
 from literature_monitor.db.schema import init_db
 from literature_monitor.providers.async_fetch import fetch_all_providers
 
@@ -31,7 +30,6 @@ from literature_monitor.core.search_service import merge_group
 
 
 def _sync_score_loop(
-    conn,
     search_run_id: int,
     request: SearchRequest,
     grouped: list,
@@ -39,42 +37,42 @@ def _sync_score_loop(
     errors: list,
     records: list,
 ) -> tuple[int, str]:
-    """Synchronous scoring loop — runs in a thread to avoid blocking the event loop."""
-    scored = 0
-    for group in grouped:
-        paper = merge_group(group)
-        paper_id = repo.upsert_paper(conn, paper)
-        for provider_record in group:
-            repo.add_source_record(conn, paper_id, provider_record.source_record)
-        score = score_for_request(conn, paper_id, paper, request, selected_issns)
-        if score.total_score >= request.min_score:
-            repo.add_score(conn, search_run_id, paper_id, score)
-            scored += 1
+    """Synchronous scoring loop — runs in a thread with its own connection."""
+    with get_connection() as conn:
+        scored = 0
+        for group in grouped:
+            paper = merge_group(group)
+            paper_id = repo.upsert_paper(conn, paper)
+            for provider_record in group:
+                repo.add_source_record(conn, paper_id, provider_record.source_record)
+            score = score_for_request(conn, paper_id, paper, request, selected_issns)
+            if score.total_score >= request.min_score:
+                repo.add_score(conn, search_run_id, paper_id, score)
+                scored += 1
 
-    status = "partial_failed" if errors and records else "completed"
-    if errors and not records:
-        status = "failed"
-    repo.update_search_run(
-        conn,
-        search_run_id,
-        status=status,
-        error_message="; ".join(errors) if errors else None,
-        total_fetched=len(records),
-        total_after_dedup=len(grouped),
-        total_scored=scored,
-        completed=True,
-    )
+        status = "partial_failed" if errors and records else "completed"
+        if errors and not records:
+            status = "failed"
+        repo.update_search_run(
+            conn,
+            search_run_id,
+            status=status,
+            error_message="; ".join(errors) if errors else None,
+            total_fetched=len(records),
+            total_after_dedup=len(grouped),
+            total_scored=scored,
+            completed=True,
+        )
     return scored, status
 
 
 async def async_create_and_run_search(request: SearchRequest) -> SearchSummary:
     """Async entry point — creates a search run and executes it."""
-    conn = connect()
-    init_db(conn)
-    search_run_id = await asyncio.to_thread(
-        repo.create_search_run, conn, asdict(request), request.date_from, request.date_to
-    )
-    conn.close()
+    with get_connection() as conn:
+        init_db(conn)
+        search_run_id = await asyncio.to_thread(
+            repo.create_search_run, conn, asdict(request), request.date_from, request.date_to
+        )
     return await async_run_search(search_run_id, request)
 
 
@@ -82,9 +80,9 @@ async def async_run_search(
     search_run_id: int, request: SearchRequest
 ) -> SearchSummary:
     """Async search execution with concurrent provider fetching."""
-    conn = connect()
-    init_db(conn)
-    await asyncio.to_thread(repo.update_search_run, conn, search_run_id, status="running", started=True)
+    with get_connection() as conn:
+        init_db(conn)
+        await asyncio.to_thread(repo.update_search_run, conn, search_run_id, status="running", started=True)
 
     issns = resolve_issns(request.journal_pool_ids, request.journal_issns)
 
@@ -98,12 +96,11 @@ async def async_run_search(
     grouped = deduplicate_records(records)
     selected_issns = set(issns)
 
-    # Run the entire sync scoring loop in a thread to avoid blocking the event loop
+    # Run the entire sync scoring loop in a thread with its own connection
     scored, status = await asyncio.to_thread(
-        _sync_score_loop, conn, search_run_id, request, grouped, selected_issns, errors, records
+        _sync_score_loop, search_run_id, request, grouped, selected_issns, errors, records
     )
 
-    conn.close()
     return SearchSummary(
         search_run_id=search_run_id,
         status=status,
