@@ -9,7 +9,6 @@ from dataclasses import asdict
 from typing import Any
 
 from literature_monitor.core.dedup import deduplicate_records
-from literature_monitor.core.utils import fetch_url
 from literature_monitor.core.journals import resolve_issns
 from literature_monitor.core.models import (
     Paper,
@@ -18,8 +17,9 @@ from literature_monitor.core.models import (
     SearchSummary,
 )
 from literature_monitor.core.scoring import score_for_request
+from literature_monitor.core.utils import fetch_url
 from literature_monitor.db import repositories as repo
-from literature_monitor.db.connection import get_connection
+from literature_monitor.db.connection import connect, get_connection
 from literature_monitor.db.schema import init_db
 from literature_monitor.pipeline.base import PipelineState
 from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
@@ -28,10 +28,10 @@ from literature_monitor.providers.crossref import (
     fetch_crossref_conferences,
 )
 from literature_monitor.providers.openalex import fetch_openalex
+from literature_monitor.topic.loader import load_all_topics
+from literature_monitor.topic.schema import Topic
 
 logger = logging.getLogger(__name__)
-from literature_monitor.topic.loader import load_all_topics, load_topic
-from literature_monitor.topic.schema import Topic
 
 _DOI_RE = re.compile(r"^10\.\d{4,9}/.+$")
 
@@ -52,7 +52,7 @@ def run_search(
 ) -> SearchSummary:
     own_conn = conn is None
     if own_conn:
-        conn = __import__("literature_monitor.db.connection", fromlist=["connect"]).connect()
+        conn = connect()
         init_db(conn)
     try:
         return _run_search_inner(conn, search_run_id, request)
@@ -61,7 +61,11 @@ def run_search(
             conn.close()
 
 
-def _run_search_inner(conn, search_run_id: int, request: SearchRequest) -> SearchSummary:
+def _run_search_inner(
+    conn,
+    search_run_id: int,
+    request: SearchRequest,
+) -> SearchSummary:
     repo.update_search_run(conn, search_run_id, status="running", started=True)
 
     issns = resolve_issns(request.journal_pool_ids, request.journal_issns)
@@ -92,8 +96,14 @@ def _run_search_inner(conn, search_run_id: int, request: SearchRequest) -> Searc
     topic_negatives = _compile_topic_negatives(topic) if topic else []
 
     # DOI-based fallback: fetch known important papers directly by DOI
-    if topic and hasattr(topic, 'benchmark_dois'):
-        fallback_count = _fetch_dois_fallback(conn, topic.benchmark_dois, issns, grouped, records)
+    if topic and hasattr(topic, "benchmark_dois"):
+        fallback_count = _fetch_dois_fallback(
+            conn,
+            topic.benchmark_dois,
+            issns,
+            grouped,
+            records,
+        )
         if fallback_count:
             errors.append(f"doi_fallback: fetched {fallback_count} papers by DOI")
 
@@ -106,7 +116,9 @@ def _run_search_inner(conn, search_run_id: int, request: SearchRequest) -> Searc
 
         # Apply topic-level negative keyword filtering
         if topic_negatives and score.total_score > 0:
-            combined_text = f"{paper.title} {paper.abstract or ''} {paper.journal or ''}".lower()
+            combined_text = (
+                f"{paper.title} {paper.abstract or ''} {paper.journal or ''}"
+            ).lower()
             for pattern, reason in topic_negatives:
                 if pattern.search(combined_text):
                     score.total_score = 0
@@ -155,11 +167,15 @@ def _run_search_inner(conn, search_run_id: int, request: SearchRequest) -> Searc
 
 
 def _fetch_dois_fallback(
-    conn, dois: list[str], issns: list[str], grouped: list[list[ProviderPaper]], records: list[ProviderPaper]
+    conn,
+    dois: list[str],
+    issns: list[str],
+    grouped: list[list[ProviderPaper]],
+    records: list[ProviderPaper],
 ) -> int:
     """Fetch known DOIs directly from Crossref and add to results if missing."""
-    from literature_monitor.providers.crossref_client import parse_crossref_work
     from literature_monitor.providers.crossref import _from_crossref_result
+    from literature_monitor.providers.crossref_client import parse_crossref_work
 
     existing_dois = set()
     for group in grouped:
@@ -223,7 +239,11 @@ def _resolve_topic_from_request(request: SearchRequest) -> Topic | None:
 
 
 def _run_llm_review(
-    conn, search_run_id: int, request: SearchRequest, grouped: list[list[ProviderPaper]], topic: Topic | None = None,
+    conn,
+    search_run_id: int,
+    request: SearchRequest,
+    grouped: list[list[ProviderPaper]],
+    topic: Topic | None = None,
 ) -> int:
     """Run LLM review on MEDIUM+ papers. Returns count of papers updated."""
     if topic is None:
@@ -250,7 +270,8 @@ def _run_llm_review(
         paper = merge_group(group)
         paper_id = repo.upsert_paper(conn, paper)
         existing = conn.execute(
-            "SELECT total_score, relevance_level, matched_keywords_json, score_breakdown_json "
+            "SELECT total_score, relevance_level, matched_keywords_json, "
+            "score_breakdown_json "
             "FROM scored_results WHERE search_run_id = ? AND paper_id = ?",
             (search_run_id, paper_id),
         ).fetchone()
@@ -258,7 +279,11 @@ def _run_llm_review(
             continue
 
         breakdown = json.loads(existing["score_breakdown_json"])
-        matched_keywords = tuple(json.loads(existing["matched_keywords_json"])) if existing["matched_keywords_json"] else ()
+        matched_keywords = (
+            tuple(json.loads(existing["matched_keywords_json"]))
+            if existing["matched_keywords_json"]
+            else ()
+        )
         state = PipelineState(
             title=paper.title,
             abstract=paper.abstract or "",
@@ -271,11 +296,20 @@ def _run_llm_review(
         )
         result = llm_stage.run(state)
 
-        if result.total_score != existing["total_score"] or result.relevance_level != existing["relevance_level"]:
+        if (
+            result.total_score != existing["total_score"]
+            or result.relevance_level != existing["relevance_level"]
+        ):
             conn.execute(
                 "UPDATE scored_results SET total_score = ?, relevance_level = ?, "
                 "score_breakdown_json = ? WHERE search_run_id = ? AND paper_id = ?",
-                (result.total_score, result.relevance_level, json.dumps(result.breakdown), search_run_id, paper_id),
+                (
+                    result.total_score,
+                    result.relevance_level,
+                    json.dumps(result.breakdown),
+                    search_run_id,
+                    paper_id,
+                ),
             )
             updated += 1
     conn.commit()

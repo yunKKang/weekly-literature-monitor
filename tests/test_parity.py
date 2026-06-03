@@ -28,6 +28,7 @@ from literature_monitor.pipeline.stages.rule_scoring import RuleScoringStage
 from literature_monitor.pipeline.stages.recency_boost import RecencyBoostStage
 from literature_monitor.pipeline.stages.keyword_match import KeywordMatchStage
 from literature_monitor.pipeline.stages.final_scoring import FinalScoringStage
+from literature_monitor.pipeline.stages.negative_filter import NegativeFilterStage
 
 
 # --- Shared fixtures ---
@@ -168,6 +169,26 @@ class TestFinalScoringStage:
         )
         result = stage.run(state)
         assert result.relevance_level == "MEDIUM"
+
+    def test_negative_penalty_is_subtracted_once(self):
+        negative_stage = NegativeFilterStage(["finance"], penalty_per_hit=20.0)
+        final_stage = FinalScoringStage()
+        state = PipelineState(
+            title="finance",
+            rule_score=100.0,
+            text_score=0.0,
+            recency_score=0.0,
+            journal_score=0.0,
+            breakdown={"legacy_priority": "LOW", "legacy_score": 0},
+        )
+
+        after_negative = negative_stage.run(state)
+        result = final_stage.run(after_negative)
+
+        assert after_negative.rule_score == 100.0
+        assert after_negative.breakdown["negative_penalty"] == 20.0
+        assert result.breakdown["rule_score_adj"] == 80.0
+        assert result.total_score == 80.0
 
 
 # --- Pipeline integration tests ---

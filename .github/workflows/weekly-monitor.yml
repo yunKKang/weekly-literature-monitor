@@ -47,10 +47,11 @@ jobs:
             echo "days_back must be an integer, got: $DAYS_BACK" >&2
             exit 2
           fi
+          cd src
           if [ "$DRY_RUN" = "true" ]; then
-            litmon search --days "$DAYS_BACK" --dry-run
+            python weekly_monitor.py --days "$DAYS_BACK" --dry-run
           else
-            litmon search --days "$DAYS_BACK"
+            python weekly_monitor.py --days "$DAYS_BACK"
           fi
 
       - name: Commit updated state

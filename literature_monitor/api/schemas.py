@@ -1,6 +1,7 @@
 """API schemas with a small fallback when pydantic is unavailable."""
 
 from __future__ import annotations
+
 from datetime import datetime
 
 try:

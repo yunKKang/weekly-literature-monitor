@@ -14,7 +14,6 @@ Stage name: llm_review
 from __future__ import annotations
 
 import json
-import re
 import logging
 import os
 from typing import Any
@@ -433,8 +432,11 @@ class LLMReviewStage:
     def _extract_openai_content(data: dict[str, Any]) -> str:
         try:
             return data["choices"][0]["message"]["content"]
-        except (KeyError, IndexError) as e:
-            logger.warning("Unexpected OpenAI response structure: %s", list(data.keys()))
+        except (KeyError, IndexError):
+            logger.warning(
+                "Unexpected OpenAI response structure: %s",
+                list(data.keys()),
+            )
             raise
 
 

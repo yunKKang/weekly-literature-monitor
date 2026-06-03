@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from literature_monitor.pipeline.base import PipelineState
 
+
 class NegativeFilterStage:
     """Subtract points for each negative keyword match.
 
@@ -17,7 +18,11 @@ class NegativeFilterStage:
 
     name = "negative_filter"
 
-    def __init__(self, negative_keywords: list[str], penalty_per_hit: float = 20.0) -> None:
+    def __init__(
+        self,
+        negative_keywords: list[str],
+        penalty_per_hit: float = 20.0,
+    ) -> None:
         self.negative_keywords = negative_keywords
         self.penalty_per_hit = penalty_per_hit
 
@@ -38,9 +43,6 @@ class NegativeFilterStage:
         if penalty > 0:
             breakdown = dict(state.breakdown)
             breakdown["negative_penalty"] = penalty
-            return state.with_(
-                rule_score=max(0.0, state.rule_score - penalty),
-                breakdown=breakdown,
-            )
+            return state.with_(breakdown=breakdown)
 
         return state

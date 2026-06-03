@@ -79,3 +79,29 @@ class TestAsyncSearchService:
         """Verify it reuses merge_group from sync service."""
         from literature_monitor.core.async_search_service import merge_group
         assert callable(merge_group)
+
+    @pytest.mark.asyncio
+    async def test_async_create_and_run_search_uses_thread_local_db_connections(
+        self, monkeypatch, tmp_path
+    ):
+        """Async search should not pass sqlite connections across threads."""
+        from literature_monitor.core import async_search_service
+
+        async def fake_fetch_all_providers(*args, **kwargs):
+            return [], []
+
+        monkeypatch.setenv("LITMON_DB_PATH", str(tmp_path / "litmon.sqlite3"))
+        monkeypatch.setattr(
+            async_search_service,
+            "fetch_all_providers",
+            fake_fetch_all_providers,
+        )
+
+        summary = await async_search_service.async_create_and_run_search(
+            _make_request()
+        )
+
+        assert summary.status == "completed"
+        assert summary.total_fetched == 0
+        assert summary.total_after_dedup == 0
+        assert summary.total_scored == 0

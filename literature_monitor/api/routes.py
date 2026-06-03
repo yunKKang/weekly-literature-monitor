@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from fastapi import BackgroundTasks, Depends, HTTPException
+from fastapi import BackgroundTasks, HTTPException
 
 from literature_monitor.api.schemas import SearchRunCreate
 from literature_monitor.core.export import export_results

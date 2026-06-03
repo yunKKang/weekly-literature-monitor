@@ -10,11 +10,9 @@ from literature_monitor.core.search_service import (
     request_from_dict,
 )
 from literature_monitor.core.topics import topic_to_search_preset
-from literature_monitor.db.connection import connect
+from literature_monitor.db.connection import get_connection
 from literature_monitor.db.schema import init_db
-from literature_monitor.topic.loader import load_topic, list_topics, validate_topic
-from literature_monitor.topic.schema import Topic
-
+from literature_monitor.topic.loader import list_topics, load_topic, validate_topic
 
 # ---------------------------------------------------------------------------
 # Topic subcommands
@@ -54,7 +52,10 @@ def _cmd_topic_show(topic_id: str) -> int:
     print(f"Topic: {topic.name} ({topic.id})")
     print(f"Description: {topic.description.strip()}")
     print(f"Version: {topic.version}")
-    print(f"Date range: {topic.date_range.date_from} → {topic.date_range.date_to or 'today'}")
+    print(
+        "Date range: "
+        f"{topic.date_range.date_from} → {topic.date_range.date_to or 'today'}"
+    )
     print(f"Journal pools: {', '.join(topic.journal_pool_ids) or '(none)'}")
     print(f"Keyword sets ({len(topic.keyword_sets)}):")
     for ks in topic.keyword_sets:
@@ -72,15 +73,26 @@ def _cmd_topic_show(topic_id: str) -> int:
         print(f"  [{p.priority}] {p.name} — threshold: {req}")
         if p.negative_keywords:
             print(f"      negatives: {len(p.negative_keywords)}")
-    print(f"Scoring: title_w={topic.scoring.title_weight} abstract_w={topic.scoring.abstract_weight} "
-          f"high≥{topic.scoring.high_threshold} medium≥{topic.scoring.medium_threshold}")
+    print(
+        "Scoring: "
+        f"title_w={topic.scoring.title_weight} "
+        f"abstract_w={topic.scoring.abstract_weight} "
+        f"high≥{topic.scoring.high_threshold} "
+        f"medium≥{topic.scoring.medium_threshold}"
+    )
     print(f"Consistency check: {'on' if topic.scoring.consistency_check else 'off'}")
     if topic.llm_review.enabled:
-        print(f"LLM review: {topic.llm_review.provider}/{topic.llm_review.model} "
-              f"(max {topic.llm_review.max_papers_per_run} papers, ${topic.llm_review.max_cost_usd})")
+        print(
+            f"LLM review: {topic.llm_review.provider}/{topic.llm_review.model} "
+            f"(max {topic.llm_review.max_papers_per_run} papers, "
+            f"${topic.llm_review.max_cost_usd})"
+        )
     else:
         print("LLM review: off")
-    print(f"Exporters: {', '.join(e.type for e in topic.exporters if e.enabled) or '(none)'}")
+    print(
+        "Exporters: "
+        f"{', '.join(e.type for e in topic.exporters if e.enabled) or '(none)'}"
+    )
     return 0
 
 
@@ -131,8 +143,8 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "init-db":
-        conn = connect()
-        init_db(conn)
+        with get_connection() as conn:
+            init_db(conn)
         print("Database initialized")
         return 0
 

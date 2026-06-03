@@ -241,7 +241,30 @@ class WorkflowSafetyTests(unittest.TestCase):
         )
 
         self.assertIn('[[ "$DAYS_BACK" =~ ^[0-9]+$ ]]', workflow)
-        self.assertIn('litmon search --days "$DAYS_BACK"', workflow)
+        self.assertIn("cd src", workflow)
+        self.assertIn('python weekly_monitor.py --days "$DAYS_BACK"', workflow)
+
+    def test_weekly_monitor_cli_accepts_workflow_arguments(self):
+        with (
+            patch.object(
+                sys,
+                "argv",
+                ["weekly_monitor.py", "--days", "7", "--dry-run"],
+            ),
+            patch.object(weekly_monitor, "run_monitor", return_value=0) as run_monitor,
+        ):
+            result = weekly_monitor.main()
+
+        self.assertEqual(result, 0)
+        run_monitor.assert_called_once_with(
+            days_back=7,
+            dry_run=True,
+            verbose=True,
+            reset=False,
+            debug_filter=False,
+            tier=None,
+            overlap_days=None,
+        )
 
 
 if __name__ == "__main__":
