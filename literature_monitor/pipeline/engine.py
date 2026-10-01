@@ -112,10 +112,16 @@ def build_pipeline(
             topic_description=topic.description,
             provider=topic.llm_review.provider,
             model=topic.llm_review.model,
-            min_level="MEDIUM",  # only review MEDIUM and above
+            min_level=(
+                "MEDIUM"
+                if "MEDIUM" in topic.llm_review.enabled_for_priorities
+                else "HIGH"
+            ),
             max_papers=topic.llm_review.max_papers_per_run,
             max_cost_usd=topic.llm_review.max_cost_usd,
             prompt_template=topic.llm_review.prompt_template or None,
+            base_url=topic.llm_review.base_url,
+            two_stage=topic.llm_review.two_stage,
             concurrency=topic.llm_review.concurrency,
         ))
 

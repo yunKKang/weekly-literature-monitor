@@ -120,15 +120,16 @@ def build_crossref_query(params: SearchParams) -> str:
     if params.cursor:
         query_parts.append(f"cursor={urllib.parse.quote(params.cursor)}")
 
-    # Sorting - prioritize newest publications
-    sort_map = {
-        "relevance": "score",
-        "published": "published",
-        "citationCount": "is-referenced-by-count",
-    }
-    sort_by = sort_map.get(params.sort_by, "published")
-    query_parts.append(f"sort={sort_by}")
-    query_parts.append(f"order={params.sort_order}")
+    # Crossref rejects sort/order together with cursor pagination.
+    if not params.cursor:
+        sort_map = {
+            "relevance": "score",
+            "published": "published",
+            "citationCount": "is-referenced-by-count",
+        }
+        sort_by = sort_map.get(params.sort_by, "published")
+        query_parts.append(f"sort={sort_by}")
+        query_parts.append(f"order={params.sort_order}")
 
     # Add mailto for polite pool (faster responses)
     query_parts.append(f"mailto={config.CROSSREF_MAILTO}")
@@ -342,6 +343,7 @@ def fetch_recent_papers(
     """
     all_results: list[CrossrefResult] = []
     seen_dois: set[str] = set()
+    batch_errors: list[str] = []
 
     effective_batch_size: int = (
         batch_size if batch_size is not None else config.ISSN_BATCH_SIZE
@@ -392,8 +394,16 @@ def fetch_recent_papers(
             time.sleep(delay_s)
 
         if errors:
-            raise CrossrefBatchError("; ".join(errors))
+            batch_errors.extend(errors)
 
+    if batch_errors and not all_results:
+        raise CrossrefBatchError("; ".join(batch_errors))
+    if batch_errors:
+        logger.warning(
+            "Crossref completed with %d failed batch(es); retained %d papers",
+            len(batch_errors),
+            len(all_results),
+        )
     return all_results
 
 

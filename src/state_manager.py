@@ -16,6 +16,8 @@ DOI Ordering Strategy:
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -89,8 +91,19 @@ def save_state(state: MonitorState, state_path: Path | None = None) -> None:
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
-    with state_path.open("w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+    # Replace atomically so an interrupted runner cannot leave invalid JSON.
+    fd, tmp_name = tempfile.mkstemp(
+        prefix=f".{state_path.name}.", dir=str(state_path.parent)
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_name, state_path)
+    finally:
+        if os.path.exists(tmp_name):
+            os.unlink(tmp_name)
 
 
 def update_state_after_run(

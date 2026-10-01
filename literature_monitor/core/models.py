@@ -41,6 +41,7 @@ class ProviderPaper:
 class SearchRequest:
     date_from: str
     date_to: str
+    topic_id: str | None = None
     keywords: list[str] = field(default_factory=list)
     synonyms: list[str] = field(default_factory=list)
     negative_keywords: list[str] = field(default_factory=list)

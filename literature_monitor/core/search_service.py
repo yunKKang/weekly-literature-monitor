@@ -22,13 +22,14 @@ from literature_monitor.db import repositories as repo
 from literature_monitor.db.connection import connect, get_connection
 from literature_monitor.db.schema import init_db
 from literature_monitor.pipeline.base import PipelineState
+from literature_monitor.pipeline.engine import build_pipeline, run_pipeline
 from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
 from literature_monitor.providers.crossref import (
     fetch_crossref,
     fetch_crossref_conferences,
 )
 from literature_monitor.providers.openalex import fetch_openalex
-from literature_monitor.topic.loader import load_all_topics
+from literature_monitor.topic.loader import load_all_topics, load_topic
 from literature_monitor.topic.schema import Topic
 
 logger = logging.getLogger(__name__)
@@ -68,6 +69,26 @@ def _run_search_inner(
 ) -> SearchSummary:
     repo.update_search_run(conn, search_run_id, status="running", started=True)
 
+    try:
+        return _run_search_body(conn, search_run_id, request)
+    except Exception as exc:
+        logger.exception("Search run %s failed", search_run_id)
+        repo.update_search_run(
+            conn,
+            search_run_id,
+            status="failed",
+            error_message=f"{type(exc).__name__}: {exc}",
+            completed=True,
+        )
+        raise
+
+
+def _run_search_body(
+    conn,
+    search_run_id: int,
+    request: SearchRequest,
+) -> SearchSummary:
+
     issns = resolve_issns(request.journal_pool_ids, request.journal_issns)
     records: list[ProviderPaper] = []
     errors: list[str] = []
@@ -94,6 +115,20 @@ def _run_search_inner(
     # Resolve topic once, pass to LLM review to avoid duplicate load
     topic = _resolve_topic_from_request(request)
     topic_negatives = _compile_topic_negatives(topic) if topic else []
+    topic_pipeline = (
+        build_pipeline(
+            topic=topic,
+            conn=conn,
+            query_text=request.query_text,
+            selected_issns=selected_issns,
+            use_legacy=False,
+            query_terms=request.keywords + request.synonyms,
+            request_negative_keywords=request.negative_keywords,
+            journal_pool_ids=request.journal_pool_ids,
+        )
+        if topic
+        else None
+    )
 
     # DOI-based fallback: fetch known important papers directly by DOI
     if topic and hasattr(topic, "benchmark_dois"):
@@ -112,7 +147,10 @@ def _run_search_inner(
         paper_id = repo.upsert_paper(conn, paper)
         for provider_record in group:
             repo.add_source_record(conn, paper_id, provider_record.source_record)
-        score = score_for_request(conn, paper_id, paper, request, selected_issns)
+        if topic_pipeline is not None:
+            _, score = run_pipeline(topic_pipeline, paper, paper_id=paper_id)
+        else:
+            score = score_for_request(conn, paper_id, paper, request, selected_issns)
 
         # Apply topic-level negative keyword filtering
         if topic_negatives and score.total_score > 0:
@@ -228,7 +266,12 @@ def _compile_topic_negatives(topic: Topic) -> list[tuple]:
 
 
 def _resolve_topic_from_request(request: SearchRequest) -> Topic | None:
-    """Find the Topic that matches this request's journal pools."""
+    """Resolve an explicit topic, with legacy journal-pool fallback."""
+    if request.topic_id:
+        try:
+            return load_topic(request.topic_id)
+        except FileNotFoundError:
+            raise ValueError(f"Unknown topic_id: {request.topic_id}") from None
     request_pools = set(request.journal_pool_ids)
     if not request_pools:
         return None
@@ -370,6 +413,7 @@ def request_from_dict(data: dict[str, Any]) -> SearchRequest:
     return SearchRequest(
         date_from=str(data.get("date_from") or ""),
         date_to=str(data.get("date_to") or ""),
+        topic_id=(str(data["topic_id"]).strip() if data.get("topic_id") else None),
         keywords=list_field("keywords"),
         synonyms=list_field("synonyms"),
         negative_keywords=list_field("negative_keywords"),

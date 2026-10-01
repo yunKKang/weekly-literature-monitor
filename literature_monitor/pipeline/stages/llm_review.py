@@ -84,8 +84,8 @@ class LLMReviewStage:
         self,
         topic_name: str = "GFCF Environmental Impact",
         topic_description: str = "",
-        provider: str = "openai",
-        model: str = "gpt-4o-mini",
+        provider: str = "deepseek",
+        model: str = "deepseek-chat",
         min_level: str = "MEDIUM",
         max_papers: int = 50,
         max_cost_usd: float = 5.0,
@@ -105,14 +105,38 @@ class LLMReviewStage:
         self.max_cost_usd = max_cost_usd
         self.penalty_points = penalty_points
         self.prompt_template = prompt_template or DEFAULT_PROMPT
-        self.api_key = api_key or os.environ.get("OPENAI_API_KEY", "")
-        self.base_url = base_url or os.environ.get("OPENAI_BASE_URL", "")
+        self.api_key = api_key or self._default_api_key(provider)
+        self.base_url = base_url or self._default_base_url(provider)
         self.two_stage = two_stage
         self.concurrency = concurrency
         self._stage1_calls = 0
         self._stage2_calls = 0
         self._calls_made = 0
         self._total_cost = 0.0
+
+    @staticmethod
+    def _default_api_key(provider: str) -> str:
+        return {
+            "deepseek": os.environ.get("DEEPSEEK_API_KEY", ""),
+            "openai": os.environ.get("OPENAI_API_KEY", ""),
+            "anthropic": os.environ.get("ANTHROPIC_API_KEY", ""),
+        }.get(provider, "")
+
+    @staticmethod
+    def _default_base_url(provider: str) -> str:
+        return {
+            "deepseek": os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"),
+            "openai": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
+        }.get(provider, "")
+
+    @staticmethod
+    def _token_rates(provider: str, model: str) -> tuple[float, float]:
+        """USD per million input/output tokens used for budget accounting."""
+        if provider == "deepseek":
+            return 0.14, 0.28
+        if provider == "anthropic":
+            return 3.0, 15.0
+        return 0.15, 0.60
 
     def run(self, state: PipelineState) -> PipelineState:
         """Run LLM review. Two-stage mode: title filter → abstract deep judge."""
@@ -275,8 +299,8 @@ class LLMReviewStage:
     def _call_api(self, prompt: str, response_contract: str = "abstract_review") -> dict[str, Any] | None:
         """Dispatch to the appropriate LLM API provider."""
         try:
-            if self.provider == "openai":
-                return self._call_openai(prompt, response_contract=response_contract)
+            if self.provider in {"openai", "deepseek"}:
+                return self._call_compatible_chat(prompt, response_contract=response_contract)
             elif self.provider == "anthropic":
                 return self._call_anthropic(prompt, response_contract=response_contract)
             else:
@@ -450,7 +474,7 @@ class LLMReviewStage:
             return f"{base}{path}"
         return f"https://api.openai.com/v1{path}"
 
-    def _call_openai(
+    def _call_compatible_chat(
         self,
         prompt: str,
         response_contract: str = "abstract_review",
@@ -458,7 +482,7 @@ class LLMReviewStage:
         """Call OpenAI-compatible API via httpx (handles chunked encoding)."""
         api_key = self.api_key
         if not api_key:
-            logger.warning("No OpenAI API key — skipping LLM review")
+            logger.warning("No API key for %s — skipping LLM review", self.provider)
             return None
 
         body = {
@@ -476,10 +500,8 @@ class LLMReviewStage:
         usage = data.get("usage", {})
         prompt_tokens = usage.get("prompt_tokens", 200)
         completion_tokens = usage.get("completion_tokens", 100)
-        self._total_cost += (
-            prompt_tokens * 0.15 / 1_000_000
-            + completion_tokens * 0.60 / 1_000_000
-        )
+        input_rate, output_rate = self._token_rates(self.provider, self.model)
+        self._total_cost += prompt_tokens * input_rate / 1_000_000 + completion_tokens * output_rate / 1_000_000
 
         content = self._extract_openai_content(data)
         parsed = self._parse_json_response(content, response_contract=response_contract)
@@ -500,12 +522,14 @@ class LLMReviewStage:
         if repair_data is None:
             return None
         repair_usage = repair_data.get("usage", {})
-        self._total_cost += (
-            repair_usage.get("prompt_tokens", 200) * 0.15 / 1_000_000
-            + repair_usage.get("completion_tokens", 100) * 0.60 / 1_000_000
-        )
+        self._total_cost += repair_usage.get("prompt_tokens", 200) * input_rate / 1_000_000 + repair_usage.get("completion_tokens", 100) * output_rate / 1_000_000
         repair_content = self._extract_openai_content(repair_data)
         return self._parse_json_response(repair_content, response_contract=response_contract)
+
+    # Backwards-compatible test/integration hook; provider dispatch uses the
+    # provider-neutral name above.
+    def _call_openai(self, prompt: str, response_contract: str = "abstract_review"):
+        return self._call_compatible_chat(prompt, response_contract=response_contract)
 
     def _call_anthropic(
         self,

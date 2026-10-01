@@ -361,8 +361,8 @@ exporters:
   enabled: true
 llm_review:
   enabled: true
-  provider: openai
-  model: deepseek-v4-flash
+  provider: deepseek
+  model: deepseek-chat
   max_papers_per_run: 30
   max_cost_usd: 2.0
   concurrency: 3

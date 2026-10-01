@@ -111,12 +111,12 @@ class LLMReviewConfig(BaseModel):
     """Optional LLM second-pass review configuration."""
 
     enabled: bool = False
-    provider: str = "openai"
-    model: str = "gpt-4o-mini"
+    provider: str = "deepseek"
+    model: str = "deepseek-chat"
     base_url: str = Field(
         "",
         description="Custom API base URL for OpenAI-compatible providers. "
-        "Leave empty for official OpenAI. Examples: https://apihost.cn/v1",
+        "Leave empty for the provider default.",
     )
     two_stage: bool = Field(
         True,

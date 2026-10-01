@@ -27,6 +27,7 @@ except Exception:  # pragma: no cover - fallback for core-only test envs
 class SearchRunCreate(BaseModel):
     date_from: str
     date_to: str
+    topic_id: str | None = None
     keywords: list[str] = Field(default_factory=list)
     synonyms: list[str] = Field(default_factory=list)
     negative_keywords: list[str] = Field(default_factory=list)
