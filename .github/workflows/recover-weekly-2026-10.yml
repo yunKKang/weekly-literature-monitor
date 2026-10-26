@@ -1,0 +1,45 @@
+# One-time backlog recovery. Remove this workflow after the successful run.
+name: Recover missed literature reports (October 2026)
+
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/recover-weekly-2026-10.yml']
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: weekly-literature-monitor
+  cancel-in-progress: false
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install package and regression test dependencies
+        run: pip install -e '.[test]'
+      - name: Verify recovery safeguards
+        run: python -m pytest tests/test_crossref_recovery.py tests/test_monitor_reliability.py -q
+      - name: Resume from the last successful checkpoint
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python src/weekly_monitor.py --quiet
+      - name: Commit checkpoint only after successful retrieval and publication
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add state/monitor_state.json
+          if ! git diff --staged --quiet; then
+            git commit -m "Recover missed literature reports through 2026-10-26"
+            git push origin HEAD:main
+          fi

@@ -18,6 +18,23 @@ The monitor is a deterministic retrieval and ranking pipeline, not a multi-agent
 6. Publish a GitHub Issue report, or optionally export an Obsidian Markdown note.
 7. Update state only after successful notification/export so failed runs can be retried safely.
 
+## Safe recovery after missed runs
+
+Run `python src/weekly_monitor.py --dry-run --quiet` to inspect the backlog, then
+run `python src/weekly_monitor.py --quiet` with the usual GitHub credentials.
+Do not reset or manually move `state/monitor_state.json` forward. The monitor
+uses the last successful checkpoint plus the overlap window, so one catch-up
+report covers the missed period. It cannot reconstruct which records Crossref
+would have exposed on each historical Monday.
+
+Both Crossref clients omit publication sorting when using cursors. Any failed
+batch, invalid response, repeated cursor, or page limit aborts the fetch before
+publication or checkpoint updates. Before publication, the monitor reconciles
+DOIs against all report Issues, including closed Issues and legacy reports.
+This protects recovery after an Issue succeeds but the state commit fails, and
+protects published DOIs after eviction from the bounded local cache. An
+uncertain Issue POST is not retried automatically; rerun after checking Issues.
+
 ## Architecture: GFCF-Driven Pipeline System (v2.1)
 
 This system uses a **GFCF-first** approach where investment/capital formation is the primary research object, and MRIO/EEIO serves as a methodological tool.
