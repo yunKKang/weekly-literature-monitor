@@ -41,6 +41,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def setup_logging(verbose=True):
+    # Metadata services can carry API keys in query parameters.
+    logging.getLogger("httpx").setLevel(logging.WARNING)
+    logging.getLogger("httpcore").setLevel(logging.WARNING)
     logging.basicConfig(
         level=logging.DEBUG if verbose else logging.INFO,
         format="%(asctime)s %(name)s %(levelname)s %(message)s",

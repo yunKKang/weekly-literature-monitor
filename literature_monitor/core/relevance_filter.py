@@ -87,9 +87,6 @@ class KeywordConfig:
 
 
 def compile_patterns(keywords: list[str], escape_cn: bool = False) -> list[re.Pattern]:
-    import logging
-
-    _logger = logging.getLogger(__name__)
     if escape_cn:
         patterns = []
         for kw in keywords:
@@ -102,10 +99,7 @@ def compile_patterns(keywords: list[str], escape_cn: bool = False) -> list[re.Pa
     for kw in keywords:
         if not kw or not kw.strip() or kw.startswith("#"):
             continue
-        try:
-            patterns.append(re.compile(kw, re.IGNORECASE))
-        except re.error:
-            raise
+        patterns.append(re.compile(kw, re.IGNORECASE))
     return patterns
 
 
