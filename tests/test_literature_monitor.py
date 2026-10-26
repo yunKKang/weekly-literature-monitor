@@ -343,11 +343,11 @@ class TestSearchRequest:
         req = SearchRequest(
             date_from="2026-01-01",
             date_to="2026-12-31",
-            keywords=["algal bloom machine learning"],
-            synonyms=["cyanobacteria", "remote sensing"],
+            keywords=["capital footprint"],
+            synonyms=["GFCF", "input-output"],
         )
-        assert req.provider_query_text == "algal bloom machine learning"
-        assert "cyanobacteria" in req.query_text
+        assert req.provider_query_text == "capital footprint"
+        assert "GFCF" in req.query_text
 
 
 class TestJournalResolution:
@@ -367,14 +367,18 @@ class TestJournalResolution:
         assert len(env_pool["issns"]) >= 40
         assert "0013-936X" in env_pool["issns"]
 
-    def test_algal_bloom_ml_pool_exists(self):
+    def test_removed_topic_pool_and_journals_are_absent(self):
         from literature_monitor.core.journals import list_journal_pools
 
         pools = list_journal_pools()
-        topic_pool = next(pool for pool in pools if pool["id"] == "pool_algal_bloom_ml")
-        assert "Algal Blooms" in topic_pool["name"]
-        assert len(topic_pool["issns"]) >= 80
-        assert "1568-9883" in topic_pool["issns"]
+        assert all(pool["id"] != "pool_algal_bloom_ml" for pool in pools)
+        removed = {"1568-9883", "2296-7745", "2296-665X", "0034-4257", "1569-8432", "2072-4292"}
+        assert removed.isdisjoint(resolve_issns([], []))
+        assert all(removed.isdisjoint(pool["issns"]) for pool in pools)
+
+    def test_removed_pool_cannot_fall_back_to_unrestricted_search(self):
+        with pytest.raises(ValueError, match="Unknown journal pool"):
+            resolve_issns(["pool_algal_bloom_ml"], [])
 
 
 class TestSearchTopics:
@@ -384,13 +388,12 @@ class TestSearchTopics:
         topics = list_search_topics()
         ids = {item["id"] for item in topics}
         assert "gfcf_environment" in ids
-        assert "algal_bloom_ml" in ids
+        assert ids == {"gfcf_environment"}
 
-        topic = next(item for item in topics if item["id"] == "algal_bloom_ml")
-        assert topic["journal_pool_ids"] == ["pool_algal_bloom_ml"]
+        topic = next(item for item in topics if item["id"] == "gfcf_environment")
+        assert "main_pool" in topic["journal_pool_ids"]
         assert topic["date_from"] == "2020-01-01"
-        assert any("harmful algal bloom" in kw for kw in topic["keywords"])
-        assert "biofuel" in topic["negative_keywords"]
+        assert "GFCF" in topic["keywords"]
         assert topic["min_score"] == 0
         assert topic["max_results_per_source"] == 10000
 
@@ -1017,7 +1020,7 @@ class TestFastAPISmoke:
         r = self.client.get("/api/search-topics")
         assert r.status_code == 200
         data = r.json()
-        assert any(topic["id"] == "algal_bloom_ml" for topic in data["topics"])
+        assert [topic["id"] for topic in data["topics"]] == ["gfcf_environment"]
 
     def test_index_page(self):
         r = self.client.get("/")

@@ -61,8 +61,7 @@ Run 25 (LLM 复核):    MEDIUM 误召 = 0/2    (0%)  ← 最终状态
 ```
 weekly-literature-monitor/
 ├── topics/                     # 每个主题一份 YAML
-│   ├── gfcf_environment.yaml
-│   └── algal_bloom_ml.yaml
+│   └── gfcf_environment.yaml
 ├── config/                     # 共享期刊库
 ├── literature_monitor/         # 核心包（自包含，无 sys.path hack）
 │   ├── cli.py                  # CLI 入口

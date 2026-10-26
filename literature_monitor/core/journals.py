@@ -47,6 +47,9 @@ def journals_for_pool(pool: dict[str, Any]) -> list[dict[str, Any]]:
 def resolve_issns(pool_ids: list[str], explicit_issns: list[str]) -> list[str]:
     config = load_journal_config()
     mapping = config.get("pool_issn_mapping", {})
+    unknown_pools = sorted(set(pool_ids) - set(mapping))
+    if unknown_pools:
+        raise ValueError(f"Unknown journal pool(s): {', '.join(unknown_pools)}")
     if not pool_ids and not explicit_issns:
         return sorted(
             {issn.strip() for issn in config.get("issn_list", []) if issn.strip()}
