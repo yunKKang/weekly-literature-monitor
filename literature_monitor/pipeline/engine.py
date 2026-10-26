@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from literature_monitor.core.models import Paper, ScoreResult, KeywordHit
+from literature_monitor.core.models import Paper, ScoreResult
 from literature_monitor.pipeline.base import Pipeline, PipelineState, Stage
 from literature_monitor.pipeline.stages.hard_threshold import HardThresholdStage
 from literature_monitor.pipeline.stages.rule_scoring import RuleScoringStage
@@ -39,6 +39,8 @@ def build_pipeline(
     query_terms: list[str] | None = None,
     request_negative_keywords: list[str] | None = None,
     journal_pool_ids: list[str] | None = None,
+    review_cache=None,
+    include_ai: bool = True,
 ) -> Pipeline:
     """Build a scoring Pipeline from a Topic configuration.
 
@@ -52,10 +54,13 @@ def build_pipeline(
         ks_map = {ks.name: ks.keywords for ks in topic.keyword_sets}
         # Build pipeline requirements from topic pipelines
         pipe_reqs = [pipe.hard_threshold.required_sets for pipe in topic.pipelines]
-        stages.append(HardThresholdStage(
-            keyword_sets=ks_map,
-            pipeline_requirements=pipe_reqs,
-        ))
+        stages.append(
+            HardThresholdStage(
+                keyword_sets=ks_map,
+                pipeline_requirements=pipe_reqs,
+                pipeline_negatives=[p.negative_keywords for p in topic.pipelines],
+            )
+        )
     else:
         # No topic — pass through (legacy compat)
         stages.append(HardThresholdStage())
@@ -71,8 +76,6 @@ def build_pipeline(
     # 3. Negative keyword filter
     all_negatives: list[str] = []
     if topic:
-        for pipe in topic.pipelines:
-            all_negatives.extend(pipe.negative_keywords)
         # Also from keyword_sets
         for ks in topic.keyword_sets:
             all_negatives.extend(ks.negative_keywords)
@@ -96,34 +99,39 @@ def build_pipeline(
 
     # 7. Final scoring (must run before LLM review so relevance_level is set)
     scoring = topic.scoring if topic else None
-    stages.append(FinalScoringStage(
-        rule_weight=1.0,
-        text_weight=0.6,
-        legacy_high_threshold=scoring.high_threshold if scoring else 20,
-        legacy_medium_threshold=scoring.medium_threshold if scoring else 12,
-    ))
+    stages.append(
+        FinalScoringStage(
+            rule_weight=1.0,
+            text_weight=0.6,
+            legacy_high_threshold=scoring.high_threshold if scoring else 20,
+            legacy_medium_threshold=scoring.medium_threshold if scoring else 12,
+        )
+    )
 
     # 8. LLM review (optional — runs AFTER final scoring so it can see relevance_level)
     # NOTE: Budget state is per-Pipeline instance. Use pipeline.run_batch()
     # for multi-paper processing to preserve budget across papers.
-    if topic and topic.llm_review.enabled:
-        stages.append(LLMReviewStage(
-            topic_name=topic.name,
-            topic_description=topic.description,
-            provider=topic.llm_review.provider,
-            model=topic.llm_review.model,
-            min_level=(
-                "MEDIUM"
-                if "MEDIUM" in topic.llm_review.enabled_for_priorities
-                else "HIGH"
-            ),
-            max_papers=topic.llm_review.max_papers_per_run,
-            max_cost_usd=topic.llm_review.max_cost_usd,
-            prompt_template=topic.llm_review.prompt_template or None,
-            base_url=topic.llm_review.base_url,
-            two_stage=topic.llm_review.two_stage,
-            concurrency=topic.llm_review.concurrency,
-        ))
+    if topic and topic.llm_review.enabled and include_ai:
+        stages.append(
+            LLMReviewStage(
+                topic_name=topic.name,
+                topic_description=topic.description,
+                provider=topic.llm_review.provider,
+                model=topic.llm_review.model,
+                min_level=(
+                    "MEDIUM"
+                    if "MEDIUM" in topic.llm_review.enabled_for_priorities
+                    else "HIGH"
+                ),
+                max_papers=topic.llm_review.max_papers_per_run,
+                max_cost_usd=topic.llm_review.max_cost_usd,
+                prompt_template=topic.llm_review.prompt_template or None,
+                base_url=topic.llm_review.base_url,
+                two_stage=topic.llm_review.two_stage,
+                concurrency=topic.llm_review.concurrency,
+                cache=review_cache,
+            )
+        )
 
     return Pipeline(stages)
 
@@ -139,6 +147,7 @@ def paper_to_state(paper: Paper, paper_id: int = 0) -> PipelineState:
         year=paper.year,
         publication_date=paper.publication_date,
         issn=paper.issn,
+        authors=tuple(paper.authors),
         paper_id=paper_id,
     )
 

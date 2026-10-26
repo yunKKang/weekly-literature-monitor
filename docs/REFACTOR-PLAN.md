@@ -1,3 +1,5 @@
+> Historical implementation notes. For current scope, AI model, review status and recovery semantics, see [README](../README.md). The original Phase 7 was not wired into the scheduled workflow; this is corrected by the October 2026 unified review implementation.
+
 # Literature Monitor v3.0 — 重构计划
 
 > 状态: Phase 0-7 全部完成 + 优化迭代 | 最后更新: 2026-05-12 | 基于 v2.2.0

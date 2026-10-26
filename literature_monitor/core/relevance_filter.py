@@ -62,10 +62,14 @@ class PipelineConfig:
     priority: int
     investment_patterns: list[re.Pattern]
     domain_patterns: list[re.Pattern]
+    require_investment: bool = True
+    context_patterns: list[re.Pattern] = field(default_factory=list)
     bonus_patterns: list[re.Pattern] = field(default_factory=list)
     negative_patterns: list[re.Pattern] = field(default_factory=list)
     asset_type_patterns: dict[str, list[re.Pattern]] = field(default_factory=dict)
-    theme_patterns: dict[str, tuple[list[re.Pattern], int]] = field(default_factory=dict)
+    theme_patterns: dict[str, tuple[list[re.Pattern], int]] = field(
+        default_factory=dict
+    )
 
 
 @dataclass
@@ -83,8 +87,6 @@ class KeywordConfig:
 
 
 def compile_patterns(keywords: list[str], escape_cn: bool = False) -> list[re.Pattern]:
-    import logging
-    _logger = logging.getLogger(__name__)
     if escape_cn:
         patterns = []
         for kw in keywords:
@@ -97,16 +99,13 @@ def compile_patterns(keywords: list[str], escape_cn: bool = False) -> list[re.Pa
     for kw in keywords:
         if not kw or not kw.strip() or kw.startswith("#"):
             continue
-        try:
-            patterns.append(re.compile(kw, re.IGNORECASE))
-        except re.error:
-            _logger.warning("Invalid regex pattern, skipping: %s", kw)
+        patterns.append(re.compile(kw, re.IGNORECASE))
     return patterns
 
 
 def load_keyword_config(config_path: Path | None = None) -> KeywordConfig:
     if config_path is None:
-        script_dir = Path(__file__).parent.parent
+        script_dir = Path(__file__).resolve().parents[2]
         config_path = script_dir / "config" / "keywords.json"
 
     with config_path.open("r", encoding="utf-8") as f:
@@ -170,6 +169,12 @@ def load_keyword_config(config_path: Path | None = None) -> KeywordConfig:
             domain_patterns=(
                 compile_patterns(domain_data.get("keywords_en", []))
                 + compile_patterns(domain_data.get("keywords_cn", []), escape_cn=True)
+            ),
+            require_investment=pipe_data.get("hard_threshold", {}).get(
+                "require_investment", True
+            ),
+            context_patterns=compile_patterns(
+                pipe_data.get("context_terms", {}).get("keywords_en", [])
             ),
             bonus_patterns=(
                 compile_patterns(bonus_data.get("keywords_en", []))
@@ -269,8 +274,8 @@ def evaluate_pipeline(
 
     Returns PipelineMatch with threshold check and scores.
     """
-    title_lower = title.lower()
-    abstract_lower = (abstract or "").lower()
+    title_lower = title.lower().replace("–", "-").replace("—", "-")
+    abstract_lower = (abstract or "").lower().replace("–", "-").replace("—", "-")
     combined = f"{title_lower} {abstract_lower}"
 
     # Check negative keywords
@@ -300,12 +305,16 @@ def evaluate_pipeline(
     )
 
     # Domain term matching
-    domain_matches = match_patterns(
-        combined, pipeline.domain_patterns
-    )
+    domain_matches = match_patterns(combined, pipeline.domain_patterns)
 
     # Hard threshold check: investment AND domain must both have matches
-    passed_threshold = bool(investment_deduped) and bool(domain_matches)
+    passed_threshold = (
+        bool(investment_deduped) or not pipeline.require_investment
+    ) and bool(domain_matches)
+    if pipeline.context_patterns:
+        passed_threshold = passed_threshold and bool(
+            match_patterns(combined, pipeline.context_patterns)
+        )
 
     if not passed_threshold:
         return PipelineMatch(
@@ -350,10 +359,25 @@ def evaluate_pipeline(
     policy_bonus_cap = rules.get("policy_bonus_cap", 6)
 
     # Base score: investment terms weighted much higher than domain terms
-    title_inv_count = len(match_patterns(title_lower, pipeline.investment_patterns))
-    title_domain_count = len(match_patterns(title_lower, pipeline.domain_patterns))
-    abstract_inv_count = len(match_patterns(abstract_lower, pipeline.investment_patterns))
-    abstract_domain_count = len(match_patterns(abstract_lower, pipeline.domain_patterns))
+    title_inv_count = len(
+        deduplicate_by_concept_groups(title_investment, config.concept_groups)
+    )
+    title_domain_count = min(
+        1, len(match_patterns(title_lower, pipeline.domain_patterns))
+    )
+    abstract_inv_count = len(
+        deduplicate_by_concept_groups(abstract_investment, config.concept_groups)
+    )
+    abstract_domain_count = min(
+        1, len(match_patterns(abstract_lower, pipeline.domain_patterns))
+    )
+    if not pipeline.require_investment:
+        title_inv_count = int(
+            bool(match_patterns(title_lower, pipeline.domain_patterns))
+        )
+        abstract_inv_count = int(
+            bool(match_patterns(abstract_lower, pipeline.domain_patterns))
+        )
 
     base_score = (
         title_inv_count * inv_title_weight
@@ -382,8 +406,7 @@ def evaluate_pipeline(
         ):
             method_bonus_total += method_bonus
         elif any(
-            kw.lower() in bm
-            for kw in ["policy", "strategy", "regulation", "scenario"]
+            kw.lower() in bm for kw in ["policy", "strategy", "regulation", "scenario"]
         ):
             policy_bonus_total += policy_bonus
         else:
@@ -470,9 +493,7 @@ def score_paper(
     best_match: PipelineMatch | None = None
     all_passed: list[PipelineMatch] = []
 
-    sorted_pipelines = sorted(
-        config.pipelines.values(), key=lambda p: p.priority
-    )
+    sorted_pipelines = sorted(config.pipelines.values(), key=lambda p: p.priority)
 
     for pipeline in sorted_pipelines:
         match = evaluate_pipeline(title, abstract, pipeline, config)

@@ -12,8 +12,7 @@ from dataclasses import asdict
 from literature_monitor.core.dedup import deduplicate_records
 from literature_monitor.core.journals import resolve_issns
 from literature_monitor.core.models import ProviderPaper, SearchRequest, SearchSummary
-from literature_monitor.core.scoring import score_for_request
-from literature_monitor.core.search_service import merge_group
+from literature_monitor.core.search_service import merge_group as merge_group
 from literature_monitor.db import repositories as repo
 from literature_monitor.db.connection import get_connection
 from literature_monitor.db.schema import init_db
@@ -50,16 +49,11 @@ def _sync_score_loop(
     """Synchronous scoring loop — runs in a thread with its own connection."""
     with get_connection() as conn:
         init_db(conn)
-        scored = 0
-        for group in grouped:
-            paper = merge_group(group)
-            paper_id = repo.upsert_paper(conn, paper)
-            for provider_record in group:
-                repo.add_source_record(conn, paper_id, provider_record.source_record)
-            score = score_for_request(conn, paper_id, paper, request, selected_issns)
-            if score.total_score >= request.min_score:
-                repo.add_score(conn, search_run_id, paper_id, score)
-                scored += 1
+        from literature_monitor.core.review_service import score_groups
+
+        scored = score_groups(
+            conn, search_run_id, request, grouped, selected_issns, errors
+        )
 
         status = "partial_failed" if errors and records else "completed"
         if errors and not records:
@@ -83,10 +77,35 @@ async def async_create_and_run_search(request: SearchRequest) -> SearchSummary:
     return await async_run_search(search_run_id, request)
 
 
+def _mark_search_failed_sync(search_run_id, exc):
+    with get_connection() as conn:
+        init_db(conn)
+        repo.update_search_run(
+            conn,
+            search_run_id,
+            status="failed",
+            error_message=f"{type(exc).__name__}: {exc}",
+            completed=True,
+        )
+
+
 async def async_run_search(search_run_id: int, request: SearchRequest) -> SearchSummary:
+    try:
+        return await _async_run_search_body(search_run_id, request)
+    except Exception as exc:
+        await asyncio.to_thread(_mark_search_failed_sync, search_run_id, exc)
+        raise
+
+
+async def _async_run_search_body(
+    search_run_id: int, request: SearchRequest
+) -> SearchSummary:
     """Async search execution with concurrent provider fetching."""
     await asyncio.to_thread(_mark_search_running_sync, search_run_id)
 
+    from literature_monitor.core.review_service import resolve_topic
+
+    resolve_topic(request)
     issns = resolve_issns(request.journal_pool_ids, request.journal_issns)
 
     # Concurrent fetching from all providers

@@ -30,11 +30,24 @@ def export_csv(results: list[dict[str, Any]]) -> str:
         "url",
         "total_score",
         "relevance_level",
+        "ai_status",
+        "ai_relevant",
+        "ai_confidence",
+        "ai_model",
+        "ai_reason",
     ]
     writer = csv.DictWriter(output, fieldnames=fields)
     writer.writeheader()
     for item in results:
-        writer.writerow({field: item.get(field, "") for field in fields})
+        audit = (item.get("score_breakdown") or {}).get("llm_review", {})
+        row = {field: item.get(field, "") for field in fields}
+        row.update(
+            {
+                "ai_" + field: audit.get(field, "")
+                for field in ("status", "relevant", "confidence", "model", "reason")
+            }
+        )
+        writer.writerow(row)
     return output.getvalue()
 
 
@@ -76,6 +89,11 @@ def export_markdown(results: list[dict[str, Any]]) -> str:
                 f"- DOI: {doi}",
             ]
         )
+        audit = (item.get("score_breakdown") or {}).get("llm_review")
+        if audit:
+            lines.append(
+                f"- AI review: {audit.get('status')} / relevant={audit.get('relevant')} / confidence={audit.get('confidence')} / {audit.get('model')} — {audit.get('reason', '')}"
+            )
         if url:
             lines.append(f"- URL: {url}")
         if item.get("abstract"):
@@ -98,4 +116,3 @@ def escape_bibtex(value: Any) -> str:
     for ch in ("\\", "{", "}", "~", "^", "%", "$", "#", "&"):
         s = s.replace(ch, "\\" + ch)
     return s
-

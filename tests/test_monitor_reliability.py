@@ -60,6 +60,35 @@ def relevance(score=20, priority="HIGH"):
 
 
 class WeeklyMonitorReliabilityTests(unittest.TestCase):
+    def setUp(self):
+        from literature_monitor.core.review_cache import ReviewCache
+
+        self.tmp = TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patches = [
+            patch.dict("os.environ", {"DEEPSEEK_API_KEY": "test-only"}),
+            patch.object(
+                weekly_monitor,
+                "ReviewCache",
+                side_effect=lambda *a: ReviewCache(Path(self.tmp.name) / "cache.json"),
+            ),
+            patch.object(weekly_monitor, "enrich_abstract", side_effect=lambda p: p),
+            patch.object(
+                weekly_monitor.github_issue, "list_report_issues", return_value=[]
+            ),
+            patch(
+                "literature_monitor.pipeline.stages.llm_review.LLMReviewStage._call_llm",
+                return_value={
+                    "relevant": True,
+                    "confidence": "high",
+                    "reason": "capital footprint",
+                },
+            ),
+        ]
+        for item in patches:
+            item.start()
+            self.addCleanup(item.stop)
+
     def test_notify_failure_does_not_save_state(self):
         paper = FakePaper()
         state = MonitorState(last_from_date="2026-03-01")
@@ -68,7 +97,6 @@ class WeeklyMonitorReliabilityTests(unittest.TestCase):
         with (
             patch.object(weekly_monitor, "load_state", return_value=state),
             patch.object(weekly_monitor, "fetch_recent_papers", fetch_recent),
-            patch.object(weekly_monitor, "fetch_conference_papers", return_value=[]),
             patch.object(weekly_monitor, "load_keyword_config", return_value=object()),
             patch.object(
                 weekly_monitor,
@@ -97,16 +125,21 @@ class WeeklyMonitorReliabilityTests(unittest.TestCase):
             patch.object(weekly_monitor, "load_state", return_value=state),
             patch.object(weekly_monitor, "today_str", return_value="2026-04-10"),
             patch.object(weekly_monitor, "fetch_recent_papers", return_value=[paper]),
-            patch.object(weekly_monitor, "fetch_conference_papers", return_value=[]),
-            patch.object(weekly_monitor, "filter_papers") as filter_papers,
+            patch.object(
+                weekly_monitor.github_issue, "reported_dois", return_value={paper.doi}
+            ),
+            patch.object(
+                weekly_monitor, "filter_papers", return_value=[]
+            ) as filter_papers,
             patch.object(weekly_monitor, "notify_new_papers") as notify_new_papers,
             patch.object(weekly_monitor, "save_state") as save_state,
         ):
             result = weekly_monitor.run_monitor(verbose=False)
 
         self.assertEqual(result, 0)
-        filter_papers.assert_not_called()
-        notify_new_papers.assert_not_called()
+        filter_papers.assert_called_once()
+        self.assertEqual(filter_papers.call_args.args[0], [])
+        notify_new_papers.assert_called_once_with([], "2026-03-02", "2026-04-10", 1, 31)
         save_state.assert_called_once()
         saved_state = save_state.call_args.args[0]
         self.assertEqual(saved_state.last_run_date, "2026-04-10")
@@ -219,8 +252,14 @@ class ObsidianStateTests(unittest.TestCase):
             state_path = Path(tmp) / "obsidian_state.json"
 
             with (
-                patch.object(obsidian_report, "fetch_papers", return_value=([paper], 1)),
-                patch.object(obsidian_report, "filter_by_score", return_value=[(paper, relevance())]),
+                patch.object(
+                    obsidian_report, "fetch_papers", return_value=([paper], 1)
+                ),
+                patch.object(
+                    obsidian_report,
+                    "filter_by_score",
+                    return_value=[(paper, relevance())],
+                ),
             ):
                 obsidian_report.run_export(
                     from_date="2026-04-01",
@@ -241,8 +280,8 @@ class WorkflowSafetyTests(unittest.TestCase):
         )
 
         self.assertIn('[[ "$DAYS_BACK" =~ ^[0-9]+$ ]]', workflow)
-        self.assertIn("cd src", workflow)
-        self.assertIn('python weekly_monitor.py --days "$DAYS_BACK"', workflow)
+        self.assertIn('args=(--days "$DAYS_BACK" --quiet)', workflow)
+        self.assertIn('python src/weekly_monitor.py "${args[@]}"', workflow)
 
     def test_weekly_monitor_cli_accepts_workflow_arguments(self):
         with (
@@ -264,6 +303,8 @@ class WorkflowSafetyTests(unittest.TestCase):
             debug_filter=False,
             tier=None,
             overlap_days=None,
+            reprocess_since=None,
+            include_supplementary=False,
         )
 
 

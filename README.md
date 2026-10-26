@@ -1,400 +1,82 @@
 # Weekly Literature Monitor
 
-Automated weekly monitoring and manual search of academic publications for **environmental footprint research**. Features a local web workbench for manual literature search across Crossref and OpenAlex, plus automated weekly GitHub Issues.
+Weekly GitHub Issues and a local search workbench for physical capital footprints and prospective MRIO / input-output methods linked to IAM and SSP scenarios.
 
-## Core Pain Point
+## Research scope
 
-Researchers tracking capital formation, embodied impacts, and MRIO/EEIO methods face a high-noise discovery problem: relevant papers often avoid the exact term "GFCF", while generic investment searches return finance, ESG, and portfolio literature that is not useful for environmental footprint work. This project turns that recurring manual scan into a reproducible weekly filter with transparent vocabulary, scoring, and state tracking.
+Papers qualify through one of five channels. Trade and policy terms require environmental or IO context; generic investment or economics alone is insufficient.
 
-## Core Logic Flow
+| Channel | Required evidence |
+| --- | --- |
+| Capital footprints | Physical investment/capital stocks + environmental impacts |
+| Capital IO accounting | Physical investment/capital stocks + MRIO/EEIO |
+| Capital goods trade | Physical capital + trade/supply chains + environmental/IO context |
+| Capital scenarios | Physical capital + scenarios/policy + environmental/IO context |
+| Prospective IO methods | MRIO/input-output + IAM/SSP/future scenarios; GFCF is optional, including household studies |
 
-The monitor is a deterministic retrieval and ranking pipeline, not a multi-agent system and not an LLM long-chain reasoning workflow. Its logic is:
+Ambiguous standalone `GCF`, `FCF`, `CFC`, `PIM`, `retirement`, `vintage`, and software/algorithm terms were removed. Full terms such as *consumption of fixed capital* and *perpetual inventory method* remain. Generic digital engineering bonuses were removed. Finance exclusions apply to every capital channel. Synonyms within a concept count once per field: `GFCF` and `gross fixed capital formation` receive the same score.
 
-1. Load journal, conference, keyword, and prior-run state configuration.
-2. Query Crossref for newly published works across curated journal/conference pools.
-3. Deduplicate by DOI and remove papers already seen in previous runs.
-4. Apply hard-threshold filters: investment/capital vocabulary must co-occur with at least one domain pipeline.
-5. Score surviving papers with weighted title/abstract matches, concept deduplication, capped bonuses, negative keyword exclusions, and HIGH-priority consistency checks.
-6. Publish a GitHub Issue report, or optionally export an Obsidian Markdown note.
-7. Update state only after successful notification/export so failed runs can be retried safely.
+`config/keywords.json` supplies rule scoring, exclusions and concept groups; `topics/gfcf_environment.yaml` supplies the topic gate and AI prompt. Both configurations have regression coverage. HIGH is 20 points with a specificity check; MEDIUM is 12. Investment concepts receive 20/12 points in title/abstract, domain matches 5/3, capped at one domain match per field. Scoring controls candidate review order; publication also requires an AI verdict.
 
-## Safe recovery after missed runs
+## Journal selection
 
-Run `python src/weekly_monitor.py --dry-run --quiet` to inspect the backlog, then
-run `python src/weekly_monitor.py --quiet` with the usual GitHub credentials.
-Do not reset or manually move `state/monitor_state.json` forward. The monitor
-uses the last successful checkpoint plus the overlap window, so one catch-up
-report covers the missed period. It cannot reconstruct which records Crossref
-would have exposed on each historical Monday.
+The weekly default is **31 core journals**. **9 supplementary journals** run on the first Monday of each month, with an independent date watermark and a 40-day initial lookback. Explicit `--include-supplementary` runs them immediately. The catalog contains 40 unique journals with validated ISSN checksums and consistent pool mappings.
 
-Both Crossref clients omit publication sorting when using cursors. Any failed
-batch, invalid response, repeated cursor, or page limit aborts the fetch before
-publication or checkpoint updates. Before publication, the monitor reconciles
-DOIs against all report Issues, including closed Issues and legacy reports.
-This protects recovery after an Issue succeeds but the state commit fails, and
-protects published DOIs after eviction from the bounded local cache. An
-uncertain Issue POST is not retried automatically; rerun after checking Issues.
+Core journals retain industrial ecology, LCA, IO methods, environmental systems and major climate/energy journals. Economic Systems Research and Ecological Economics remain because they directly support MRIO methods. Supplementary journals include Review of Income and Wealth, Research Policy, Energy Economics and selected buildings, transport, food and water journals. Geoscientific Model Development and Climatic Change were added. Broad macroeconomics, finance and generic computer engineering pools were removed. Journal selection reflects topic fit rather than a numerical quality ranking.
 
-## Architecture: GFCF-Driven Pipeline System (v2.1)
+Scheduled conference searches are disabled: Crossref conference-title search is fuzzy and can match unrelated proceedings. The conference client remains supported and tested; cursor requests omit both `sort` and `order`.
 
-This system uses a **GFCF-first** approach where investment/capital formation is the primary research object, and MRIO/EEIO serves as a methodological tool.
+## AI review and evidence
 
-### Pipeline System with Hard Thresholds
+Scheduled, synchronous and asynchronous topic searches use `core/review_service.py` and one pipeline instance/budget per batch. Each MEDIUM/HIGH candidate receives one abstract-based review, using `deepseek-flash` with JSON output and thinking disabled. The retired `deepseek-chat` alias is no longer used. Default limits: 200 attempted papers and USD 2 estimated cost per run; requests are serial. Cost accounting uses conservative configured rates, not an invoice.
 
-Papers must pass a **hard threshold** (Boolean AND condition) to be considered:
+Each review records status, provider, model, timestamp, verdict, confidence and reason. `completed` with a positive high/medium confidence verdict is eligible for a report. `failed`, `missing_credentials`, `missing_abstract`, `uncertain` and `budget_skipped` remain pending. Low confidence or absent evidence cannot approve publication. Missing Crossref abstracts are supplemented by DOI-linked OpenAlex metadata when available. Manual results retain rule scores and clearly expose incomplete AI status in the stored audit.
 
-| Pipeline | Hard Threshold | Description |
-|----------|----------------|-------------|
-| **P1: Environmental** | Investment terms AND Environmental impact terms | Core GFCF footprint research (carbon, water, material, land, biodiversity) |
-| **P2: MRIO/EEIO** | Investment terms AND IO method terms | Capital endogenization, investment-embodied emissions |
-| **P3: Trade** | Investment terms AND Trade/globalization terms | Investment goods trade, cross-border transfers |
-| **P4: Policy** | Investment terms AND Scenario/policy terms | Decarbonization pathways, lock-in effects, stranded assets |
+Successful verdicts are cached by DOI, title, abstract, journal, year, model, prompt and configuration version. Changed evidence or rules forces another review. Historical benchmark DOIs are evaluation fixtures, never injected into live search results.
 
-### Journal Pools (v2.1)
+## Recovery and publication safety
 
-| Pool | Focus | Journals | Priority |
-|------|-------|----------|----------|
-| **Main Pool** | GFCF x Environmental Impact | JIE, IJLCA, ES&T, Nature Sustainability, Applied Energy, etc. | 1 |
-| **Pool A1** | SNA/National Accounts & Capital Measurement | Review of Income and Wealth, J. Productivity Analysis, Research Policy | 2 |
-| **Pool A2** | Macro Growth & Productivity (lower frequency) | J. International Economics, J. Development Economics | 3 |
-| **Pool B** | Built Environment, Infrastructure & Transport | Building and Environment, Cities, Transportation Research Part D, Water Research | 2 |
-| **Pool C** | Digital Infrastructure & Datacenters | Sustainable Computing, Future Generation Computer Systems, IEEE Micro | 2 |
-| **General** | High-Impact Journals | Nature, Science, PNAS, Nature Communications | 3 |
+1. Fetch the complete date range. A failed Crossref batch, repeated cursor, invalid response or page limit aborts before publication or checkpoint advancement. GET requests back off on 429/5xx; Issue POSTs are never blindly retried.
+2. Normalize DOIs and reconcile all report Issues, including closed reports and full DOI manifests. `seen_dois` means observed metadata, not reviewed or published. Reprocessing never republishes a DOI already in a report.
+3. Persist candidate metadata and AI evidence atomically to `state/review_cache.json` before publication. Pending candidates are retried even if the acquisition window has moved.
+4. Save the acquisition checkpoint only after retrieval and notification succeed. `last_review_complete_date` advances only with no pending candidates; `review_pending_count` exposes the remaining queue. The acquisition date may advance while the durable review queue is pending.
+5. Actions commits only the checkpoint and review queue, including pending evidence after publication failures. All publication workflows share one concurrency group. An Issue created before a failed state commit is discovered on the next run and skipped.
 
-## Features (v2.1 Enhancements)
+A catch-up report covers the missed interval; it cannot reconstruct what Crossref exposed on each historical Monday. Do not manually move the checkpoint or clear the DOI history to recover.
 
-- **Automated Weekly Runs**: GitHub Actions runs every Monday at 8:00 UTC
-- **70+ Curated Journals**: Organized in 6 pools by research relevance
-- **Hard Threshold Filtering**: Only papers matching GFCF vocabulary + domain terms pass
-- **Concept Deduplication**: Same concept counted only once regardless of synonyms (prevents keyword stuffing)
-- **Bonus Capping**: Method/policy bonuses capped at 6 points maximum
-- **Negative Keywords**: Filters out financial/ESG noise (portfolio, stock market, etc.)
-- **Consistency Check**: HIGH priority requires asset type OR methodology match
-- **Multi-footprint Support**: Carbon, water, material, land, biodiversity, nitrogen, energy footprints
-- **Weighted Field Scoring**: Title 8x, Abstract 5x
-
-## GFCF Vocabulary Coverage (v2.1)
-
-The system captures papers that may not explicitly use "GFCF" but discuss related concepts.
-
-### Investment Terms (63 patterns)
-
-| Category | Keywords |
-|----------|----------|
-| **Core GFCF** | `GFCF`, `GCF`, `FCF`, `FBCF`, `gross fixed capital formation`, `capital formation` |
-| **Investment** | `investment`, `fixed investment`, `capital expenditure`, `CAPEX`, `capital goods` |
-| **Capital Stock** | `capital stock`, `net stock`, `capital accumulation`, `capital deepening`, `capital intensity` |
-| **Depreciation** | `depreciation`, `CFC`, `consumption of fixed capital`, `scrappage`, `retirement`, `decommissioning` |
-| **Lifetime/PIM** | `perpetual inventory method`, `PIM`, `asset lifetime`, `service life`, `vintage` |
-| **Capital Services** | `capital services`, `KLEMS`, `PWT`, `Penn World Table` |
-| **Capitalization** | `capitalization`, `capitalized`, `data capitalization` |
-
-### Asset Types (SNA Categories)
-
-| Category | Keywords |
-|----------|----------|
-| **Structures** | buildings, construction, infrastructure, civil engineering, built environment, housing |
-| **Machinery & Equipment** | machinery, industrial equipment, plant and equipment, capital equipment |
-| **Transport Equipment** | vehicles, fleet, aircraft, ships, rolling stock, trucks |
-| **ICT Equipment** | servers, semiconductors, computers, hardware, GPU, TPU, processors |
-| **Intangibles/IPP** | software, databases, data assets, R&D capital, intellectual property, organizational capital, digital assets |
-
-### Environmental Impact Terms (Multi-footprint)
-
-| Footprint Type | Keywords |
-|----------------|----------|
-| **Carbon** | carbon, GHG, CO2, emissions, embodied, carbon accounting |
-| **Water** | water footprint, virtual water, embodied water |
-| **Material** | material footprint, embodied materials |
-| **Land** | land footprint, land use change, ecological footprint |
-| **Biodiversity** | biodiversity footprint, biodiversity loss |
-| **Nitrogen** | nitrogen footprint |
-| **Energy** | energy footprint, embodied energy |
-| **Upfront** | upfront emissions, upfront carbon |
-
-### Supplementary Themes
-
-| Theme | Keywords | Bonus |
-|-------|----------|-------|
-| **Digital Infrastructure** | datacenters, cloud computing, AI infrastructure, hyperscale, PUE, WUE, liquid cooling, GPU energy, LLM | +5 |
-| **Material Resources** | material footprint, circular economy, steel, cement, aluminum, copper, rare earth | +3 |
-| **Water & Land** | water footprint, virtual water, land use, ecological footprint | +3 |
-
-## Quick Start
-
-### Web Workbench (Manual Search)
+## Setup
 
 ```bash
-python -m venv .venv && .venv/bin/pip install -e ".[test]"
+python -m venv .venv
+.venv/bin/pip install -e '.[test]'
 .venv/bin/litmon init-db
 .venv/bin/litmon serve
-# Open http://127.0.0.1:8000
+# http://127.0.0.1:8000
 ```
 
-The workbench lets you create a search run interactively: select keywords, date range, journal pool, and optional synonyms/negative keywords. Results are scored using the legacy pipeline system plus BM25 text relevance, recency bonus, and journal pool matching. Export to CSV, BibTeX, or Markdown.
-
-### CLI Manual Search
+For scheduled AI review, add a repository Actions secret named **DEEPSEEK_API_KEY** under Settings → Secrets and variables → Actions. `GITHUB_TOKEN` is provided by Actions. `OPENALEX_API_KEY` is optional for abstract enrichment. Keep actual credentials out of Git; `.env.example` contains names only. Any credential previously committed to Git should be rotated, since deleting the file does not remove repository history.
 
 ```bash
-.venv/bin/litmon search --date-from 2026-01-01 --date-to 2026-05-01 --keywords "capital investment,carbon" --journal-pool main_pool
+# Real synthetic AI connectivity check: no publication or checkpoint changes
+python src/weekly_monitor.py --check-ai
+
+# Rules-only preview: no AI charges, Issue creation, cache or checkpoint writes
+python src/weekly_monitor.py --dry-run --quiet
+
+# Reapply current rules over an old interval; published DOI history still applies
+python src/weekly_monitor.py --reprocess-since 2026-07-25 --include-supplementary --quiet
 ```
 
-### CLI Topic Management
+The workflow runs every Monday at 08:00 UTC. For a manual catch-up, choose **Weekly Literature Monitor → Run workflow**, set `reprocess_since` if needed, and leave `dry_run` unchecked after reviewing a preview. Missing/invalid AI credentials fail the connectivity step explicitly before publication. CLI dates must be ISO `YYYY-MM-DD` and cannot be in the future.
+
+## Validation
 
 ```bash
-# List all available research topics
-.venv/bin/litmon topic list
-
-# Show topic details
-.venv/bin/litmon topic show gfcf_environment
-
-# Validate a topic YAML file
-.venv/bin/litmon topic validate gfcf_environment
+python -m compileall -q src literature_monitor
+python -m pytest tests/ -q
+litmon topic validate gfcf_environment
 ```
 
-### Weekly Automated Run (Legacy)
+CI runs Python 3.10, 3.11 and 3.12. Tests cover cursor compatibility, partial fetch failures, DOI normalization, Issue/state failure recovery, dry-run immutability, topic boundaries, monthly scope, concept scoring, AI contract validation, budget/cache behavior and shared manual/async review.
 
-```bash
-cd src
-python weekly_monitor.py --dry-run --days 7
-```
-
-### GitHub Actions
-
-1. Fork this repository
-2. Enable GitHub Actions in your fork
-3. The workflow runs automatically every Monday
-4. Or trigger manually from Actions tab
-
-### Required Secrets
-
-For GitHub Issue creation, the `GITHUB_TOKEN` is automatically provided by GitHub Actions. No additional configuration needed.
-
-## Project Structure
-
-```
-weekly-literature-monitor/
-├── .github/workflows/
-│   ├── ci.yml                  # Compile and test quality gate
-│   └── weekly-monitor.yml      # GitHub Actions workflow
-├── topics/                     # Research topic definitions (YAML)
-│   └── gfcf_environment.yaml   # GFCF Environmental Impact topic
-├── config/
-│   ├── journals.json           # Journal pools for capital and environmental research
-│   └── keywords.json           # GFCF vocabulary & pipeline definitions
-├── literature_monitor/         # Productized web workbench package
-│   ├── cli.py                  # CLI: serve / init-db / search / topic
-│   ├── topic/                  # Topic abstraction layer (Phase 1)
-│   │   ├── schema.py           # Pydantic Topic model
-│   │   └── loader.py           # YAML → Topic loader & validator
-│   ├── api/
-│   │   ├── app.py              # FastAPI application factory
-│   │   ├── routes.py           # REST endpoints
-│   │   └── schemas.py          # Pydantic request models
-│   ├── core/
-│   │   ├── models.py           # Domain dataclasses
-│   │   ├── scoring.py          # Hybrid scoring (legacy rules + BM25 + recency)
-│   │   ├── search_service.py   # Search orchestrator
-│   │   ├── dedup.py            # DOI + title deduplication
-│   │   ├── export.py           # CSV, BibTeX, Markdown export
-│   │   └── journals.py         # Journal pool resolution
-│   ├── db/
-│   │   ├── connection.py       # SQLite connection
-│   │   ├── schema.py           # DDL (5 tables + FTS5)
-│   │   └── repositories.py     # CRUD + filtering queries
-│   └── providers/
-│       ├── crossref.py         # Crossref adapter (wraps legacy)
-│       └── openalex.py         # OpenAlex REST API provider
-├── web/                        # Frontend SPA
-│   ├── index.html
-│   └── static/
-│       ├── app.js
-│       └── app.css
-├── src/                        # Legacy weekly monitor
-│   ├── weekly_monitor.py       # Main entry point
-│   ├── crossref_client.py      # Crossref API client
-│   ├── relevance_filter.py     # Pipeline-based filtering with v2.1 features
-│   ├── state_manager.py        # State persistence
-│   ├── github_issue.py         # Issue notification
-│   ├── obsidian_report.py      # Optional Obsidian Markdown export
-│   └── paper_utils.py          # Utilities
-├── scripts/
-│   └── snapshot_baseline.py    # Baseline snapshot for refactor regression
-├── baseline/                   # Baseline snapshots (git-ignored)
-├── state/
-│   └── monitor_state.json      # Run state (auto-updated)
-├── tests/
-│   ├── test_literature_monitor.py  # Workbench tests (71 tests)
-│   ├── test_topic.py           # Topic abstraction tests (13 tests)
-│   └── test_monitor_reliability.py  # Legacy tests
-├── docs/
-│   └── REFACTOR-PLAN.md        # v3.0 refactor plan
-├── LICENSE
-├── pyproject.toml
-└── README.md
-```
-
-## Configuration
-
-### Modifying Journal Pools
-
-Edit `config/journals.json`:
-- Add journals to existing pools or create new categories
-- Each pool has a priority level for weighting
-- ISSN list is automatically derived from pool definitions
-- v2.1 splits Pool A into A1 (SNA core) and A2 (macro growth)
-
-### Customizing GFCF Vocabulary
-
-Edit `config/keywords.json`:
-- Add investment terms to `gfcf_vocabulary.investment_terms`
-- Define concept groups for deduplication in `concept_groups`
-- Define asset types in `gfcf_vocabulary.asset_types`
-- Modify pipeline domain terms in `pipelines.*`
-- Add negative keywords in `negative_keywords`
-- Adjust scoring weights in `scoring_rules`
-
-### Pipeline Configuration (v2.1)
-
-Each pipeline in `keywords.json` has:
-- `hard_threshold`: Defines required term categories (AND logic)
-- `domain_terms`: Pipeline-specific vocabulary
-- `bonus_terms`: Extra scoring for specialized terminology
-
-### Negative Keywords (v2.1)
-
-Exclusion patterns filter noise per pipeline:
-- **P1/P2 (Accounting)**: Block financial terms (portfolio, stock market, hedge fund, etc.)
-- **P4 (Policy)**: Allow climate finance, block pure finance (asset pricing, equity return)
-
-### Consistency Check (v2.1)
-
-For HIGH priority (score ≥20), papers must also match:
-- At least one SNA asset type, OR
-- Capital measurement terminology (CFC, PIM, lifetime, vintage, depreciation), OR
-- Embodied impact terminology (embodied, upfront, capital goods emissions)
-
-## CLI Options
-
-```
-python weekly_monitor.py [OPTIONS]
-
-Options:
-  --days N      Number of days to look back (default: 7)
-  --dry-run     Run without creating Issue or updating state
-  --quiet       Suppress verbose output
-  --overlap-days N
-                Days to overlap before the last run date to catch delayed Crossref records
-```
-
-## Scoring System (v2.1)
-
-### Hard Threshold (Boolean)
-- Must match at least one **investment term** AND one **domain term**
-- Papers failing this threshold are excluded entirely
-- Negative keyword match → blocked (per-pipeline basis)
-
-### Concept Deduplication
-- Same concept counted only once (e.g., "GFCF", "gross fixed capital formation", "capital formation" = 1 match)
-- Prevents keyword-stuffed papers from gaming the system
-
-### Ranking Score (Weighted)
-
-| Component | Title Weight | Abstract Weight | Cap |
-|-----------|--------------|-----------------|-----|
-| Investment terms | 8 | 5 | - |
-| Domain terms | 8 | 5 | - |
-| Bonus terms (method) | +3 each | - | 6 max |
-| Bonus terms (policy) | +2 each | - | 6 max |
-| Asset type match | +2 each | - | - |
-| Theme match | +3-5 each | - | - |
-| Multi-pipeline | +5 per extra | - | - |
-
-### Priority Levels
-
-| Priority | Score Threshold | Consistency Required |
-|----------|-----------------|----------------------|
-| HIGH | ≥ 20 | Yes (asset type OR methodology) |
-| MEDIUM | ≥ 12 | No |
-| LOW | > 0 (passed threshold) | No |
-
-## Output Example
-
-GitHub Issue created:
-
-```markdown
-# Weekly Literature Monitor Report
-
-**Period:** 2026-01-19 to 2026-01-26
-**Generated:** 2026-01-26 08:00 UTC
-
-## Summary
-- Total papers fetched: 215
-- Relevant papers found: 31
-- Journals monitored: 70+
-
-| Priority | Count |
-|----------|-------|
-| HIGH | 8 |
-| MEDIUM | 15 |
-| LOW | 8 |
-
----
-
-## HIGH Priority Papers
-
-### 1. Carbon footprint of infrastructure investment in emerging economies...
-
-**Authors:** Zhang, Li, Wang et al.
-**Journal:** Nature Sustainability (2026)
-**DOI:** [10.1038/s41893-026-00123-4](https://doi.org/10.1038/s41893-026-00123-4)
-**Relevance Score:** 28 (HIGH)
-**Pipeline:** GFCF x Environmental Impact Accounting
-**Matched Terms:** investment, infrastructure, carbon footprint, embodied emissions
-**Asset Types:** structures, machinery_equipment
-**Consistency:** ✓ Passed (asset type match)
-```
-
-## Requirements
-
-- Python 3.10+
-- Legacy weekly monitor: no external dependencies (stdlib only)
-- Web workbench: `fastapi`, `uvicorn`, `pydantic`, `pyyaml` (installed via `pip install -e .`)
-
-## Quality Gate
-
-Run these checks before opening a pull request:
-
-```bash
-.venv/bin/python -m compileall src
-.venv/bin/python -m pytest tests/ -v
-```
-
-The `CI` workflow runs the same checks on push and pull requests.
-
-## Optional Obsidian Export
-
-`src/obsidian_report.py` exports the filtered results to Markdown. By default it writes to `obsidian-exports/`, which is ignored by Git. Set `OBSIDIAN_OUTPUT_DIR` or pass `--output-dir` to write into a local vault path.
-
-## Design Philosophy
-
-This system is designed around five key principles:
-
-1. **GFCF-First**: Investment/capital formation is the primary research object, not MRIO methodology
-2. **Hard Thresholds**: Eliminates noise by requiring both investment vocabulary AND domain relevance
-3. **Asset-Aware**: Captures the full SNA asset spectrum including intangibles/IPP often missed by keyword searches
-4. **Multi-footprint**: Extends beyond carbon to water, material, land, biodiversity, and energy footprints
-5. **Consistency Verification**: HIGH priority papers must demonstrate concrete asset or methodology specificity
-
-## Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| **2.2** | 2026-05-10 | Topic abstraction layer (YAML config, Pydantic schema, CLI), baseline snapshot script, shared assets |
-| **2.1** | 2026-01-26 | Pool A split (A1/A2), concept dedup, bonus capping, negative keywords, consistency check, multi-footprint, datacenter engineering terms |
-| **2.0** | 2026-01-20 | GFCF-first architecture, 4 pipelines, hard thresholds |
-| **1.0** | 2026-01-15 | Initial release, MRIO-driven tier system |
-
-## License
-
-MIT License
+MIT License.

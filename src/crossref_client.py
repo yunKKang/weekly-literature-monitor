@@ -19,7 +19,6 @@ from typing import Any
 
 from config import config
 from paper_utils import (
-    DoiInfo,
     SearchParams,
     clean_abstract,
     clean_title,
@@ -165,7 +164,13 @@ def parse_publication_date(item: dict[str, Any]) -> tuple[str | None, str | None
     Returns:
         Tuple of (year, full_date_string)
     """
-    published = item.get("published-print") or item.get("published-online") or {}
+    published = (
+        item.get("published-print")
+        or item.get("published-online")
+        or item.get("published")
+        or item.get("issued")
+        or {}
+    )
     date_parts = published.get("date-parts", [[]])
 
     if not date_parts or not date_parts[0]:
@@ -354,7 +359,9 @@ def fetch_recent_papers(
     for i in range(0, len(issns), effective_batch_size):
         batch = issns[i : i + effective_batch_size]
         errors: list[str] = []
-        rows = min(max_per_journal * len(batch), config.MAX_PAPERS_PER_BATCH, 1000)  # Crossref hard limit
+        rows = min(
+            max_per_journal * len(batch), config.MAX_PAPERS_PER_BATCH, 1000
+        )  # Crossref hard limit
         cursor = "*"
         pages_fetched = 0
         try:
@@ -378,7 +385,9 @@ def fetch_recent_papers(
                         seen_dois.add(r.doi)
                         all_results.append(r)
 
-                if page.item_count == 0 or (page.item_count is None and not page.results):
+                if page.item_count == 0 or (
+                    page.item_count is None and not page.results
+                ):
                     break
                 if page.item_count is not None and page.item_count < rows:
                     break
@@ -391,6 +400,8 @@ def fetch_recent_papers(
                         f"Reached MAX_CURSOR_PAGES={config.MAX_CURSOR_PAGES} for ISSN batch {batch[:3]}"
                     )
 
+                if delay_s > 0:
+                    time.sleep(delay_s)
                 cursor = page.next_cursor
 
         except Exception as e:
@@ -526,6 +537,8 @@ def fetch_conference_papers(
                         f"Reached MAX_CURSOR_PAGES={config.MAX_CURSOR_PAGES} for conference {container_title}"
                     )
 
+                if delay_s > 0:
+                    time.sleep(delay_s)
                 cursor = next_cursor
 
         except Exception as e:

@@ -30,6 +30,7 @@ class PipelineState:
     year: str | None = None
     publication_date: str | None = None
     issn: str | None = None
+    authors: tuple[str, ...] = ()
     paper_id: int = 0
 
     # --- Accumulated scores (stages add to these) ---
@@ -57,6 +58,7 @@ class PipelineState:
     def with_(self, **kwargs: Any) -> PipelineState:
         """Return a new state with the given fields updated."""
         from dataclasses import replace
+
         return replace(self, **kwargs)
 
 

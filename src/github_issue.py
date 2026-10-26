@@ -31,18 +31,25 @@ def list_report_issues(repo: str, token: str) -> list[dict[str, Any]]:
             f"https://api.github.com/repos/{repo}/issues"
             f"?state=all&labels=literature-monitor&per_page=100&page={page}"
         )
-        status, body = fetch_url(url, headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        })
+        status, body = fetch_url(
+            url,
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+        )
         if status != 200:
             raise RuntimeError(f"Cannot reconcile report Issues: HTTP {status}")
         batch = json.loads(body)
         if not isinstance(batch, list):
             raise ValueError("Unexpected GitHub Issues response")
-        issues.extend(issue for issue in batch if not issue.get("pull_request")
-                      and issue.get("title", "").startswith("[Weekly Report]"))
+        issues.extend(
+            issue
+            for issue in batch
+            if not issue.get("pull_request")
+            and issue.get("title", "").startswith("[Weekly Report]")
+        )
         if len(batch) < 100:
             return issues
         page += 1
@@ -75,6 +82,9 @@ class PaperInfo:
     matched_tiers: list[str]
     matched_keywords: list[str]
     url: str
+    ai_status: str = ""
+    ai_reason: str = ""
+    ai_model: str = ""
 
 
 def format_paper_markdown(paper: PaperInfo, index: int) -> str:
@@ -101,6 +111,11 @@ def format_paper_markdown(paper: PaperInfo, index: int) -> str:
         f"**Keywords:** {keywords_str}",
         "",
     ]
+    if paper.ai_status:
+        lines.insert(
+            -1,
+            f"**AI review:** {paper.ai_status} ({paper.ai_model}) — {paper.ai_reason}",
+        )
 
     return "\n".join(lines)
 
@@ -247,9 +262,9 @@ def notify_new_papers(
         logger.error("GitHub credentials required to reconcile reports")
         return False
     try:
-        already_reported = reported_dois(list_report_issues(
-            config.GITHUB_REPOSITORY, config.GITHUB_TOKEN
-        ))
+        already_reported = reported_dois(
+            list_report_issues(config.GITHUB_REPOSITORY, config.GITHUB_TOKEN)
+        )
     except (RuntimeError, ValueError, TypeError) as exc:
         logger.error("Cannot verify published DOIs; leaving state unchanged: %s", exc)
         return False
@@ -264,23 +279,46 @@ def notify_new_papers(
         logger.info("All relevant papers already exist in report Issues")
         return True
 
-    high_count = len([p for p in papers if p.priority == "HIGH"])
-    title = f"[Weekly Report] {len(papers)} relevant papers ({from_date} to {to_date})"
-    if high_count > 0:
-        title = f"[Weekly Report] {len(papers)} papers, {high_count} HIGH priority ({from_date} to {to_date})"
+    # Stay below GitHub's Issue body limit, including the complete DOI manifest.
+    def body_for(batch):
+        manifest = sorted(normalize_doi(p.doi).full for p in batch)
+        return (
+            format_issue_body(batch, from_date, to_date, total_fetched, journals_count)
+            + "\n\n<!-- literature-monitor-dois: "
+            + json.dumps(manifest)
+            + " -->"
+        )
 
-    body = format_issue_body(papers, from_date, to_date, total_fetched, journals_count)
-    body += "\n\n<!-- literature-monitor-dois: " + json.dumps(sorted(unique)) + " -->"
-
-    labels = ["literature-monitor", "automated"]
-    if high_count > 0:
-        labels.append("high-priority")
-
-    result = create_github_issue(title, body, labels)
-
-    if result:
-        logger.info(f"Created GitHub Issue: {result.get('html_url')}")
-        return True
-    else:
-        logger.error("Failed to create GitHub Issue")
-        return False
+    batches, batch = [], []
+    for paper in papers:
+        proposed = batch + [paper]
+        if batch and len(body_for(proposed)) > 50000:
+            batches.append(batch)
+            batch = [paper]
+        else:
+            batch = proposed
+    if batch:
+        batches.append(batch)
+    for number, batch in enumerate(batches, 1):
+        high_count = sum(p.priority == "HIGH" for p in batch)
+        title = f"[Weekly Report] {len(batch)} papers, {high_count} HIGH priority ({from_date} to {to_date})"
+        if len(batches) > 1:
+            title += f" — part {number}/{len(batches)}"
+        labels = ["literature-monitor", "automated"]
+        if high_count:
+            labels.append("high-priority")
+        body = body_for(batch)
+        if len(body) > 65500:
+            logger.error(
+                "A single paper exceeds the Issue body limit; leaving checkpoint unchanged"
+            )
+            return False
+        result = create_github_issue(title, body, labels)
+        if not result:
+            logger.error(
+                "Report part %d failed; reconcile published parts before resuming",
+                number,
+            )
+            return False
+        logger.info("Created GitHub Issue: %s", result.get("html_url"))
+    return True
