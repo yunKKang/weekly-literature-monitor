@@ -1,6 +1,6 @@
 {
   "description": "Manual literature search journal pools v2.3: legacy GFCF pools plus high-quality environmental and sustainability pools",
-  "last_updated": "2026-05-09",
+  "last_updated": "2026-10-26",
   "version": "2.4",
   "quality_criteria": "High-quality candidate pools target JCR Q1/Q2 or CAS Zone 1-2; rankings are annual and should be re-verified before formal evaluation use.",
   "monitoring_tiers": {
@@ -22,8 +22,8 @@
     "pool_environment_high_quality": {
       "name": "High-Quality Environmental & Sustainability Journals",
       "name_zh": "高水平环境与可持续发展期刊池",
-      "description": "Candidate journal pool for environmental science, environmental engineering, environmental planning and management, resource/environment studies, remote sensing, sustainability, environmental economics, and broad multidisciplinary journals. Target quality: JCR Q1/Q2 or CAS Zone 1-2; verify against the latest annual ranking before formal evaluation use.",
-      "description_zh": "覆盖环境科学、环境工程、环境规划与管理、资源与环境、环境遥感、可持续发展、环境经济及综合性高水平期刊。目标质量为 JCR Q1/Q2 或中科院 1-2 区；正式评价使用前需按最新年度分区校准。",
+      "description": "Candidate journal pool for environmental science, environmental engineering, environmental planning and management, resource/environment studies, sustainability, environmental economics, and broad multidisciplinary journals. Target quality: JCR Q1/Q2 or CAS Zone 1-2; verify against the latest annual ranking before formal evaluation use.",
+      "description_zh": "覆盖环境科学、环境工程、环境规划与管理、资源与环境、可持续发展、环境经济及综合性高水平期刊。目标质量为 JCR Q1/Q2 或中科院 1-2 区；正式评价使用前需按最新年度分区校准。",
       "priority": 1,
       "tier": "S",
       "quality": "High-quality candidate pool: JCR Q1/Q2 or CAS Zone 1-2 target, annual verification required",
@@ -129,53 +129,6 @@
               "issn": "1523-908X",
               "title": "Environmental Practice",
               "publisher": "Taylor & Francis"
-            }
-          ]
-        },
-        "resources_environment_remote_sensing": {
-          "name": "Resources, Environment & Remote Sensing",
-          "name_zh": "资源环境与遥感",
-          "quality": "High-quality candidate: JCR Q1/Q2 or CAS Zone 1-2 target",
-          "journals": [
-            {
-              "issn": "0921-3449",
-              "title": "Resources, Conservation and Recycling",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "0921-8009",
-              "title": "Ecological Economics",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "0034-4257",
-              "title": "Remote Sensing of Environment",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "1569-8432",
-              "title": "International Journal of Applied Earth Observation and Geoinformation",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "2072-4292",
-              "title": "Remote Sensing",
-              "publisher": "MDPI"
-            },
-            {
-              "issn": "2095-7564",
-              "title": "Journal of Resources and Ecology",
-              "publisher": "Science Press"
-            },
-            {
-              "issn": "1002-0160",
-              "title": "Journal of Natural Resources",
-              "publisher": "Science Press"
-            },
-            {
-              "issn": "1007-6301",
-              "title": "Resources Science",
-              "publisher": "Science Press"
             }
           ]
         },
@@ -397,162 +350,36 @@
               "publisher": "Springer Nature"
             }
           ]
-        }
-      }
-    },
-    "pool_algal_bloom_ml": {
-      "name": "Algal Blooms + Machine Learning Topic Pool",
-      "name_zh": "藻华与机器学习专题期刊池",
-      "description": "Topic pool for algal blooms, harmful algal blooms, cyanobacterial blooms, bloom forecasting, remote sensing, aquatic ecology, marine/coastal systems, ecological informatics, and geospatial machine learning. Includes the full high-quality environmental pool plus topical aquatic, marine, ecological informatics, and remote-sensing journals.",
-      "description_zh": "用于藻华/有害藻华/蓝藻水华、藻华预测预警、遥感监测、水生态、海洋与海岸系统、生态信息学和地理空间机器学习检索。包含完整高水平环境期刊池，并补充藻华、水生态、海洋、生态信息学和遥感专题期刊。",
-      "priority": 1,
-      "tier": "S",
-      "quality": "Topical pool; journal quality is acceptable for discovery and can be narrowed during review/export.",
-      "includes_pool_ids": [
-        "pool_environment_high_quality"
-      ],
-      "categories": {
-        "aquatic_blooms_limnology": {
-          "name": "Aquatic Blooms, Limnology & Freshwater Ecology",
-          "name_zh": "藻华、湖沼学与淡水生态",
-          "journals": [
-            {
-              "issn": "1568-9883",
-              "title": "Harmful Algae",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "2211-9264",
-              "title": "Algal Research",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "0018-8158",
-              "title": "Hydrobiologia",
-              "publisher": "Springer Nature"
-            },
-            {
-              "issn": "0046-5070",
-              "title": "Freshwater Biology",
-              "publisher": "Wiley"
-            },
-            {
-              "issn": "0024-3590",
-              "title": "Limnology and Oceanography",
-              "publisher": "Wiley"
-            },
-            {
-              "issn": "1541-5856",
-              "title": "Limnology and Oceanography: Methods",
-              "publisher": "Wiley"
-            },
-            {
-              "issn": "2044-2041",
-              "title": "Inland Waters",
-              "publisher": "Taylor & Francis"
-            },
-            {
-              "issn": "1015-1621",
-              "title": "Aquatic Sciences",
-              "publisher": "Springer Nature"
-            }
-          ]
         },
-        "marine_coastal_blooms": {
-          "name": "Marine, Coastal & Ocean Bloom Systems",
-          "name_zh": "海洋、海岸与近海藻华系统",
+        "resources_environment": {
+          "name": "Resources & Environment",
+          "name_zh": "资源与环境",
+          "quality": "High-quality candidate: JCR Q1/Q2 or CAS Zone 1-2 target",
           "journals": [
             {
-              "issn": "0025-326X",
-              "title": "Marine Pollution Bulletin",
+              "issn": "0921-3449",
+              "title": "Resources, Conservation and Recycling",
               "publisher": "Elsevier"
             },
             {
-              "issn": "0272-7714",
-              "title": "Estuarine, Coastal and Shelf Science",
+              "issn": "0921-8009",
+              "title": "Ecological Economics",
               "publisher": "Elsevier"
             },
             {
-              "issn": "0171-8630",
-              "title": "Marine Ecology Progress Series",
-              "publisher": "Inter-Research"
+              "issn": "2095-7564",
+              "title": "Journal of Resources and Ecology",
+              "publisher": "Science Press"
             },
             {
-              "issn": "1385-1101",
-              "title": "Journal of Sea Research",
-              "publisher": "Elsevier"
+              "issn": "1002-0160",
+              "title": "Journal of Natural Resources",
+              "publisher": "Science Press"
             },
             {
-              "issn": "0964-5691",
-              "title": "Ocean & Coastal Management",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "2296-7745",
-              "title": "Frontiers in Marine Science",
-              "publisher": "Frontiers"
-            }
-          ]
-        },
-        "ecological_informatics_monitoring": {
-          "name": "Ecological Informatics & Environmental Monitoring",
-          "name_zh": "生态信息学与环境监测",
-          "journals": [
-            {
-              "issn": "1470-160X",
-              "title": "Ecological Indicators",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "1574-9541",
-              "title": "Ecological Informatics",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "0167-6369",
-              "title": "Environmental Monitoring and Assessment",
-              "publisher": "Springer Nature"
-            },
-            {
-              "issn": "2296-665X",
-              "title": "Frontiers in Environmental Science",
-              "publisher": "Frontiers"
-            }
-          ]
-        },
-        "remote_sensing_geospatial_ml": {
-          "name": "Remote Sensing, Geospatial AI & Earth Observation",
-          "name_zh": "遥感、地理空间 AI 与地球观测",
-          "journals": [
-            {
-              "issn": "0924-2716",
-              "title": "ISPRS Journal of Photogrammetry and Remote Sensing",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "0196-2892",
-              "title": "IEEE Transactions on Geoscience and Remote Sensing",
-              "publisher": "IEEE"
-            },
-            {
-              "issn": "1548-1603",
-              "title": "GIScience & Remote Sensing",
-              "publisher": "Taylor & Francis"
-            },
-            {
-              "issn": "2352-9385",
-              "title": "Remote Sensing Applications: Society and Environment",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "2666-0172",
-              "title": "Science of Remote Sensing",
-              "publisher": "Elsevier"
-            },
-            {
-              "issn": "1939-1404",
-              "title": "IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing",
-              "publisher": "IEEE"
+              "issn": "1007-6301",
+              "title": "Resources Science",
+              "publisher": "Science Press"
             }
           ]
         }
@@ -1170,9 +997,6 @@
     "1523-908X",
     "0921-3449",
     "0921-8009",
-    "0034-4257",
-    "1569-8432",
-    "2072-4292",
     "2095-7564",
     "1002-0160",
     "1007-6301",
@@ -1210,30 +1034,6 @@
     "2212-0955",
     "2661-8001",
     "2731-9997",
-    "1568-9883",
-    "2211-9264",
-    "0018-8158",
-    "0046-5070",
-    "0024-3590",
-    "1541-5856",
-    "2044-2041",
-    "1015-1621",
-    "0025-326X",
-    "0272-7714",
-    "0171-8630",
-    "1385-1101",
-    "0964-5691",
-    "2296-7745",
-    "1470-160X",
-    "1574-9541",
-    "0167-6369",
-    "2296-665X",
-    "0924-2716",
-    "0196-2892",
-    "1548-1603",
-    "2352-9385",
-    "2666-0172",
-    "1939-1404",
     "1088-1980",
     "0948-3349",
     "0953-5314",
@@ -1302,9 +1102,6 @@
       "1523-908X",
       "0921-3449",
       "0921-8009",
-      "0034-4257",
-      "1569-8432",
-      "2072-4292",
       "2095-7564",
       "1002-0160",
       "1007-6301",
@@ -1342,91 +1139,6 @@
       "2212-0955",
       "2661-8001",
       "2731-9997"
-    ],
-    "pool_algal_bloom_ml": [
-      "0013-936X",
-      "2162-9570",
-      "0043-1354",
-      "0301-4797",
-      "0269-7491",
-      "0048-9697",
-      "2589-9155",
-      "2213-3437",
-      "0944-1344",
-      "1093-4529",
-      "0959-3780",
-      "1462-9011",
-      "0264-8377",
-      "2212-0963",
-      "1469-3062",
-      "0959-3330",
-      "1523-908X",
-      "0921-3449",
-      "0921-8009",
-      "0034-4257",
-      "1569-8432",
-      "2072-4292",
-      "2095-7564",
-      "1002-0160",
-      "1007-6301",
-      "2398-9629",
-      "2590-3322",
-      "2352-5509",
-      "0959-6526",
-      "2210-4224",
-      "0095-0696",
-      "1750-6816",
-      "0924-6460",
-      "0140-9883",
-      "1862-4057",
-      "2731-9814",
-      "0028-0836",
-      "0036-8075",
-      "0027-8424",
-      "2041-1723",
-      "2375-2548",
-      "1758-678X",
-      "1752-0894",
-      "1748-9326",
-      "2662-4435",
-      "1543-5938",
-      "0022-1694",
-      "2731-6084",
-      "1352-2310",
-      "0013-9351",
-      "2542-5196",
-      "0304-3894",
-      "0045-6535",
-      "1364-8152",
-      "1866-3516",
-      "0169-2046",
-      "2212-0955",
-      "2661-8001",
-      "2731-9997",
-      "1568-9883",
-      "2211-9264",
-      "0018-8158",
-      "0046-5070",
-      "0024-3590",
-      "1541-5856",
-      "2044-2041",
-      "1015-1621",
-      "0025-326X",
-      "0272-7714",
-      "0171-8630",
-      "1385-1101",
-      "0964-5691",
-      "2296-7745",
-      "1470-160X",
-      "1574-9541",
-      "0167-6369",
-      "2296-665X",
-      "0924-2716",
-      "0196-2892",
-      "1548-1603",
-      "2352-9385",
-      "2666-0172",
-      "1939-1404"
     ],
     "main_pool": [
       "1088-1980",

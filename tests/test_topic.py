@@ -86,11 +86,9 @@ class TestLoadTopic:
         assert "GFCF" in inv.keywords
         assert "gross fixed capital formation" in inv.keywords
 
-    def test_load_algal_bloom(self):
-        t = load_topic("algal_bloom_ml")
-        assert t.id == "algal_bloom_ml"
-        assert len(t.pipelines) == 3
-        assert t.scoring.consistency_check is False
+    def test_removed_topic_cannot_be_loaded(self):
+        with pytest.raises(FileNotFoundError):
+            load_topic("algal_bloom_ml")
 
     def test_load_nonexistent_raises(self):
         with pytest.raises(FileNotFoundError):
@@ -101,7 +99,7 @@ class TestListTopics:
     def test_lists_all(self):
         ids = list_topics()
         assert "gfcf_environment" in ids
-        assert "algal_bloom_ml" in ids
+        assert ids == ["gfcf_environment"]
 
 
 class TestValidateTopic:
@@ -110,10 +108,9 @@ class TestValidateTopic:
         assert ok is True
         assert "4 pipelines" in msg
 
-    def test_algal_bloom_valid(self):
+    def test_removed_topic_is_not_valid(self):
         ok, msg = validate_topic("algal_bloom_ml")
-        assert ok is True
-        assert "3 pipelines" in msg
+        assert ok is False
 
     def test_invalid_ref_detected(self):
         """A topic with a pipeline referencing a nonexistent keyword set
@@ -152,18 +149,19 @@ class TestTopicToLegacyKeywords:
         inv = legacy["gfcf_vocabulary"]["investment_terms"]["keywords_en"]
         assert "GFCF" in inv
 
-    def test_algal_bloom_converts(self):
-        t = load_topic("algal_bloom_ml")
+    def test_additional_pipeline_converts(self):
+        t = Topic(id="test_method", name="Method", keyword_sets=[], pipelines=[
+            PipelineConfig(name="Method", hard_threshold=HardThreshold(required_sets=[]))
+        ])
         legacy = topic_to_legacy_keywords_dict(t)
-        assert len(legacy["pipelines"]) == 3
+        assert len(legacy["pipelines"]) == 1
 
 
 class TestLoadAllTopics:
-    def test_loads_both(self):
+    def test_loads_only_configured_research_topic(self):
         all_topics = load_all_topics()
         assert "gfcf_environment" in all_topics
-        assert "algal_bloom_ml" in all_topics
-        assert len(all_topics) >= 2
+        assert list(all_topics) == ["gfcf_environment"]
 
 
 class TestCLITopicCommands:
@@ -175,7 +173,7 @@ class TestCLITopicCommands:
         assert rc == 0
         out = capsys.readouterr().out
         assert "gfcf_environment" in out
-        assert "algal_bloom_ml" in out
+        assert "algal_bloom_ml" not in out
 
     def test_validate_pass(self):
         from literature_monitor.cli import _cmd_topic_validate
@@ -214,11 +212,14 @@ class TestSynonymInLegacyDict:
         assert isinstance(inv_en, list)
         assert len(inv_en) >= 25
 
-    def test_algal_bloom_includes_synonyms_in_legacy(self):
-        t = load_topic("algal_bloom_ml")
+    def test_custom_topic_includes_synonyms_in_legacy(self):
+        t = Topic(id="test_synonyms", name="Method", keyword_sets=[
+            KeywordSet(name="investment_terms", keywords=["GFCF"], synonyms=["gross fixed capital formation"])
+        ], pipelines=[])
         legacy = topic_to_legacy_keywords_dict(t)
         assert "scoring_rules" in legacy
         assert "gfcf_vocabulary" in legacy
+        assert "gross fixed capital formation" in legacy["gfcf_vocabulary"]["investment_terms"]["keywords_en"]
 
 
 class TestDateRangeValidation:

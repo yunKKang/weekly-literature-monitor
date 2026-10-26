@@ -149,7 +149,7 @@ The workbench lets you create a search run interactively: select keywords, date 
 .venv/bin/litmon topic show gfcf_environment
 
 # Validate a topic YAML file
-.venv/bin/litmon topic validate algal_bloom_ml
+.venv/bin/litmon topic validate gfcf_environment
 ```
 
 ### Weekly Automated Run (Legacy)
@@ -178,10 +178,9 @@ weekly-literature-monitor/
 │   ├── ci.yml                  # Compile and test quality gate
 │   └── weekly-monitor.yml      # GitHub Actions workflow
 ├── topics/                     # Research topic definitions (YAML)
-│   ├── gfcf_environment.yaml   # GFCF Environmental Impact topic
-│   └── algal_bloom_ml.yaml     # Algal Bloom + ML topic
+│   └── gfcf_environment.yaml   # GFCF Environmental Impact topic
 ├── config/
-│   ├── journals.json           # Journal pools (6 pools, 70+ journals)
+│   ├── journals.json           # Journal pools for capital and environmental research
 │   └── keywords.json           # GFCF vocabulary & pipeline definitions
 ├── literature_monitor/         # Productized web workbench package
 │   ├── cli.py                  # CLI: serve / init-db / search / topic
