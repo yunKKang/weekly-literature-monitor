@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any
 
 from config import config
+from paper_utils import normalize_doi
 
 
 @dataclass
@@ -37,7 +38,7 @@ class MonitorState:
 
     @property
     def seen_dois(self) -> set[str]:
-        return set(self.seen_dois_list)
+        return {info.full for doi in self.seen_dois_list if (info := normalize_doi(doi))}
 
 
 def get_state_path(base_dir: Path | None = None) -> Path:
@@ -56,19 +57,16 @@ def load_state(state_path: Path | None = None) -> MonitorState:
     try:
         with state_path.open("r", encoding="utf-8") as f:
             data = json.load(f)
-    except (json.JSONDecodeError, IOError):
-        return MonitorState()
+    except (json.JSONDecodeError, IOError) as exc:
+        raise RuntimeError(f"Cannot read monitor state: {state_path}") from exc
 
-    seen_dois_data = data.get("seen_dois", [])
-    if isinstance(seen_dois_data, list):
-        seen_dois_list = seen_dois_data
-    else:
-        seen_dois_list = list(seen_dois_data)
+    if not isinstance(data, dict) or not isinstance(data.get("seen_dois", []), list):
+        raise ValueError(f"Invalid monitor state: {state_path}")
 
     return MonitorState(
         last_run_date=data.get("last_run_date"),
         last_from_date=data.get("last_from_date"),
-        seen_dois_list=seen_dois_list,
+        seen_dois_list=data.get("seen_dois", []),
         total_papers_found=data.get("total_papers_found", 0),
         total_relevant_papers=data.get("total_relevant_papers", 0),
         run_count=data.get("run_count", 0),
@@ -116,13 +114,20 @@ def update_state_after_run(
     state.last_run_date = run_date
     state.last_from_date = from_date
 
+    # Keep the existing FIFO order while normalizing legacy DOI variants.
+    state.seen_dois_list = list(dict.fromkeys(
+        info.full for doi in state.seen_dois_list if (info := normalize_doi(doi))
+    ))
     existing = set(state.seen_dois_list)
+    added = 0
     for doi in new_dois:
-        if doi not in existing:
-            state.seen_dois_list.append(doi)
-            existing.add(doi)
+        info = normalize_doi(doi)
+        if info and info.full not in existing:
+            state.seen_dois_list.append(info.full)
+            existing.add(info.full)
+            added += 1
 
-    state.total_papers_found += len(new_dois)
+    state.total_papers_found += added
     state.total_relevant_papers += relevant_count
     state.run_count += 1
 

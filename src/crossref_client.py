@@ -86,6 +86,7 @@ class CrossrefPage:
     total_results: int
     results: list[CrossrefResult]
     next_cursor: str | None
+    item_count: int | None = None
 
 
 def build_crossref_query(params: SearchParams) -> str:
@@ -307,6 +308,7 @@ def search_crossref_page(params: SearchParams, *, timeout_s: int = 30) -> Crossr
         total_results=total_results,
         results=results,
         next_cursor=next_cursor,
+        item_count=len(items),
     )
 
 
@@ -376,10 +378,14 @@ def fetch_recent_papers(
                         seen_dois.add(r.doi)
                         all_results.append(r)
 
-                if not page.results:
+                if page.item_count == 0 or (page.item_count is None and not page.results):
                     break
-                if not page.next_cursor or page.next_cursor == cursor:
+                if page.item_count is not None and page.item_count < rows:
                     break
+                if not page.next_cursor:
+                    break
+                if page.next_cursor == cursor:
+                    raise CrossrefFetchError("Crossref returned a repeated cursor")
                 if pages_fetched >= config.MAX_CURSOR_PAGES:
                     raise CrossrefFetchError(
                         f"Reached MAX_CURSOR_PAGES={config.MAX_CURSOR_PAGES} for ISSN batch {batch[:3]}"
@@ -396,14 +402,9 @@ def fetch_recent_papers(
         if errors:
             batch_errors.extend(errors)
 
-    if batch_errors and not all_results:
-        raise CrossrefBatchError("; ".join(batch_errors))
+    # A partial fetch must not advance the monitor's checkpoint.
     if batch_errors:
-        logger.warning(
-            "Crossref completed with %d failed batch(es); retained %d papers",
-            len(batch_errors),
-            len(all_results),
-        )
+        raise CrossrefBatchError("; ".join(batch_errors))
     return all_results
 
 
@@ -463,9 +464,8 @@ def fetch_conference_papers(
             while True:
                 query_parts = [
                     f"query.container-title={urllib.parse.quote(container_title)}",
-                    f"rows={max_per_conference}",
-                    "sort=published",
-                    "order=desc",
+                    f"rows={max(1, min(max_per_conference, 1000))}",
+                    # Publication-date sorting is incompatible with cursors.
                     f"mailto={config.CROSSREF_MAILTO}",
                     f"cursor={urllib.parse.quote(cursor)}",
                 ]
@@ -500,6 +500,8 @@ def fetch_conference_papers(
                     )
 
                 data = json.loads(body.decode("utf-8", errors="replace"))
+                if data.get("message-type") != "work-list":
+                    raise CrossrefFetchError("Unexpected Crossref conference response")
                 message = data.get("message", {})
                 items = message.get("items", [])
                 pages_fetched += 1
@@ -513,8 +515,12 @@ def fetch_conference_papers(
                 next_cursor = message.get("next-cursor")
                 if not items:
                     break
-                if not next_cursor or next_cursor == cursor:
+                if len(items) < max(1, min(max_per_conference, 1000)):
                     break
+                if not next_cursor:
+                    break
+                if next_cursor == cursor:
+                    raise CrossrefFetchError("Crossref returned a repeated cursor")
                 if pages_fetched >= config.MAX_CURSOR_PAGES:
                     raise CrossrefFetchError(
                         f"Reached MAX_CURSOR_PAGES={config.MAX_CURSOR_PAGES} for conference {container_title}"

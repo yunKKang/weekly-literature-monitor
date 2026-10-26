@@ -9,8 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
-import os
-import time
+import re
 import urllib.request
 import urllib.error
 from dataclasses import dataclass
@@ -18,8 +17,50 @@ from datetime import datetime, timezone
 from typing import Any
 
 from config import config
+from paper_utils import fetch_url, normalize_doi
 
 logger = logging.getLogger(__name__)
+
+
+def list_report_issues(repo: str, token: str) -> list[dict[str, Any]]:
+    """Read all report Issues, including closed ones; fail closed on read errors."""
+    issues = []
+    page = 1
+    while True:
+        url = (
+            f"https://api.github.com/repos/{repo}/issues"
+            f"?state=all&labels=literature-monitor&per_page=100&page={page}"
+        )
+        status, body = fetch_url(url, headers={
+            "Authorization": f"Bearer {token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        })
+        if status != 200:
+            raise RuntimeError(f"Cannot reconcile report Issues: HTTP {status}")
+        batch = json.loads(body)
+        if not isinstance(batch, list):
+            raise ValueError("Unexpected GitHub Issues response")
+        issues.extend(issue for issue in batch if not issue.get("pull_request")
+                      and issue.get("title", "").startswith("[Weekly Report]"))
+        if len(batch) < 100:
+            return issues
+        page += 1
+
+
+def reported_dois(issues: list[dict[str, Any]]) -> set[str]:
+    """Read DOI links in legacy reports and complete DOI manifests in new reports."""
+    dois = set()
+    for issue in issues:
+        body = issue.get("body") or ""
+        values = re.findall(r"\*\*DOI:\*\*\s*\[([^\]]+)\]", body)
+        for manifest in re.findall(r"<!-- literature-monitor-dois: (.*?) -->", body):
+            values.extend(json.loads(manifest))
+        for value in values:
+            info = normalize_doi(value)
+            if info:
+                dois.add(info.full)
+    return dois
 
 
 @dataclass
@@ -146,8 +187,6 @@ def create_github_issue(
     labels: list[str] | None = None,
     repo: str | None = None,
     token: str | None = None,
-    max_retries: int | None = None,
-    retry_delay: float | None = None,
 ) -> dict[str, Any] | None:
     if token is None:
         token = config.GITHUB_TOKEN
@@ -159,13 +198,6 @@ def create_github_issue(
             "GITHUB_TOKEN and GITHUB_REPOSITORY environment variables required"
         )
         return None
-
-    effective_max_retries: int = (
-        max_retries if max_retries is not None else config.GITHUB_RETRY_COUNT
-    )
-    effective_retry_delay: float = (
-        retry_delay if retry_delay is not None else config.GITHUB_RETRY_DELAY
-    )
 
     url = f"https://api.github.com/repos/{repo}/issues"
 
@@ -185,37 +217,18 @@ def create_github_issue(
         "X-GitHub-Api-Version": "2022-11-28",
     }
 
-    last_error: Exception | None = None
-
-    for attempt in range(effective_max_retries + 1):
-        req = urllib.request.Request(url, data=data, headers=headers, method="POST")
-
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                return json.loads(resp.read().decode("utf-8"))
-        except urllib.error.HTTPError as e:
-            last_error = e
-            error_body = e.read().decode() if hasattr(e, "read") else ""
-            if e.code in (500, 502, 503, 504) and attempt < effective_max_retries:
-                logger.warning(
-                    f"GitHub API error {e.code}, retrying in {effective_retry_delay}s..."
-                )
-                time.sleep(effective_retry_delay * (2**attempt))
-                continue
-            logger.error(f"GitHub API error: {e.code} - {error_body}")
-            return None
-        except urllib.error.URLError as e:
-            last_error = e
-            if attempt < effective_max_retries:
-                logger.warning(
-                    f"Network error, retrying in {effective_retry_delay}s..."
-                )
-                time.sleep(effective_retry_delay * (2**attempt))
-                continue
-            logger.error(f"Network error: {e}")
-            return None
-
-    logger.error(f"Failed after {effective_max_retries + 1} attempts: {last_error}")
+    req = urllib.request.Request(url, data=data, headers=headers, method="POST")
+    # POST may succeed even when the response is lost or is 5xx. Never retry
+    # this non-idempotent request; the next run reconciles published Issues.
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            return result if isinstance(result, dict) and result.get("number") else None
+    except urllib.error.HTTPError as e:
+        error_body = e.read().decode(errors="replace") if hasattr(e, "read") else ""
+        logger.error("GitHub API error: %s - %s", e.code, error_body)
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        logger.error("Issue creation outcome unknown; reconcile before retry: %s", e)
     return None
 
 
@@ -230,12 +243,34 @@ def notify_new_papers(
         logger.info("No relevant papers to report.")
         return True
 
+    if not config.GITHUB_REPOSITORY or not config.GITHUB_TOKEN:
+        logger.error("GitHub credentials required to reconcile reports")
+        return False
+    try:
+        already_reported = reported_dois(list_report_issues(
+            config.GITHUB_REPOSITORY, config.GITHUB_TOKEN
+        ))
+    except (RuntimeError, ValueError, TypeError) as exc:
+        logger.error("Cannot verify published DOIs; leaving state unchanged: %s", exc)
+        return False
+
+    unique = {}
+    for paper in papers:
+        info = normalize_doi(paper.doi)
+        if info and info.full not in already_reported:
+            unique.setdefault(info.full, paper)
+    papers = list(unique.values())
+    if not papers:
+        logger.info("All relevant papers already exist in report Issues")
+        return True
+
     high_count = len([p for p in papers if p.priority == "HIGH"])
     title = f"[Weekly Report] {len(papers)} relevant papers ({from_date} to {to_date})"
     if high_count > 0:
         title = f"[Weekly Report] {len(papers)} papers, {high_count} HIGH priority ({from_date} to {to_date})"
 
     body = format_issue_body(papers, from_date, to_date, total_fetched, journals_count)
+    body += "\n\n<!-- literature-monitor-dois: " + json.dumps(sorted(unique)) + " -->"
 
     labels = ["literature-monitor", "automated"]
     if high_count > 0:

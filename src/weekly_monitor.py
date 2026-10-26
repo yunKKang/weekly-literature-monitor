@@ -25,6 +25,7 @@ from paper_utils import (
     days_ago,
     shift_date,
     doi_to_url,
+    normalize_doi,
 )
 from crossref_client import fetch_recent_papers, fetch_conference_papers, CrossrefResult
 from relevance_filter import load_keyword_config, filter_papers, RelevanceResult
@@ -148,16 +149,22 @@ def run_monitor(
             delay_s=config.API_DELAY_SECONDS,
         )
 
-        seen_dois = {p.doi for p in all_papers}
-        new_conf_papers = [p for p in conference_papers if p.doi not in seen_dois]
-        all_papers.extend(new_conf_papers)
-        logger.info(
-            f"Fetched {len(conference_papers)} conference papers ({len(new_conf_papers)} new)"
-        )
+        all_papers.extend(conference_papers)
+        logger.info(f"Fetched {len(conference_papers)} conference papers")
+
+    # Deduplicate within and across sources, including legacy DOI URL/case variants.
+    unique_papers = {}
+    for paper in all_papers:
+        info = normalize_doi(paper.doi)
+        if info and info.full not in unique_papers:
+            paper.doi = info.full
+            unique_papers[info.full] = paper
+    all_papers = list(unique_papers.values())
 
     logger.info(f"Total papers: {len(all_papers)}")
 
-    new_papers = [p for p in all_papers if p.doi not in state.seen_dois]
+    seen_dois = state.seen_dois
+    new_papers = [p for p in all_papers if p.doi not in seen_dois]
 
     logger.info(f"New papers (not seen before): {len(new_papers)}")
 
@@ -249,6 +256,9 @@ def run_monitor(
         if not success:
             logger.warning("Failed to create GitHub Issue")
             return 1
+
+    if dry_run:
+        return 0
 
     new_dois = [p.doi for p in new_papers]
     state = update_state_after_run(
