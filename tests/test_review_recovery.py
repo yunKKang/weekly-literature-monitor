@@ -424,3 +424,24 @@ def test_monthly_journals_cover_time_since_previous_supplementary_run(scheduled)
     assert fetch.call_args.kwargs["from_date"] == "2026-10-05"
     assert len(fetch.call_args.kwargs["issns"]) == 40
     assert state_manager.load_state(path).last_supplementary_date == "2026-11-02"
+
+
+def test_export_preserves_incomplete_review_evidence():
+    from literature_monitor.core.export import export_csv, export_markdown
+    import csv, io
+
+    item = {
+        "title": "GFCF and carbon",
+        "doi": "10.1234/a",
+        "score_breakdown": {
+            "llm_review": {
+                "status": "missing_abstract",
+                "relevant": None,
+                "model": "deepseek-flash",
+                "reason": "missing_abstract",
+            }
+        },
+    }
+    row = list(csv.DictReader(io.StringIO(export_csv([item]))))[0]
+    assert row["ai_status"] == "missing_abstract" and row["ai_relevant"] == ""
+    assert "AI review: missing_abstract" in export_markdown([item])

@@ -43,6 +43,7 @@ const i18n = {
     journal: "Journal",
     year: "Year",
     relevance: "Relevance",
+    aiReview: "AI review",
     score: "Score",
     links: "Links",
     emptyInitial: "Run a search to see results.",
@@ -114,6 +115,7 @@ const i18n = {
     journal: "期刊",
     year: "年份",
     relevance: "相关性",
+    aiReview: "AI 审核",
     score: "分数",
     links: "链接",
     emptyInitial: "运行一次检索后查看结果。",
@@ -318,7 +320,7 @@ async function loadResults() {
         <td><button class="paper-title" data-id="${paper.id}">${escapeHtml(paper.title || "")}</button><div class="muted">${escapeHtml(authors)}</div></td>
         <td>${escapeHtml(paper.journal || "")}</td>
         <td>${escapeHtml(year)}</td>
-        <td><span class="badge ${paper.relevance_level}">${paper.relevance_level}</span></td>
+        <td><span class="badge ${paper.relevance_level}">${paper.relevance_level}</span><div class="muted">${escapeHtml(t("aiReview"))}: ${escapeHtml(reviewLabel(paper.score_breakdown?.llm_review))}</div></td>
         <td>${Number(paper.total_score).toFixed(1)}</td>
         <td>${links}</td>
       `;
@@ -356,6 +358,17 @@ async function pollRunStatus() {
   }
 }
 
+function reviewLabel(review) {
+  const zh = currentLang === "zh";
+  if (!review) return zh ? "未审核" : "Not reviewed";
+  if (review.status === "completed") return review.relevant
+    ? (zh ? "通过" : "Approved") : (zh ? "不相关" : "Irrelevant");
+  const labels = zh
+    ? { missing_abstract: "待审：缺少摘要", missing_credentials: "待审：缺少凭据", failed: "待审：调用失败", uncertain: "待审：证据不足", budget_skipped: "待审：达到预算" }
+    : { missing_abstract: "Pending: abstract missing", missing_credentials: "Pending: credentials missing", failed: "Pending: API failure", uncertain: "Pending: insufficient evidence", budget_skipped: "Pending: budget limit" };
+  return labels[review.status] || (zh ? "待审" : "Pending");
+}
+
 async function showDetail(paperId) {
   const res = await fetch(`/api/search-runs/${currentRunId}/results/${paperId}`);
   const paper = await res.json();
@@ -370,7 +383,7 @@ async function showDetail(paperId) {
     src => `<li>${escapeHtml(src.source)}: ${escapeHtml(src.source_work_id || "")}</li>`
   ).join("");
   const breakdownRows = Object.entries(breakdown).map(
-    ([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(String(v))}</td></tr>`
+    ([k, v]) => `<tr><td>${escapeHtml(k)}</td><td>${escapeHtml(typeof v === "object" ? JSON.stringify(v) : String(v))}</td></tr>`
   ).join("");
 
   content.innerHTML = `
