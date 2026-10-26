@@ -21,7 +21,6 @@ import tempfile
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
 
 from config import config
 from paper_utils import normalize_doi
@@ -35,10 +34,16 @@ class MonitorState:
     total_papers_found: int = 0
     total_relevant_papers: int = 0
     run_count: int = 0
+    last_review_complete_date: str | None = None
+    review_pending_count: int = 0
+    rules_version: str | None = None
+    last_supplementary_date: str | None = None
 
     @property
     def seen_dois(self) -> set[str]:
-        return {info.full for doi in self.seen_dois_list if (info := normalize_doi(doi))}
+        return {
+            info.full for doi in self.seen_dois_list if (info := normalize_doi(doi))
+        }
 
 
 def get_state_path(base_dir: Path | None = None) -> Path:
@@ -70,6 +75,10 @@ def load_state(state_path: Path | None = None) -> MonitorState:
         total_papers_found=data.get("total_papers_found", 0),
         total_relevant_papers=data.get("total_relevant_papers", 0),
         run_count=data.get("run_count", 0),
+        last_review_complete_date=data.get("last_review_complete_date"),
+        review_pending_count=data.get("review_pending_count", 0),
+        rules_version=data.get("rules_version"),
+        last_supplementary_date=data.get("last_supplementary_date"),
     )
 
 
@@ -86,6 +95,10 @@ def save_state(state: MonitorState, state_path: Path | None = None) -> None:
         "total_papers_found": state.total_papers_found,
         "total_relevant_papers": state.total_relevant_papers,
         "run_count": state.run_count,
+        "last_review_complete_date": state.last_review_complete_date,
+        "review_pending_count": state.review_pending_count,
+        "rules_version": state.rules_version,
+        "last_supplementary_date": state.last_supplementary_date,
         "updated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -115,9 +128,11 @@ def update_state_after_run(
     state.last_from_date = from_date
 
     # Keep the existing FIFO order while normalizing legacy DOI variants.
-    state.seen_dois_list = list(dict.fromkeys(
-        info.full for doi in state.seen_dois_list if (info := normalize_doi(doi))
-    ))
+    state.seen_dois_list = list(
+        dict.fromkeys(
+            info.full for doi in state.seen_dois_list if (info := normalize_doi(doi))
+        )
+    )
     existing = set(state.seen_dois_list)
     added = 0
     for doi in new_dois:

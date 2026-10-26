@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import json
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
-import pytest
 
 from literature_monitor.pipeline.base import PipelineState
 from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
@@ -80,14 +78,15 @@ class TestLLMReviewStage:
         stage = LLMReviewStage(api_key="")
         state = PipelineState(
             title="Carbon footprint of capital investment",
-            abstract="This paper examines embodied carbon emissions in GFCF using MRIO analysis. " * 3,
+            abstract="This paper examines embodied carbon emissions in GFCF using MRIO analysis. "
+            * 3,
             relevance_level="MEDIUM",
             total_score=40.0,
         )
         result = stage.run(state)
         assert result.total_score == 40.0  # unchanged
 
-    @patch.object(LLMReviewStage, '_call_llm')
+    @patch.object(LLMReviewStage, "_call_llm")
     def test_penalizes_irrelevant_paper(self, mock_call):
         """Should penalize paper judged irrelevant by LLM."""
         mock_call.return_value = {
@@ -95,7 +94,9 @@ class TestLLMReviewStage:
             "confidence": "high",
             "reason": "This paper is about cement chemistry, not GFCF.",
         }
-        stage = LLMReviewStage(api_key="fake-key", penalty_points=100.0, two_stage=False)
+        stage = LLMReviewStage(
+            api_key="fake-key", penalty_points=100.0, two_stage=False
+        )
         state = PipelineState(
             title="Some paper",
             abstract="Some abstract with enough length " * 5,
@@ -110,7 +111,7 @@ class TestLLMReviewStage:
         assert result.breakdown["llm_review"]["relevant"] is False
         assert stage._calls_made == 1
 
-    @patch.object(LLMReviewStage, '_call_llm')
+    @patch.object(LLMReviewStage, "_call_llm")
     def test_boosts_relevant_paper(self, mock_call):
         """Should boost paper judged relevant by LLM."""
         mock_call.return_value = {
@@ -121,7 +122,8 @@ class TestLLMReviewStage:
         stage = LLMReviewStage(api_key="fake-key", two_stage=False)
         state = PipelineState(
             title="Carbon emissions embodied in investment",
-            abstract="This paper uses MRIO to quantify carbon footprint of GFCF across countries. " * 3,
+            abstract="This paper uses MRIO to quantify carbon footprint of GFCF across countries. "
+            * 3,
             relevance_level="MEDIUM",
             total_score=40.0,
             breakdown={},
@@ -131,7 +133,7 @@ class TestLLMReviewStage:
         assert "llm_review" in result.breakdown
         assert result.breakdown["llm_review"]["relevant"] is True
 
-    @patch.object(LLMReviewStage, '_call_llm')
+    @patch.object(LLMReviewStage, "_call_llm")
     def test_medium_confidence_boost(self, mock_call):
         """Should apply medium confidence boost."""
         mock_call.return_value = {
@@ -150,7 +152,7 @@ class TestLLMReviewStage:
         result = stage.run(state)
         assert result.total_score == 42.0  # +2 for medium confidence
 
-    @patch.object(LLMReviewStage, '_call_llm')
+    @patch.object(LLMReviewStage, "_call_llm")
     def test_low_confidence_no_boost(self, mock_call):
         """Should not boost low confidence results."""
         mock_call.return_value = {
@@ -189,10 +191,14 @@ class TestLLMReviewStage:
         assert "Test Title" in prompt
         assert "relevant" in prompt.lower()
 
-    @patch.object(LLMReviewStage, '_call_llm')
+    @patch.object(LLMReviewStage, "_call_llm")
     def test_tracks_call_count(self, mock_call):
         """Should track number of LLM calls made."""
-        mock_call.return_value = {"relevant": True, "confidence": "high", "reason": "ok"}
+        mock_call.return_value = {
+            "relevant": True,
+            "confidence": "high",
+            "reason": "ok",
+        }
         stage = LLMReviewStage(api_key="fake-key", max_papers=3, two_stage=False)
         state = PipelineState(
             title="Paper",
@@ -205,7 +211,7 @@ class TestLLMReviewStage:
             stage.run(state)
         assert stage._calls_made == 3  # capped at max_papers
 
-    @patch.object(LLMReviewStage, '_call_llm', side_effect=Exception("API down"))
+    @patch.object(LLMReviewStage, "_call_llm", side_effect=Exception("API down"))
     def test_handles_llm_failure_gracefully(self, mock_call):
         """Should not crash when LLM call fails."""
         stage = LLMReviewStage(api_key="fake-key")
@@ -248,16 +254,22 @@ class TestLLMJsonContract:
         }
 
     def test_parse_rejects_missing_required_boolean(self):
-        assert LLMReviewStage._parse_json_response(
-            '{"confidence": "high", "reason": "missing verdict"}',
-            response_contract="abstract_review",
-        ) is None
+        assert (
+            LLMReviewStage._parse_json_response(
+                '{"confidence": "high", "reason": "missing verdict"}',
+                response_contract="abstract_review",
+            )
+            is None
+        )
 
     def test_parse_rejects_invalid_confidence(self):
-        assert LLMReviewStage._parse_json_response(
-            '{"relevant": true, "confidence": "certain", "reason": "bad enum"}',
-            response_contract="abstract_review",
-        ) is None
+        assert (
+            LLMReviewStage._parse_json_response(
+                '{"relevant": true, "confidence": "certain", "reason": "bad enum"}',
+                response_contract="abstract_review",
+            )
+            is None
+        )
 
     def test_openai_repairs_malformed_json_once(self):
         stage = LLMReviewStage(api_key="fake-key", provider="openai")
@@ -277,7 +289,9 @@ class TestLLMJsonContract:
 
         responses = [
             FakeResponse("The answer is relevant with high confidence."),
-            FakeResponse('{"relevant": true, "confidence": "high", "reason": "fixed json"}'),
+            FakeResponse(
+                '{"relevant": true, "confidence": "high", "reason": "fixed json"}'
+            ),
         ]
         posted_bodies = []
 
@@ -296,11 +310,20 @@ class TestLLMJsonContract:
                 return responses.pop(0)
 
         with patch("httpx.Client", FakeClient):
-            result = stage._call_openai("judge this", response_contract="abstract_review")
+            result = stage._call_openai(
+                "judge this", response_contract="abstract_review"
+            )
 
-        assert result == {"relevant": True, "confidence": "high", "reason": "fixed json"}
+        assert result == {
+            "relevant": True,
+            "confidence": "high",
+            "reason": "fixed json",
+        }
         assert len(posted_bodies) == 2
-        assert "Repair the malformed LLM JSON response" in posted_bodies[1]["messages"][-1]["content"]
+        assert (
+            "Repair the malformed LLM JSON response"
+            in posted_bodies[1]["messages"][-1]["content"]
+        )
 
 
 class TestLLMReviewWithPipeline:
@@ -313,16 +336,25 @@ class TestLLMReviewWithPipeline:
     def test_llm_in_pipeline_stages(self):
         """Verify LLM stage appears in pipeline when topic has llm_review enabled."""
         from literature_monitor.pipeline.engine import build_pipeline
-        from literature_monitor.topic.schema import Topic, KeywordSet, PipelineConfig, HardThreshold, LLMReviewConfig, ScoringConfig, LLMReviewConfig
+        from literature_monitor.topic.schema import (
+            Topic,
+            KeywordSet,
+            PipelineConfig,
+            HardThreshold,
+            LLMReviewConfig,
+            LLMReviewConfig,
+        )
 
         topic = Topic(
             id="test",
             name="Test",
             keyword_sets=[KeywordSet(name="inv", keywords=["investment"])],
-            pipelines=[PipelineConfig(
-                name="pipe1",
-                hard_threshold=HardThreshold(required_sets=["inv"]),
-            )],
+            pipelines=[
+                PipelineConfig(
+                    name="pipe1",
+                    hard_threshold=HardThreshold(required_sets=["inv"]),
+                )
+            ],
             llm_review=LLMReviewConfig(enabled=True, model="gpt-4o-mini"),
         )
         pipeline = build_pipeline(topic=topic, use_legacy=False)
@@ -332,16 +364,24 @@ class TestLLMReviewWithPipeline:
     def test_llm_not_in_pipeline_when_disabled(self):
         """Verify LLM stage does not appear when disabled."""
         from literature_monitor.pipeline.engine import build_pipeline
-        from literature_monitor.topic.schema import Topic, KeywordSet, PipelineConfig, HardThreshold, LLMReviewConfig
+        from literature_monitor.topic.schema import (
+            Topic,
+            KeywordSet,
+            PipelineConfig,
+            HardThreshold,
+            LLMReviewConfig,
+        )
 
         topic = Topic(
             id="test",
             name="Test",
             keyword_sets=[KeywordSet(name="inv", keywords=["investment"])],
-            pipelines=[PipelineConfig(
-                name="pipe1",
-                hard_threshold=HardThreshold(required_sets=["inv"]),
-            )],
+            pipelines=[
+                PipelineConfig(
+                    name="pipe1",
+                    hard_threshold=HardThreshold(required_sets=["inv"]),
+                )
+            ],
             llm_review=LLMReviewConfig(enabled=False),
         )
         pipeline = build_pipeline(topic=topic, use_legacy=False)
@@ -356,17 +396,23 @@ class TestC1C2Fixes:
         """C1: LLM review stage must come AFTER final_scoring in the pipeline."""
         from literature_monitor.pipeline.engine import build_pipeline
         from literature_monitor.topic.schema import (
-            Topic, KeywordSet, PipelineConfig, HardThreshold, LLMReviewConfig
+            Topic,
+            KeywordSet,
+            PipelineConfig,
+            HardThreshold,
+            LLMReviewConfig,
         )
 
         topic = Topic(
             id="test",
             name="Test",
             keyword_sets=[KeywordSet(name="inv", keywords=["investment"])],
-            pipelines=[PipelineConfig(
-                name="pipe1",
-                hard_threshold=HardThreshold(required_sets=["inv"]),
-            )],
+            pipelines=[
+                PipelineConfig(
+                    name="pipe1",
+                    hard_threshold=HardThreshold(required_sets=["inv"]),
+                )
+            ],
             llm_review=LLMReviewConfig(enabled=True, model="gpt-4o-mini"),
         )
         pipeline = build_pipeline(topic=topic, use_legacy=True)
@@ -399,14 +445,17 @@ class TestC1C2Fixes:
         final_stage = FinalScoringStage()
         pipeline = Pipeline([final_stage, llm_stage])
 
-        with patch.object(llm_stage, '_call_llm', return_value={
-            "relevant": True, "confidence": "high", "reason": "ok"
-        }):
+        with patch.object(
+            llm_stage,
+            "_call_llm",
+            return_value={"relevant": True, "confidence": "high", "reason": "ok"},
+        ):
             # Run 5 papers through the SAME pipeline instance
             for i in range(5):
                 state = PipelineState(
                     title="Investment in carbon footprint of capital formation",
-                    abstract="This paper examines embodied carbon emissions in gross fixed capital formation. " * 5,
+                    abstract="This paper examines embodied carbon emissions in gross fixed capital formation. "
+                    * 5,
                     year="2026",
                     rule_score=80.0,  # HIGH score
                     text_score=0.0,
@@ -437,12 +486,19 @@ class TestC1C2Fixes:
         final_stage = FinalScoringStage()
         pipeline = Pipeline([final_stage, llm_stage])
 
-        with patch.object(llm_stage, '_call_llm', return_value={
-            "relevant": False, "confidence": "high", "reason": "not relevant"
-        }):
+        with patch.object(
+            llm_stage,
+            "_call_llm",
+            return_value={
+                "relevant": False,
+                "confidence": "high",
+                "reason": "not relevant",
+            },
+        ):
             state = PipelineState(
                 title="Investment in carbon footprint of capital formation",
-                abstract="This paper examines embodied carbon emissions in gross fixed capital formation. " * 5,
+                abstract="This paper examines embodied carbon emissions in gross fixed capital formation. "
+                * 5,
                 year="2026",
                 rule_score=80.0,
                 text_score=0.0,
@@ -466,9 +522,15 @@ class TestTwoStageLLMReview:
 
         stage = LLMReviewStage(api_key="fake-key", two_stage=True)
 
-        with patch.object(stage, '_call_api', return_value={
-            "likely_relevant": False, "confidence": "high", "reason": "biology paper"
-        }):
+        with patch.object(
+            stage,
+            "_call_api",
+            return_value={
+                "likely_relevant": False,
+                "confidence": "high",
+                "reason": "biology paper",
+            },
+        ):
             state = PipelineState(
                 title="Early-life adversity shapes growth and reproduction in macaques",
                 abstract="Some abstract " * 10,
@@ -492,20 +554,32 @@ class TestTwoStageLLMReview:
         stage = LLMReviewStage(api_key="fake-key", two_stage=True)
 
         call_count = [0]
+
         def mock_api(prompt, response_contract="abstract_review"):
             call_count[0] += 1
             if call_count[0] == 1:
                 # Stage 1: likely relevant
-                return {"likely_relevant": True, "confidence": "high", "reason": "looks relevant"}
+                return {
+                    "likely_relevant": True,
+                    "confidence": "high",
+                    "reason": "looks relevant",
+                }
             else:
                 # Stage 2: full judgment
-                return {"relevant": True, "confidence": "high", "reason": "MRIO study of GFCF",
-                        "methodology": "MRIO", "research_object": "GFCF", "environmental_dimension": "carbon"}
+                return {
+                    "relevant": True,
+                    "confidence": "high",
+                    "reason": "MRIO study of GFCF",
+                    "methodology": "MRIO",
+                    "research_object": "GFCF",
+                    "environmental_dimension": "carbon",
+                }
 
-        with patch.object(stage, '_call_api', side_effect=mock_api):
+        with patch.object(stage, "_call_api", side_effect=mock_api):
             state = PipelineState(
                 title="Carbon emissions embodied in investment via MRIO analysis",
-                abstract="This paper uses multi-regional input-output analysis to quantify embodied carbon in capital formation. " * 3,
+                abstract="This paper uses multi-regional input-output analysis to quantify embodied carbon in capital formation. "
+                * 3,
                 journal="Applied Energy",
                 year="2024",
                 relevance_level="MEDIUM",
@@ -528,14 +602,19 @@ class TestTwoStageLLMReview:
         stage = LLMReviewStage(api_key="fake-key", two_stage=True)
 
         call_count = [0]
+
         def mock_api(prompt, response_contract="abstract_review"):
             call_count[0] += 1
             if call_count[0] == 1:
-                return {"likely_relevant": True, "confidence": "medium", "reason": "maybe"}
+                return {
+                    "likely_relevant": True,
+                    "confidence": "medium",
+                    "reason": "maybe",
+                }
             else:
                 raise Exception("API timeout")
 
-        with patch.object(stage, '_call_api', side_effect=mock_api):
+        with patch.object(stage, "_call_api", side_effect=mock_api):
             state = PipelineState(
                 title="Some investment paper",
                 abstract="Some abstract " * 10,
@@ -546,7 +625,7 @@ class TestTwoStageLLMReview:
             result = stage.run(state)
 
             assert result.total_score == 50.0  # unchanged
-            assert "llm_review" not in result.breakdown
+            assert result.breakdown["llm_review"]["status"] == "failed"
 
     def test_single_stage_mode_works(self):
         """single-stage mode (two_stage=False) works as before."""
@@ -554,9 +633,15 @@ class TestTwoStageLLMReview:
 
         stage = LLMReviewStage(api_key="fake-key", two_stage=False)
 
-        with patch.object(stage, '_call_api', return_value={
-            "relevant": False, "confidence": "high", "reason": "not relevant"
-        }):
+        with patch.object(
+            stage,
+            "_call_api",
+            return_value={
+                "relevant": False,
+                "confidence": "high",
+                "reason": "not relevant",
+            },
+        ):
             state = PipelineState(
                 title="Some paper",
                 abstract="Some abstract " * 10,
@@ -578,9 +663,15 @@ class TestTwoStageLLMReview:
 
         stage = LLMReviewStage(api_key="fake-key", two_stage=True)
 
-        with patch.object(stage, '_call_api', return_value={
-            "likely_relevant": True, "confidence": "medium", "reason": "title seems relevant"
-        }):
+        with patch.object(
+            stage,
+            "_call_api",
+            return_value={
+                "likely_relevant": True,
+                "confidence": "medium",
+                "reason": "title seems relevant",
+            },
+        ):
             state = PipelineState(
                 title="Carbon emissions embodied in investment",
                 abstract="",  # no abstract
@@ -590,11 +681,10 @@ class TestTwoStageLLMReview:
             )
             result = stage.run(state)
 
-            # Stage 1 passed, no abstract for Stage 2 → use Stage 1 result
-            assert stage._stage1_calls == 1
+            assert stage._stage1_calls == 0
             assert stage._stage2_calls == 0
-            assert result.breakdown["llm_review"]["stage"] == "title_filter_only"
-            assert result.breakdown["llm_review"]["relevant"] is True
+            assert result.breakdown["llm_review"]["status"] == "missing_abstract"
+            assert result.breakdown["llm_review"]["relevant"] is None
 
     def test_budget_shared_across_stages(self):
         """Budget is shared between Stage 1 and Stage 2 calls."""
@@ -603,25 +693,36 @@ class TestTwoStageLLMReview:
         stage = LLMReviewStage(api_key="fake-key", two_stage=True, max_papers=1)
 
         call_count = [0]
+
         def mock_api(prompt, response_contract="abstract_review"):
             call_count[0] += 1
             if call_count[0] <= 2:
                 # First paper: Stage 1 pass, Stage 2 pass
                 if call_count[0] == 1:
-                    return {"likely_relevant": True, "confidence": "high", "reason": "ok"}
+                    return {
+                        "likely_relevant": True,
+                        "confidence": "high",
+                        "reason": "ok",
+                    }
                 return {"relevant": True, "confidence": "high", "reason": "ok"}
             else:
                 # Second paper: should not reach here
                 return {"likely_relevant": False, "confidence": "high", "reason": "no"}
 
-        with patch.object(stage, '_call_api', side_effect=mock_api):
+        with patch.object(stage, "_call_api", side_effect=mock_api):
             state1 = PipelineState(
-                title="Investment paper 1", abstract="Abstract " * 10,
-                relevance_level="MEDIUM", total_score=50.0, breakdown={},
+                title="Investment paper 1",
+                abstract="Abstract " * 10,
+                relevance_level="MEDIUM",
+                total_score=50.0,
+                breakdown={},
             )
             state2 = PipelineState(
-                title="Investment paper 2", abstract="Abstract " * 10,
-                relevance_level="MEDIUM", total_score=50.0, breakdown={},
+                title="Investment paper 2",
+                abstract="Abstract " * 10,
+                relevance_level="MEDIUM",
+                total_score=50.0,
+                breakdown={},
             )
 
             result1 = stage.run(state1)
@@ -629,4 +730,4 @@ class TestTwoStageLLMReview:
 
             assert stage._calls_made == 1  # budget reached
             # Second paper should not be reviewed (budget exceeded)
-            assert "llm_review" not in result2.breakdown
+            assert result2.breakdown["llm_review"]["status"] == "budget_skipped"

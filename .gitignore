@@ -1,6 +1,7 @@
 # State files
 state/*.json
 !state/monitor_state.json
+!state/review_cache.json
 obsidian-exports/
 
 # Database files

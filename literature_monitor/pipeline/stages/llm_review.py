@@ -16,6 +16,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+from datetime import datetime, timezone
 from typing import Any
 
 from literature_monitor.pipeline.base import PipelineState
@@ -85,7 +86,7 @@ class LLMReviewStage:
         topic_name: str = "GFCF Environmental Impact",
         topic_description: str = "",
         provider: str = "deepseek",
-        model: str = "deepseek-chat",
+        model: str = "deepseek-flash",
         min_level: str = "MEDIUM",
         max_papers: int = 50,
         max_cost_usd: float = 5.0,
@@ -93,8 +94,9 @@ class LLMReviewStage:
         prompt_template: str | None = None,
         api_key: str | None = None,
         base_url: str = "",
-        two_stage: bool = True,
+        two_stage: bool = False,
         concurrency: int = 3,
+        cache=None,
     ) -> None:
         self.topic_name = topic_name
         self.topic_description = topic_description or topic_name
@@ -109,6 +111,9 @@ class LLMReviewStage:
         self.base_url = base_url or self._default_base_url(provider)
         self.two_stage = two_stage
         self.concurrency = concurrency
+        self.cache = cache
+        self._attempts = 0
+        self._last_error = "failed"
         self._stage1_calls = 0
         self._stage2_calls = 0
         self._calls_made = 0
@@ -125,7 +130,9 @@ class LLMReviewStage:
     @staticmethod
     def _default_base_url(provider: str) -> str:
         return {
-            "deepseek": os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"),
+            "deepseek": os.environ.get(
+                "DEEPSEEK_BASE_URL", "https://api.deepseek.com/v1"
+            ),
             "openai": os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1"),
         }.get(provider, "")
 
@@ -133,12 +140,71 @@ class LLMReviewStage:
     def _token_rates(provider: str, model: str) -> tuple[float, float]:
         """USD per million input/output tokens used for budget accounting."""
         if provider == "deepseek":
-            return 0.14, 0.28
+            # Conservative peak-rate accounting; actual off-peak billing can be lower.
+            return 0.30, 1.20
         if provider == "anthropic":
             return 3.0, 15.0
         return 0.15, 0.60
 
     def run(self, state: PipelineState) -> PipelineState:
+        """Review once per content/config version and always retain audit status."""
+        if state.relevance_level not in ("MEDIUM", "HIGH"):
+            return state
+        key = (
+            self.cache.key(state, self.provider, self.model, self.prompt_template)
+            if self.cache
+            else None
+        )
+        cached = self.cache.get(key) if self.cache else None
+        if cached and cached.get("review", {}).get("status") == "completed":
+            result = self._apply_llm_result(state, cached["review"], stage="cache")
+            return result
+        if (
+            self._attempts >= self.max_papers
+            or self._calls_made >= self.max_papers
+            or self._total_cost >= self.max_cost_usd
+        ):
+            result = self._pending(state, "budget_skipped")
+        elif not state.abstract or len(state.abstract.strip()) < 50:
+            result = self._pending(state, "missing_abstract")
+        else:
+            self._attempts += 1
+            self._last_error = "failed"
+            result = self._review_uncached(state)
+            if "llm_review" not in result.breakdown:
+                result = self._pending(state, self._last_error)
+        if self.cache:
+            from literature_monitor.core.models import Paper
+
+            paper = Paper(
+                doi=state.doi,
+                title=state.title,
+                abstract=state.abstract,
+                journal=state.journal,
+                year=state.year,
+                publication_date=state.publication_date,
+                issn=state.issn,
+                authors=list(state.authors),
+            )
+            self.cache.remember_paper(key, paper, result.breakdown["llm_review"])
+        return result
+
+    def _pending(self, state, status):
+        return state.with_(
+            breakdown={
+                **state.breakdown,
+                "llm_review": {
+                    "status": status,
+                    "relevant": None,
+                    "reason": status,
+                    "model": self.model,
+                    "provider": self.provider,
+                    "reviewed_at": datetime.now(timezone.utc).isoformat(),
+                },
+            }
+        )
+
+    def _review_uncached(self, state: PipelineState) -> PipelineState:
         """Run LLM review. Two-stage mode: title filter → abstract deep judge."""
         # Check budget
         if self._calls_made >= self.max_papers:
@@ -148,7 +214,9 @@ class LLMReviewStage:
 
         # Check relevance level threshold
         level_order = {"LOW": 0, "MEDIUM": 1, "HIGH": 2}
-        if level_order.get(state.relevance_level, 0) < level_order.get(self.min_level, 0):
+        if level_order.get(state.relevance_level, 0) < level_order.get(
+            self.min_level, 0
+        ):
             return state
 
         if not self.two_stage:
@@ -158,7 +226,7 @@ class LLMReviewStage:
 
         # Legacy-protected papers: skip title filter, go straight to deep review
         # (they score HIGH on legacy mechanism and must not be penalized)
-        if state.breakdown.get('legacy_priority') in ('HIGH', 'MEDIUM'):
+        if state.breakdown.get("legacy_priority") in ("HIGH", "MEDIUM"):
             logger.info("Legacy bypass for paper: %s", state.title[:40])
             # Force single-stage deep review
             return self._run_single_stage(state)
@@ -182,6 +250,10 @@ class LLMReviewStage:
             self._calls_made += 1
             breakdown = dict(state.breakdown)
             breakdown["llm_review"] = {
+                "status": "uncertain"
+                if stage1_result.get("confidence") == "low"
+                else "completed",
+                "provider": self.provider,
                 "stage": "title_filter",
                 "relevant": False,
                 "confidence": stage1_result.get("confidence", "low"),
@@ -239,7 +311,9 @@ class LLMReviewStage:
         self._calls_made += 1
         return self._apply_llm_result(state, result, stage="single")
 
-    def _apply_llm_result(self, state: PipelineState, result: dict, stage: str = "") -> PipelineState:
+    def _apply_llm_result(
+        self, state: PipelineState, result: dict, stage: str = ""
+    ) -> PipelineState:
         """Apply LLM judgment to paper score."""
         relevant = result.get("relevant", True)
         confidence = result.get("confidence", "low")
@@ -247,11 +321,14 @@ class LLMReviewStage:
 
         breakdown = dict(state.breakdown)
         breakdown["llm_review"] = {
+            "status": "uncertain" if confidence == "low" else "completed",
             "stage": stage,
             "relevant": relevant,
             "confidence": confidence,
             "reason": reason,
             "model": self.model,
+            "provider": self.provider,
+            "reviewed_at": datetime.now(timezone.utc).isoformat(),
         }
         # Include 6D output if present
         for dim in ("methodology", "research_object", "environmental_dimension"):
@@ -296,11 +373,15 @@ class LLMReviewStage:
         )
         return self._call_api(prompt, response_contract="abstract_review")
 
-    def _call_api(self, prompt: str, response_contract: str = "abstract_review") -> dict[str, Any] | None:
+    def _call_api(
+        self, prompt: str, response_contract: str = "abstract_review"
+    ) -> dict[str, Any] | None:
         """Dispatch to the appropriate LLM API provider."""
         try:
             if self.provider in {"openai", "deepseek"}:
-                return self._call_compatible_chat(prompt, response_contract=response_contract)
+                return self._call_compatible_chat(
+                    prompt, response_contract=response_contract
+                )
             elif self.provider == "anthropic":
                 return self._call_anthropic(prompt, response_contract=response_contract)
             else:
@@ -358,17 +439,23 @@ class LLMReviewStage:
     ) -> dict[str, Any] | None:
         """Normalize aliases and enforce the required LLM response shape."""
         confidence = LLMReviewStage._normalize_confidence(value.get("confidence"))
-        reason = value.get("reason", value.get("rationale", value.get("explanation", "")))
+        reason = value.get(
+            "reason", value.get("rationale", value.get("explanation", ""))
+        )
         reason = str(reason).strip() if reason is not None else ""
 
         if response_contract == "title_filter":
             verdict = LLMReviewStage._coerce_bool(
-                value.get("likely_relevant", value.get("relevant", value.get("is_relevant")))
+                value.get(
+                    "likely_relevant", value.get("relevant", value.get("is_relevant"))
+                )
             )
             verdict_key = "likely_relevant"
         else:
             verdict = LLMReviewStage._coerce_bool(
-                value.get("relevant", value.get("is_relevant", value.get("likely_relevant")))
+                value.get(
+                    "relevant", value.get("is_relevant", value.get("likely_relevant"))
+                )
             )
             verdict_key = "relevant"
 
@@ -415,7 +502,9 @@ class LLMReviewStage:
         return None
 
     @staticmethod
-    def _repair_prompt(original_prompt: str, malformed_response: str, response_contract: str) -> str:
+    def _repair_prompt(
+        original_prompt: str, malformed_response: str, response_contract: str
+    ) -> str:
         if response_contract == "title_filter":
             schema = '{"likely_relevant": true/false, "confidence": "high"/"medium"/"low", "reason": "brief"}'
         else:
@@ -463,7 +552,6 @@ class LLMReviewStage:
             )
             raise
 
-
     def _resolve_url(self, path: str) -> str:
         """Resolve API URL from base_url or provider default."""
         if self.base_url:
@@ -483,15 +571,26 @@ class LLMReviewStage:
         api_key = self.api_key
         if not api_key:
             logger.warning("No API key for %s — skipping LLM review", self.provider)
+            self._last_error = "missing_credentials"
             return None
 
         body = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1,
-            "max_tokens": 300,
+            "max_tokens": 600,
             "response_format": {"type": "json_object"},
         }
+        if self.provider == "deepseek":
+            body["thinking"] = {"type": "disabled"}
+        input_rate, output_rate = self._token_rates(self.provider, self.model)
+        upper_bound = (
+            len(prompt.encode()) * input_rate / 1_000_000
+            + 600 * output_rate / 1_000_000
+        )
+        if self._total_cost + upper_bound > self.max_cost_usd:
+            self._last_error = "budget_skipped"
+            return None
 
         data = self._post_openai_chat(body)
         if data is None:
@@ -501,7 +600,10 @@ class LLMReviewStage:
         prompt_tokens = usage.get("prompt_tokens", 200)
         completion_tokens = usage.get("completion_tokens", 100)
         input_rate, output_rate = self._token_rates(self.provider, self.model)
-        self._total_cost += prompt_tokens * input_rate / 1_000_000 + completion_tokens * output_rate / 1_000_000
+        self._total_cost += (
+            prompt_tokens * input_rate / 1_000_000
+            + completion_tokens * output_rate / 1_000_000
+        )
 
         content = self._extract_openai_content(data)
         parsed = self._parse_json_response(content, response_contract=response_contract)
@@ -510,21 +612,37 @@ class LLMReviewStage:
 
         repair_body = {
             "model": self.model,
-            "messages": [{
-                "role": "user",
-                "content": self._repair_prompt(prompt, content, response_contract),
-            }],
+            "messages": [
+                {
+                    "role": "user",
+                    "content": self._repair_prompt(prompt, content, response_contract),
+                }
+            ],
             "temperature": 0.0,
             "max_tokens": 200,
             "response_format": {"type": "json_object"},
         }
+        if self.provider == "deepseek":
+            repair_body["thinking"] = {"type": "disabled"}
+        repair_bound = (
+            len(json.dumps(repair_body).encode()) * input_rate / 1_000_000
+            + 200 * output_rate / 1_000_000
+        )
+        if self._total_cost + repair_bound > self.max_cost_usd:
+            self._last_error = "budget_skipped"
+            return None
         repair_data = self._post_openai_chat(repair_body)
         if repair_data is None:
             return None
         repair_usage = repair_data.get("usage", {})
-        self._total_cost += repair_usage.get("prompt_tokens", 200) * input_rate / 1_000_000 + repair_usage.get("completion_tokens", 100) * output_rate / 1_000_000
+        self._total_cost += (
+            repair_usage.get("prompt_tokens", 200) * input_rate / 1_000_000
+            + repair_usage.get("completion_tokens", 100) * output_rate / 1_000_000
+        )
         repair_content = self._extract_openai_content(repair_data)
-        return self._parse_json_response(repair_content, response_contract=response_contract)
+        return self._parse_json_response(
+            repair_content, response_contract=response_contract
+        )
 
     # Backwards-compatible test/integration hook; provider dispatch uses the
     # provider-neutral name above.

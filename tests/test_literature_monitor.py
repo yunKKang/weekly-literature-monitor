@@ -212,6 +212,7 @@ class TestScoring:
 
     def test_recency_bonus_recent(self):
         from literature_monitor.core.utils import today_str
+
         bonus = recency_bonus(today_str())
         assert bonus > 5.0
 
@@ -354,17 +355,15 @@ class TestJournalResolution:
     def test_default_scope_uses_configured_issns(self):
         issns = resolve_issns([], [])
         assert "1088-1980" in issns
-        assert len(issns) > 50
+        assert len(issns) == 31
 
     def test_environment_high_quality_pool_exists(self):
         from literature_monitor.core.journals import list_journal_pools
 
         pools = list_journal_pools()
-        env_pool = next(
-            pool for pool in pools if pool["id"] == "pool_environment_high_quality"
-        )
-        assert "Environmental" in env_pool["name"]
-        assert len(env_pool["issns"]) >= 40
+        env_pool = next(pool for pool in pools if pool["id"] == "main_pool")
+        assert env_pool["name"]
+        assert len(env_pool["issns"]) == 31
         assert "0013-936X" in env_pool["issns"]
 
     def test_removed_topic_pool_and_journals_are_absent(self):
@@ -372,7 +371,14 @@ class TestJournalResolution:
 
         pools = list_journal_pools()
         assert all(pool["id"] != "pool_algal_bloom_ml" for pool in pools)
-        removed = {"1568-9883", "2296-7745", "2296-665X", "0034-4257", "1569-8432", "2072-4292"}
+        removed = {
+            "1568-9883",
+            "2296-7745",
+            "2296-665X",
+            "0034-4257",
+            "1569-8432",
+            "2072-4292",
+        }
         assert removed.isdisjoint(resolve_issns([], []))
         assert all(removed.isdisjoint(pool["issns"]) for pool in pools)
 
@@ -402,11 +408,13 @@ class TestSearchTopics:
 
         topics = list_search_topics()
         topic = next(item for item in topics if item["id"] == "gfcf_environment")
-        assert topic["include_conferences"] is True
+        assert topic["include_conferences"] is False
         assert topic["date_from"] == "2020-01-01"
         assert "main_pool" in topic["journal_pool_ids"]
         assert "GFCF" in topic["keywords"]
-        assert "offspring" in topic["negative_keywords"]
+        assert (
+            topic["negative_keywords"] == []
+        )  # exclusions are scoped by the shared rule engine
         assert topic["source"] == "yaml"
 
 
@@ -424,6 +432,7 @@ class TestSearchServicePartialFailure:
 
         with tempfile.TemporaryDirectory() as tmp:
             import os
+
             os.environ["LITMON_DB_PATH"] = str(Path(tmp) / "test.sqlite3")
             try:
                 conn = connect()
@@ -458,11 +467,14 @@ class TestSearchServicePartialFailure:
                         return_value=["1234-5678"],
                     ),
                 ):
-                    summary = run_search(run_id, SearchRequest(
-                        date_from="2026-01-01",
-                        date_to="2026-12-31",
-                        keywords=["test"],
-                    ))
+                    summary = run_search(
+                        run_id,
+                        SearchRequest(
+                            date_from="2026-01-01",
+                            date_to="2026-12-31",
+                            keywords=["test"],
+                        ),
+                    )
 
                 assert summary.status == "partial_failed"
                 assert summary.total_fetched == 1
@@ -478,6 +490,7 @@ class TestSearchServicePartialFailure:
 
         with tempfile.TemporaryDirectory() as tmp:
             import os
+
             os.environ["LITMON_DB_PATH"] = str(Path(tmp) / "test.sqlite3")
             try:
                 conn = connect()
@@ -519,12 +532,15 @@ class TestSearchServicePartialFailure:
                         return_value=["1234-5678"],
                     ),
                 ):
-                    summary = run_search(run_id, SearchRequest(
-                        date_from="2026-01-01",
-                        date_to="2026-12-31",
-                        keywords=["conference"],
-                        include_conferences=True,
-                    ))
+                    summary = run_search(
+                        run_id,
+                        SearchRequest(
+                            date_from="2026-01-01",
+                            date_to="2026-12-31",
+                            keywords=["conference"],
+                            include_conferences=True,
+                        ),
+                    )
 
                 assert summary.status == "completed"
                 assert summary.total_fetched == 1
@@ -541,6 +557,7 @@ class TestRepositoryFiltering:
     @pytest.fixture(autouse=True)
     def setup_db(self, tmp_path):
         import os
+
         os.environ["LITMON_DB_PATH"] = str(tmp_path / "test.sqlite3")
         from literature_monitor.db import repositories as repo
         from literature_monitor.db.connection import connect
@@ -564,12 +581,20 @@ class TestRepositoryFiltering:
 
         papers_data = [
             (
-                "Alpha Paper", "10.1/a", "Journal A",
-                "An abstract about alpha.", 80.0, "HIGH",
+                "Alpha Paper",
+                "10.1/a",
+                "Journal A",
+                "An abstract about alpha.",
+                80.0,
+                "HIGH",
             ),
             (
-                "Beta Paper", "10.1/b", "Journal B",
-                "An abstract about beta.", 40.0, "MEDIUM",
+                "Beta Paper",
+                "10.1/b",
+                "Journal B",
+                "An abstract about beta.",
+                40.0,
+                "MEDIUM",
             ),
             ("Gamma Paper", None, "Journal A", None, 10.0, "LOW"),
         ]
@@ -860,6 +885,7 @@ class TestSearchServiceHelpers:
 
     def test_merge_prefers_abstract(self):
         from literature_monitor.core.search_service import merge_group
+
         p1 = self._provider(abstract=None)
         p2 = self._provider(abstract="Has abstract")
         merged = merge_group([p1, p2])
@@ -867,6 +893,7 @@ class TestSearchServiceHelpers:
 
     def test_merge_prefers_doi(self):
         from literature_monitor.core.search_service import merge_group
+
         p1 = self._provider(doi=None, title="Paper")
         p2 = self._provider(doi="10.1234/test", title="Paper")
         merged = merge_group([p1, p2])
@@ -874,6 +901,7 @@ class TestSearchServiceHelpers:
 
     def test_merge_max_citation_count(self):
         from literature_monitor.core.search_service import merge_group
+
         p1 = self._provider(citation_count=5)
         p2 = self._provider(citation_count=42)
         merged = merge_group([p1, p2])
@@ -881,6 +909,7 @@ class TestSearchServiceHelpers:
 
     def test_merge_topics_deduped(self):
         from literature_monitor.core.search_service import merge_group
+
         p1 = self._provider(topics=["A", "B"])
         p2 = self._provider(topics=["B", "C"])
         merged = merge_group([p1, p2])
@@ -888,24 +917,31 @@ class TestSearchServiceHelpers:
 
     def test_request_from_dict_string_keywords(self):
         from literature_monitor.core.search_service import request_from_dict
-        req = request_from_dict({
-            "date_from": "2026-01-01",
-            "date_to": "2026-02-01",
-            "keywords": "carbon, emissions",
-        })
+
+        req = request_from_dict(
+            {
+                "date_from": "2026-01-01",
+                "date_to": "2026-02-01",
+                "keywords": "carbon, emissions",
+            }
+        )
         assert req.keywords == ["carbon", "emissions"]
 
     def test_request_from_dict_list_keywords(self):
         from literature_monitor.core.search_service import request_from_dict
-        req = request_from_dict({
-            "date_from": "2026-01-01",
-            "date_to": "2026-02-01",
-            "keywords": ["carbon"],
-        })
+
+        req = request_from_dict(
+            {
+                "date_from": "2026-01-01",
+                "date_to": "2026-02-01",
+                "keywords": ["carbon"],
+            }
+        )
         assert req.keywords == ["carbon"]
 
     def test_request_from_dict_defaults(self):
         from literature_monitor.core.search_service import request_from_dict
+
         req = request_from_dict({"date_from": "2026-01-01", "date_to": "2026-02-01"})
         assert req.min_score == 0
         assert req.max_results_per_source == 10000
@@ -920,6 +956,7 @@ class TestRepositoryExtras:
     @pytest.fixture(autouse=True)
     def setup_db(self, tmp_path):
         import os
+
         os.environ["LITMON_DB_PATH"] = str(tmp_path / "test.sqlite3")
         from literature_monitor.db import repositories as repo
         from literature_monitor.db.connection import connect
@@ -936,23 +973,35 @@ class TestRepositoryExtras:
         self, doi="10.1/a", title="Paper", journal="J", abstract="Abs"
     ):
         paper = Paper(
-            doi=doi, title=title, journal=journal,
-            abstract=abstract, year="2026",
+            doi=doi,
+            title=title,
+            journal=journal,
+            abstract=abstract,
+            year="2026",
         )
         pid = self.repo.upsert_paper(self.conn, paper)
         sr = ScoreResult(
-            total_score=50.0, relevance_level="HIGH",
-            rule_score=20, text_score=10, recency_score=10,
-            journal_score=10, matched_pipelines=[],
-            matched_keywords=[], keyword_hits=[], breakdown={},
+            total_score=50.0,
+            relevance_level="HIGH",
+            rule_score=20,
+            text_score=10,
+            recency_score=10,
+            journal_score=10,
+            matched_pipelines=[],
+            matched_keywords=[],
+            keyword_hits=[],
+            breakdown={},
         )
         self.repo.add_score(self.conn, self.run_id, pid, sr)
         return pid
 
     def test_source_filter(self):
         pid = self._add_paper_with_score()
-        self.repo.add_source_record(self.conn, pid,
-            PaperSourceRecord(source="openalex", source_work_id="W1", doi=None, raw={}))
+        self.repo.add_source_record(
+            self.conn,
+            pid,
+            PaperSourceRecord(source="openalex", source_work_id="W1", doi=None, raw={}),
+        )
 
         total, _ = self.repo.list_results(self.conn, self.run_id, source="openalex")
         assert total == 1
@@ -994,12 +1043,14 @@ class TestFastAPISmoke:
     @pytest.fixture(autouse=True)
     def setup_app(self, tmp_path):
         import os
+
         os.environ["LITMON_DB_PATH"] = str(tmp_path / "test.sqlite3")
         try:
             from fastapi.testclient import TestClient
         except ImportError:
             pytest.skip("fastapi[testclient] not installed")
         from literature_monitor.api.app import create_app
+
         self.client = TestClient(create_app())
         yield
         del os.environ["LITMON_DB_PATH"]

@@ -191,14 +191,19 @@ def fetch_url(
         except urllib.error.HTTPError as e:
             body = e.read() if hasattr(e, "read") else b""
             last_error = e
-            if e.code in (500, 502, 503, 504) and attempt < effective_max_retries:
+            if e.code in (429, 500, 502, 503, 504) and attempt < effective_max_retries:
                 logger.warning(
                     "HTTP %s for %s, retrying in %.1fs...",
                     e.code,
                     url,
                     effective_retry_delay,
                 )
-                time.sleep(effective_retry_delay * (2**attempt))
+                retry_after = e.headers.get("Retry-After", "") if e.headers else ""
+                try:
+                    delay = min(60.0, max(0.0, float(retry_after)))
+                except (ValueError, TypeError):
+                    delay = effective_retry_delay * (2**attempt)
+                time.sleep(delay)
                 continue
             return getattr(e, "code", None), body
         except (urllib.error.URLError, socket.timeout, TimeoutError) as e:
@@ -214,7 +219,12 @@ def fetch_url(
             break
 
     if last_error:
-        logger.error("Failed to fetch %s after %s attempts: %s", url, effective_max_retries + 1, last_error)
+        logger.error(
+            "Failed to fetch %s after %s attempts: %s",
+            url,
+            effective_max_retries + 1,
+            last_error,
+        )
 
     return None, b""
 

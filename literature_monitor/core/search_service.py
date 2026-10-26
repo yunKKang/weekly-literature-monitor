@@ -16,21 +16,14 @@ from literature_monitor.core.models import (
     SearchRequest,
     SearchSummary,
 )
-from literature_monitor.core.scoring import score_for_request
-from literature_monitor.core.utils import fetch_url
 from literature_monitor.db import repositories as repo
 from literature_monitor.db.connection import connect, get_connection
 from literature_monitor.db.schema import init_db
-from literature_monitor.pipeline.base import PipelineState
-from literature_monitor.pipeline.engine import build_pipeline, run_pipeline
-from literature_monitor.pipeline.stages.llm_review import LLMReviewStage
 from literature_monitor.providers.crossref import (
     fetch_crossref,
     fetch_crossref_conferences,
 )
 from literature_monitor.providers.openalex import fetch_openalex
-from literature_monitor.topic.loader import load_all_topics, load_topic
-from literature_monitor.topic.schema import Topic
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +82,9 @@ def _run_search_body(
     request: SearchRequest,
 ) -> SearchSummary:
 
+    from literature_monitor.core.review_service import resolve_topic, score_groups
+
+    resolve_topic(request)
     issns = resolve_issns(request.journal_pool_ids, request.journal_issns)
     records: list[ProviderPaper] = []
     errors: list[str] = []
@@ -112,68 +108,7 @@ def _run_search_body(
     selected_issns = set(issns)
     scored = 0
 
-    # Resolve topic once, pass to LLM review to avoid duplicate load
-    topic = _resolve_topic_from_request(request)
-    topic_negatives = _compile_topic_negatives(topic) if topic else []
-    topic_pipeline = (
-        build_pipeline(
-            topic=topic,
-            conn=conn,
-            query_text=request.query_text,
-            selected_issns=selected_issns,
-            use_legacy=False,
-            query_terms=request.keywords + request.synonyms,
-            request_negative_keywords=request.negative_keywords,
-            journal_pool_ids=request.journal_pool_ids,
-        )
-        if topic
-        else None
-    )
-
-    # DOI-based fallback: fetch known important papers directly by DOI
-    if topic and hasattr(topic, "benchmark_dois"):
-        fallback_count = _fetch_dois_fallback(
-            conn,
-            topic.benchmark_dois,
-            issns,
-            grouped,
-            records,
-        )
-        if fallback_count:
-            errors.append(f"doi_fallback: fetched {fallback_count} papers by DOI")
-
-    for group in grouped:
-        paper = merge_group(group)
-        paper_id = repo.upsert_paper(conn, paper)
-        for provider_record in group:
-            repo.add_source_record(conn, paper_id, provider_record.source_record)
-        if topic_pipeline is not None:
-            _, score = run_pipeline(topic_pipeline, paper, paper_id=paper_id)
-        else:
-            score = score_for_request(conn, paper_id, paper, request, selected_issns)
-
-        # Apply topic-level negative keyword filtering
-        if topic_negatives and score.total_score > 0:
-            combined_text = (
-                f"{paper.title} {paper.abstract or ''} {paper.journal or ''}"
-            ).lower()
-            for pattern, reason in topic_negatives:
-                if pattern.search(combined_text):
-                    score.total_score = 0
-                    score.relevance_level = "LOW"
-                    score.breakdown["topic_negative_hit"] = reason
-                    break
-
-        if score.total_score >= request.min_score:
-            repo.add_score(conn, search_run_id, paper_id, score)
-            scored += 1
-
-    # Post-scoring: LLM review on MEDIUM+ papers
-    llm_review_count = 0
-    try:
-        llm_review_count = _run_llm_review(conn, search_run_id, request, grouped, topic)
-    except Exception as e:
-        errors.append(f"llm_review: {e}")
+    scored = score_groups(conn, search_run_id, request, grouped, selected_issns, errors)
 
     status = "partial_failed" if errors and records else "completed"
     if errors and not records:
@@ -188,12 +123,6 @@ def _run_search_body(
         total_scored=scored,
         completed=True,
     )
-    summary_msg = f"Scored {scored} papers"
-    if llm_review_count:
-        summary_msg += f", LLM reviewed {llm_review_count}"
-    if errors:
-        summary_msg += f", errors: {'; '.join(errors)}"
-
     return SearchSummary(
         search_run_id=search_run_id,
         status=status,
@@ -202,161 +131,6 @@ def _run_search_body(
         total_scored=scored,
         error_message="; ".join(errors) if errors else None,
     )
-
-
-def _fetch_dois_fallback(
-    conn,
-    dois: list[str],
-    issns: list[str],
-    grouped: list[list[ProviderPaper]],
-    records: list[ProviderPaper],
-) -> int:
-    """Fetch known DOIs directly from Crossref and add to results if missing."""
-    from literature_monitor.providers.crossref import _from_crossref_result
-    from literature_monitor.providers.crossref_client import parse_crossref_work
-
-    existing_dois = set()
-    for group in grouped:
-        for item in group:
-            if item.paper.doi:
-                existing_dois.add(item.paper.doi.lower())
-
-    fetched = 0
-    for doi in dois:
-        if doi.lower() in existing_dois:
-            continue
-        # Validate DOI format to prevent injection
-        if not _DOI_RE.match(doi):
-            logger.warning("Skipping invalid DOI format: %s", doi)
-            continue
-        try:
-            url = f"https://api.crossref.org/works/{doi}"
-            status, body = fetch_url(url, timeout_s=15)
-            if status == 200:
-                data = json.loads(body.decode("utf-8", errors="replace"))
-                message = data.get("message", {})
-                result = parse_crossref_work(message)
-                if result:
-                    provider_paper = _from_crossref_result(result)
-                    records.append(provider_paper)
-                    grouped.append([provider_paper])
-                    existing_dois.add(doi.lower())
-                    fetched += 1
-                    logger.info("DOI fallback: fetched %s", doi)
-        except Exception as e:
-            logger.warning("DOI fallback fetch failed for %s: %s", doi, e)
-    return fetched
-
-
-def _compile_topic_negatives(topic: Topic) -> list[tuple]:
-    """Compile topic YAML negative keywords into regex patterns."""
-    patterns = []
-    seen = set()
-    for pipe in topic.pipelines:
-        for neg in pipe.negative_keywords:
-            if neg and neg.lower() not in seen:
-                seen.add(neg.lower())
-                patterns.append((re.compile(re.escape(neg), re.IGNORECASE), neg))
-    for ks in topic.keyword_sets:
-        for neg in ks.negative_keywords:
-            if neg and neg.lower() not in seen:
-                seen.add(neg.lower())
-                patterns.append((re.compile(re.escape(neg), re.IGNORECASE), neg))
-    return patterns
-
-
-def _resolve_topic_from_request(request: SearchRequest) -> Topic | None:
-    """Resolve an explicit topic, with legacy journal-pool fallback."""
-    if request.topic_id:
-        try:
-            return load_topic(request.topic_id)
-        except FileNotFoundError:
-            raise ValueError(f"Unknown topic_id: {request.topic_id}") from None
-    request_pools = set(request.journal_pool_ids)
-    if not request_pools:
-        return None
-    for topic in load_all_topics().values():
-        if request_pools.intersection(topic.journal_pool_ids):
-            return topic
-    return None
-
-
-def _run_llm_review(
-    conn,
-    search_run_id: int,
-    request: SearchRequest,
-    grouped: list[list[ProviderPaper]],
-    topic: Topic | None = None,
-) -> int:
-    """Run LLM review on MEDIUM+ papers. Returns count of papers updated."""
-    if topic is None:
-        topic = _resolve_topic_from_request(request)
-    if not topic or not topic.llm_review.enabled:
-        return 0
-
-    llm_stage = LLMReviewStage(
-        topic_name=topic.name,
-        topic_description=topic.description,
-        provider=topic.llm_review.provider,
-        model=topic.llm_review.model,
-        base_url=topic.llm_review.base_url or "",
-        two_stage=topic.llm_review.two_stage,
-        min_level="MEDIUM",
-        max_papers=topic.llm_review.max_papers_per_run,
-        max_cost_usd=topic.llm_review.max_cost_usd,
-        prompt_template=topic.llm_review.prompt_template or None,
-        concurrency=topic.llm_review.concurrency,
-    )
-
-    updated = 0
-    for group in grouped:
-        paper = merge_group(group)
-        paper_id = repo.upsert_paper(conn, paper)
-        existing = conn.execute(
-            "SELECT total_score, relevance_level, matched_keywords_json, "
-            "score_breakdown_json "
-            "FROM scored_results WHERE search_run_id = ? AND paper_id = ?",
-            (search_run_id, paper_id),
-        ).fetchone()
-        if not existing or existing["relevance_level"] not in ("HIGH", "MEDIUM"):
-            continue
-
-        breakdown = json.loads(existing["score_breakdown_json"])
-        matched_keywords = (
-            tuple(json.loads(existing["matched_keywords_json"]))
-            if existing["matched_keywords_json"]
-            else ()
-        )
-        state = PipelineState(
-            title=paper.title,
-            abstract=paper.abstract or "",
-            journal=paper.journal or "",
-            year=paper.year,
-            total_score=existing["total_score"],
-            relevance_level=existing["relevance_level"],
-            matched_keywords=matched_keywords,
-            breakdown=breakdown,
-        )
-        result = llm_stage.run(state)
-
-        if (
-            result.total_score != existing["total_score"]
-            or result.relevance_level != existing["relevance_level"]
-        ):
-            conn.execute(
-                "UPDATE scored_results SET total_score = ?, relevance_level = ?, "
-                "score_breakdown_json = ? WHERE search_run_id = ? AND paper_id = ?",
-                (
-                    result.total_score,
-                    result.relevance_level,
-                    json.dumps(result.breakdown),
-                    search_run_id,
-                    paper_id,
-                ),
-            )
-            updated += 1
-    conn.commit()
-    return updated
 
 
 def merge_group(group: list[ProviderPaper]) -> Paper:

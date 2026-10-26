@@ -1,139 +1,94 @@
 {
-  "description": "GFCF-driven pipeline system v2.1: Enhanced vocabulary, multi-footprint, dedup/cap scoring, negative keywords",
-  "last_updated": "2026-01-26",
-  "version": "2.1",
+  "description": "Capital environmental footprints and transferable prospective IO/IAM methods",
+  "last_updated": "2026-10-26",
+  "version": "3.0",
   "architecture": "Pipeline-based with hard thresholds, concept dedup, field weighting, consistency checks",
   "scoring_rules": {
     "title_weight": 8,
     "abstract_weight": 5,
-    "asset_type_bonus": 2,
+    "asset_type_bonus": 0,
     "method_bonus": 3,
     "method_bonus_cap": 6,
     "policy_bonus": 2,
     "policy_bonus_cap": 6,
-    "multi_pipeline_bonus": 5,
-    "high_priority_threshold": 20,
-    "medium_priority_threshold": 12,
+    "multi_pipeline_bonus": 0,
     "consistency_check_enabled": true,
     "investment_title_weight": 20,
     "investment_abstract_weight": 12,
     "domain_title_weight": 5,
-    "domain_abstract_weight": 3
+    "domain_abstract_weight": 3,
+    "high_threshold": 20,
+    "medium_threshold": 12
   },
   "gfcf_vocabulary": {
     "description": "GFCF synonyms and investment terminology - comprehensive coverage of all common variants",
     "investment_terms": {
-      "description": "Investment/capital formation terms (must match at least one for hard threshold)",
       "keywords_en": [
+        "\\bGFCF\\b",
+        "\\bgross[- ]+fixed[- ]+capital[- ]+formation\\b",
+        "\\bgross[- ]+fixed[- ]+capital\\b",
+        "\\bfixed[- ]+capital[- ]+formation\\b",
+        "\\bfixed[- ]+capital\\b",
+        "\\bcapital[- ]+formation\\b",
+        "\\bcapital[- ]+investment\\b",
+        "\\bcapital[- ]+expenditure\\b",
+        "\\bCAPEX\\b",
+        "\\bcapital[- ]+goods\\b",
+        "\\binvestment[- ]+goods\\b",
+        "\\bmanufactured[- ]+capital\\b",
+        "\\bphysical[- ]+capital\\b",
         "\\binvestment\\b",
-        "\\bfixed investment\\b",
-        "\\bcapital expenditure\\b",
-        "\\bcapex\\b",
-        "\\bfixed assets?\\b",
-        "\\bfixed capital\\b",
-        "\\bformation of fixed assets?\\b",
-        "\\bgross fixed capital formation\\b",
-        "\\bgfcf\\b",
-        "\\bgross fixed capital\\b",
-        "\\bgross capital formation\\b",
-        "\\bgcf\\b",
-        "\\bfixed capital formation\\b",
-        "\\bfcf\\b",
-        "\\bfbcf\\b",
-        "\\bcapital stock\\b",
-        "\\bnet stock\\b",
-        "\\bdepreciation\\b",
-        "\\bconsumption of fixed capital\\b",
-        "\\bcfc\\b",
-        "\\bperpetual inventory method\\b",
-        "\\bpim\\b",
-        "\\basset lifetime\\b",
-        "\\bservice life\\b",
-        "\\bvintag(e|ing)\\b",
-        "\\bcapital formation\\b",
-        "\\bcapital accumulation\\b",
-        "\\bcapital goods\\b",
-        "\\binvestment goods\\b",
-        "\\bcapital services\\b",
-        "\\bcapital deepening\\b",
-        "\\bcapital intensity\\b",
-        "\\bscrappage\\b",
-        "\\bretirement\\b",
-        "\\bdecommissioning\\b",
-        "\\bdiscard\\b",
-        "\\bcapitali[sz]ation\\b",
-        "\\bcapitali[sz]ed\\b",
-        "\\bklems\\b",
-        "\\bpwt\\b",
-        "\\bpenn world table\\b"
+        "\\bcapital[- ]+stock\\b",
+        "\\bcapital[- ]+accumulation\\b",
+        "\\bcapital[- ]+turnover\\b",
+        "\\bfixed[- ]+assets\\b",
+        "\\bbuilding[- ]+stock\\b",
+        "\\binfrastructure[- ]+stock\\b",
+        "\\bconsumption[- ]+of[- ]+fixed[- ]+capital\\b",
+        "\\bperpetual[- ]+inventory[- ]+method\\b",
+        "\\basset[- ]+lifetime\\b",
+        "\\basset[- ]+retirement\\b",
+        "\\bequipment[- ]+retirement\\b"
       ],
       "keywords_cn": [
-        "投资",
-        "固定投资",
-        "资本支出",
-        "固定资产",
+        "固定资本形成",
         "固定资本",
-        "资本形成总额",
-        "资本形成",
+        "实物资本",
         "资本存量",
-        "净存量",
-        "折旧",
-        "固定资本消耗",
-        "永续盘存法",
-        "资产寿命",
-        "使用寿命",
         "资本品",
-        "投资品",
-        "资本服务",
-        "资本深化",
-        "资本密集度",
-        "报废",
-        "退役",
-        "资本化"
+        "投资隐含"
       ],
       "concept_groups": {
-        "note": "For dedup: only count one match per concept group",
-        "gfcf_variants": [
+        "gfcf": [
           "gfcf",
-          "gcf",
-          "fcf",
-          "fbcf",
           "gross fixed capital formation",
-          "gross capital formation",
+          "gross fixed capital",
           "fixed capital formation",
+          "fixed capital",
           "capital formation"
         ],
-        "depreciation_variants": [
-          "depreciation",
-          "cfc",
-          "consumption of fixed capital",
-          "scrappage",
-          "retirement",
-          "decommissioning",
-          "discard"
-        ],
-        "lifetime_variants": [
-          "asset lifetime",
-          "service life",
-          "vintage",
-          "vintaging",
-          "pim",
-          "perpetual inventory method"
-        ],
-        "capital_stock_variants": [
-          "capital stock",
-          "net stock",
-          "capital accumulation",
-          "capital deepening",
-          "capital intensity"
-        ],
-        "investment_variants": [
+        "investment": [
           "investment",
-          "fixed investment",
+          "capital investment",
           "capital expenditure",
           "capex",
-          "investment goods",
-          "capital goods"
+          "capital goods",
+          "investment goods"
+        ],
+        "stock": [
+          "capital stock",
+          "capital accumulation",
+          "capital turnover",
+          "fixed assets",
+          "building stock",
+          "infrastructure stock"
+        ],
+        "measurement": [
+          "consumption of fixed capital",
+          "perpetual inventory method",
+          "asset lifetime",
+          "asset retirement",
+          "equipment retirement"
         ]
       }
     },
@@ -142,25 +97,14 @@
       "structures": {
         "description": "Buildings, construction, infrastructure",
         "keywords_en": [
-          "\\bstructures?\\b",
-          "\\bbuildings?\\b",
-          "\\bconstruction\\b",
-          "\\bcivil engineering\\b",
+          "\\bbuilding[- ]+stock\\b",
           "\\binfrastructure\\b",
-          "\\bbuilt environment\\b",
-          "\\breal estate\\b",
-          "\\bresidential\\b",
-          "\\bnon-?residential\\b",
-          "\\bhousing\\b"
+          "\\bconstruction\\b",
+          "\\bbuildings\\b"
         ],
         "keywords_cn": [
-          "建筑",
-          "房屋",
-          "建设",
-          "基础设施",
-          "土木工程",
-          "建成环境",
-          "住宅"
+          "建筑存量",
+          "基础设施"
         ]
       },
       "machinery_equipment": {
@@ -205,66 +149,25 @@
       "ict_equipment": {
         "description": "ICT hardware, servers, semiconductors",
         "keywords_en": [
-          "\\bict equipment\\b",
-          "\\bcomputers?\\b",
-          "\\bservers?\\b",
-          "\\bsemiconductors?\\b",
-          "\\bchips?\\b",
-          "\\bhardware\\b",
-          "\\bnetwork equipment\\b",
-          "\\btelecommunications?\\b",
-          "\\bgpu\\b",
-          "\\btpu\\b",
-          "\\bprocessors?\\b"
+          "\\bICT[- ]+equipment\\b",
+          "\\bserver[- ]+infrastructure\\b",
+          "\\bdata[- ]+center[- ]+infrastructure\\b"
         ],
         "keywords_cn": [
           "信息通信设备",
-          "计算机",
-          "服务器",
-          "半导体",
-          "芯片",
-          "硬件",
-          "网络设备",
-          "GPU",
-          "处理器"
+          "服务器基础设施"
         ]
       },
       "intangibles_ipp": {
         "description": "Software, databases, R&D, IPP, intangible assets - expanded with specific asset subclasses",
         "keywords_en": [
-          "\\bsoftware\\b",
-          "\\bcomputer software\\b",
-          "\\bdatabases?\\b",
-          "\\bdata ?sets?\\b",
-          "\\bdata assets?\\b",
-          "\\binformation assets?\\b",
-          "\\bipp\\b",
-          "\\bintellectual property products?\\b",
-          "\\bintellectual property\\b",
-          "\\bintangible assets?\\b",
-          "\\bintangibles\\b",
-          "\\br&?d capital\\b",
-          "\\bresearch and development capital\\b",
-          "\\borganizational capital\\b",
-          "\\borganisational capital\\b",
-          "\\bdata capitali[sz]ation\\b",
-          "\\bsoftware investment\\b",
-          "\\bdatabase investment\\b",
-          "\\bdigital assets?\\b"
+          "\\bsoftware[- ]+capital\\b",
+          "\\bR\\&D[- ]+capital\\b",
+          "\\bintellectual[- ]+property[- ]+products\\b"
         ],
         "keywords_cn": [
-          "软件",
-          "计算机软件",
-          "数据库",
-          "数据集",
-          "数据资产",
-          "信息资产",
-          "无形资产",
           "研发资本",
-          "知识产权",
-          "组织资本",
-          "数据资本化",
-          "数字资产"
+          "知识产权产品"
         ]
       }
     }
@@ -276,87 +179,35 @@
       "description": "Core: Investment/capital + environmental footprint/LCA - now covers ALL footprint dimensions",
       "priority": 1,
       "hard_threshold": {
-        "description": "Must match: (investment_terms) AND (environmental_impact_terms)",
-        "require_investment": true,
-        "require_environmental": true
+        "require_investment": true
       },
       "environmental_impact_terms": {
-        "description": "Multi-footprint: carbon, water, material, land, biodiversity, energy, nitrogen",
         "keywords_en": [
-          "\\bfootprint\\b",
-          "\\bemissions?\\b",
-          "\\blca\\b",
-          "\\blife cycle assessment\\b",
-          "\\blife cycle analysis\\b",
-          "\\benvironmental impact\\b",
+          "\\benvironmental[- ]+footprint\\b",
+          "\\bcarbon[- ]+footprint\\b",
+          "\\bwater[- ]+footprint\\b",
+          "\\bmaterial[- ]+footprint\\b",
+          "\\bland[- ]+footprint\\b",
+          "\\bbiodiversity[- ]+footprint\\b",
+          "\\benergy[- ]+footprint\\b",
+          "\\bembodied[- ]+emissions\\b",
+          "\\bembodied[- ]+carbon\\b",
+          "\\bembodied[- ]+energy\\b",
+          "\\bupfront[- ]+carbon\\b",
+          "\\bconsumption\\-based\\b",
+          "\\blife[- ]+cycle[- ]+assessment\\b",
+          "\\blife[- ]+cycle[- ]+analysis\\b",
+          "\\bLCA\\b",
+          "\\benvironmental[- ]+impact\\b",
           "\\bcarbon\\b",
-          "\\bghg\\b",
-          "\\bgreenhouse gas\\b",
-          "\\bco2\\b",
-          "\\bembodied\\b",
-          "\\benvironmental accounting\\b",
-          "\\bcarbon accounting\\b",
-          "\\bconsumption-?based\\b",
-          "\\bterritorial\\b",
-          "\\bscope [123]\\b",
-          "\\bwater footprint\\b",
-          "\\bvirtual water\\b",
-          "\\bembodied water\\b",
-          "\\bmaterial footprint\\b",
-          "\\bembodied materials?\\b",
-          "\\bland footprint\\b",
-          "\\bland use change\\b",
-          "\\becological footprint\\b",
-          "\\bbiodiversity footprint\\b",
-          "\\bbiodiversity loss\\b",
-          "\\bnitrogen footprint\\b",
-          "\\benergy footprint\\b",
-          "\\bembodied energy\\b",
-          "\\bupfront emissions?\\b",
-          "\\bupfront carbon\\b"
+          "\\bemissions\\b",
+          "\\bGHG\\b",
+          "\\bCO2\\b"
         ],
-        "keywords_cn": [
-          "足迹",
-          "排放",
-          "生命周期评价",
-          "环境影响",
-          "碳",
-          "温室气体",
-          "隐含",
-          "碳核算",
-          "消费侧",
-          "水足迹",
-          "虚拟水",
-          "隐含水",
-          "物质足迹",
-          "土地足迹",
-          "生态足迹",
-          "生物多样性足迹",
-          "氮足迹",
-          "能源足迹",
-          "隐含能源"
-        ]
+        "keywords_cn": []
       },
       "bonus_terms": {
-        "description": "Additional scoring for CFC/PIM/lifetime methodology",
-        "keywords_en": [
-          "\\bcfc\\b",
-          "\\bpim\\b",
-          "\\bperpetual inventory\\b",
-          "\\blifetime\\b",
-          "\\bservice life\\b",
-          "\\bvintage\\b",
-          "\\bdepreciation\\b",
-          "\\bcapital-?inclusive\\b",
-          "\\bstock-?based\\b",
-          "\\bcapital goods emissions?\\b"
-        ],
-        "keywords_cn": [
-          "固定资本消耗",
-          "永续盘存",
-          "使用寿命",
-          "折旧"
-        ]
+        "keywords_en": []
       }
     },
     "pipeline2_gfcf_mrio": {
@@ -364,54 +215,31 @@
       "description": "Capital endogenization, investment-embodied emissions via IO",
       "priority": 2,
       "hard_threshold": {
-        "description": "Must match: (investment_terms) AND (io_method_terms)",
-        "require_investment": true,
-        "require_io_method": true
+        "require_investment": true
       },
       "io_method_terms": {
         "keywords_en": [
-          "\\bmrio\\b",
-          "\\beeio\\b",
-          "\\beemrio\\b",
-          "\\binput[- ]?output\\b",
-          "\\bio[- ]?analysis\\b",
-          "\\bio[- ]?table\\b",
-          "\\bio[- ]?model\\b",
-          "\\bmulti[- ]?region\\w* input[- ]?output\\b",
-          "\\benvironmental[- ]?extended input[- ]?output\\b",
-          "\\bexiobase\\b",
-          "\\bwiod\\b",
-          "\\bgtap\\b",
-          "\\beora\\b",
-          "\\bgloria\\b"
+          "\\bMRIO\\b",
+          "\\bEEIO\\b",
+          "\\bEEMRIO\\b",
+          "\\binput\\-output\\b",
+          "\\binput[- ]+output\\b",
+          "\\bIO[- ]+analysis\\b",
+          "\\bIO[- ]+model\\b",
+          "\\bLeontief\\b",
+          "\\bEXIOBASE\\b",
+          "\\bWIOD\\b",
+          "\\bOECD[- ]+ICIO\\b",
+          "\\bICIO\\b",
+          "\\bGTAP\\b",
+          "\\bEora\\b",
+          "\\bGLORIA\\b",
+          "\\bFIGARO\\b"
         ],
-        "keywords_cn": [
-          "投入产出",
-          "多区域投入产出",
-          "环境扩展投入产出"
-        ]
+        "keywords_cn": []
       },
       "bonus_terms": {
-        "description": "Capital-specific IO terminology",
-        "keywords_en": [
-          "\\bendogeniz(e|ing) capital\\b",
-          "\\bcapital-?inclusive footprint\\b",
-          "\\bcapital flow matrix\\b",
-          "\\binvestment[- ]?embodied emissions?\\b",
-          "\\bemissions? embodied in investment\\b",
-          "\\bcapital stock footprint\\b",
-          "\\blegacy emissions?\\b",
-          "\\bcapital matrix\\b",
-          "\\bcapital coefficient\\b",
-          "\\bcapital endogeni[sz]ation\\b"
-        ],
-        "keywords_cn": [
-          "资本内生化",
-          "投资隐含排放",
-          "遗留足迹",
-          "遗留排放",
-          "资本矩阵"
-        ]
+        "keywords_en": []
       }
     },
     "pipeline3_gfcf_trade": {
@@ -419,60 +247,60 @@
       "description": "Investment goods trade, cross-border transfers, responsibility allocation",
       "priority": 3,
       "hard_threshold": {
-        "description": "Must match: (investment_terms) AND (trade_terms)",
-        "require_investment": true,
-        "require_trade": true
+        "require_investment": true
       },
       "trade_terms": {
         "keywords_en": [
-          "\\btrade\\b",
-          "\\bleakage\\b",
-          "\\btransfer\\b",
-          "\\bvalue chain\\b",
-          "\\bsupply chain\\b",
-          "\\bunequal exchange\\b",
-          "\\becological unequal exchange\\b",
-          "\\bglobalization\\b",
-          "\\bglobalisation\\b",
-          "\\binternational\\b",
-          "\\bcross[- ]?border\\b",
-          "\\bimport\\b",
-          "\\bexport\\b",
-          "\\boffshoring\\b",
-          "\\boutsorcing\\b"
+          "\\bcapital[- ]+goods[- ]+trade\\b",
+          "\\bembodied[- ]+trade\\b",
+          "\\binternational[- ]+trade\\b",
+          "\\bsupply[- ]+chain\\b",
+          "\\bvalue[- ]+chain\\b",
+          "\\bcross\\-border[- ]+emissions\\b"
         ],
-        "keywords_cn": [
-          "贸易",
-          "泄漏",
-          "转移",
-          "价值链",
-          "供应链",
-          "不平等交换",
-          "生态不平等交换",
-          "全球化",
-          "跨境",
-          "进口",
-          "出口"
-        ]
+        "keywords_cn": []
       },
       "bonus_terms": {
-        "description": "Investment-specific trade terminology",
+        "keywords_en": []
+      },
+      "context_terms": {
         "keywords_en": [
-          "\\binvestment goods\\b",
-          "\\bcapital goods\\b",
-          "\\bconstruction materials?\\b",
-          "\\bmachinery trade\\b",
-          "\\bequipment trade\\b",
-          "\\bforeign direct investment\\b",
-          "\\bfdi\\b",
-          "\\binternational investment\\b",
-          "\\bcapital goods trade\\b"
-        ],
-        "keywords_cn": [
-          "投资品",
-          "资本品",
-          "建材",
-          "外商直接投资"
+          "\\benvironmental[- ]+footprint\\b",
+          "\\bcarbon[- ]+footprint\\b",
+          "\\bwater[- ]+footprint\\b",
+          "\\bmaterial[- ]+footprint\\b",
+          "\\bland[- ]+footprint\\b",
+          "\\bbiodiversity[- ]+footprint\\b",
+          "\\benergy[- ]+footprint\\b",
+          "\\bembodied[- ]+emissions\\b",
+          "\\bembodied[- ]+carbon\\b",
+          "\\bembodied[- ]+energy\\b",
+          "\\bupfront[- ]+carbon\\b",
+          "\\bconsumption\\-based\\b",
+          "\\blife[- ]+cycle[- ]+assessment\\b",
+          "\\blife[- ]+cycle[- ]+analysis\\b",
+          "\\bLCA\\b",
+          "\\benvironmental[- ]+impact\\b",
+          "\\bcarbon\\b",
+          "\\bemissions\\b",
+          "\\bGHG\\b",
+          "\\bCO2\\b",
+          "\\bMRIO\\b",
+          "\\bEEIO\\b",
+          "\\bEEMRIO\\b",
+          "\\binput\\-output\\b",
+          "\\binput[- ]+output\\b",
+          "\\bIO[- ]+analysis\\b",
+          "\\bIO[- ]+model\\b",
+          "\\bLeontief\\b",
+          "\\bEXIOBASE\\b",
+          "\\bWIOD\\b",
+          "\\bOECD[- ]+ICIO\\b",
+          "\\bICIO\\b",
+          "\\bGTAP\\b",
+          "\\bEora\\b",
+          "\\bGLORIA\\b",
+          "\\bFIGARO\\b"
         ]
       }
     },
@@ -481,273 +309,195 @@
       "description": "Decarbonization pathways, policy implications, lock-in, stranded assets",
       "priority": 4,
       "hard_threshold": {
-        "description": "Must match: (investment_terms) AND (policy_terms)",
-        "require_investment": true,
-        "require_policy": true
+        "require_investment": true
       },
       "policy_terms": {
         "keywords_en": [
           "\\bscenario\\b",
+          "\\bscenarios\\b",
           "\\bpathway\\b",
-          "\\bdecarboni[sz]ation\\b",
-          "\\bnet[- ]?zero\\b",
-          "\\bcarbon neutral\\b",
-          "\\bpolicy\\b",
+          "\\bpathways\\b",
+          "\\bdecarbonization\\b",
+          "\\bdecarbonisation\\b",
+          "\\bnet[- ]+zero\\b",
+          "\\bnet\\-zero\\b",
           "\\bmitigation\\b",
-          "\\btransition\\b",
-          "\\b1\\.5\\s*°?c\\b",
-          "\\b2\\s*°?c\\b",
-          "\\bparis agreement\\b",
-          "\\bcarbon peak\\b",
-          "\\bpeak carbon\\b",
-          "\\bndc\\b"
+          "\\bclimate[- ]+policy\\b",
+          "\\bstranded[- ]+assets\\b",
+          "\\block\\-in\\b"
         ],
-        "keywords_cn": [
-          "情景",
-          "路径",
-          "脱碳",
-          "净零",
-          "碳中和",
-          "政策",
-          "减缓",
-          "转型",
-          "碳达峰",
-          "巴黎协定"
-        ]
+        "keywords_cn": []
       },
       "bonus_terms": {
-        "description": "Investment-policy nexus terminology - lock-in, stranded assets, green investment",
+        "keywords_en": []
+      },
+      "context_terms": {
         "keywords_en": [
-          "\\bpublic investment\\b",
-          "\\bgreen investment\\b",
-          "\\bindustrial policy\\b",
-          "\\binfrastructure transition\\b",
-          "\\bfinancing\\b",
-          "\\block[- ]?in\\b",
-          "\\bcarbon lock[- ]?in\\b",
-          "\\bpath dependence\\b",
-          "\\bstranded assets?\\b",
-          "\\bclimate finance\\b",
-          "\\bgreen bonds?\\b",
-          "\\bcommitted emissions?\\b",
-          "\\binfrastructure lock[- ]?in\\b"
-        ],
-        "keywords_cn": [
-          "公共投资",
-          "绿色投资",
-          "产业政策",
-          "锁定效应",
-          "碳锁定",
-          "路径依赖",
-          "搁浅资产",
-          "气候融资",
-          "绿色债券"
+          "\\benvironmental[- ]+footprint\\b",
+          "\\bcarbon[- ]+footprint\\b",
+          "\\bwater[- ]+footprint\\b",
+          "\\bmaterial[- ]+footprint\\b",
+          "\\bland[- ]+footprint\\b",
+          "\\bbiodiversity[- ]+footprint\\b",
+          "\\benergy[- ]+footprint\\b",
+          "\\bembodied[- ]+emissions\\b",
+          "\\bembodied[- ]+carbon\\b",
+          "\\bembodied[- ]+energy\\b",
+          "\\bupfront[- ]+carbon\\b",
+          "\\bconsumption\\-based\\b",
+          "\\blife[- ]+cycle[- ]+assessment\\b",
+          "\\blife[- ]+cycle[- ]+analysis\\b",
+          "\\bLCA\\b",
+          "\\benvironmental[- ]+impact\\b",
+          "\\bcarbon\\b",
+          "\\bemissions\\b",
+          "\\bGHG\\b",
+          "\\bCO2\\b",
+          "\\bMRIO\\b",
+          "\\bEEIO\\b",
+          "\\bEEMRIO\\b",
+          "\\binput\\-output\\b",
+          "\\binput[- ]+output\\b",
+          "\\bIO[- ]+analysis\\b",
+          "\\bIO[- ]+model\\b",
+          "\\bLeontief\\b",
+          "\\bEXIOBASE\\b",
+          "\\bWIOD\\b",
+          "\\bOECD[- ]+ICIO\\b",
+          "\\bICIO\\b",
+          "\\bGTAP\\b",
+          "\\bEora\\b",
+          "\\bGLORIA\\b",
+          "\\bFIGARO\\b"
+        ]
+      }
+    },
+    "pipeline5_io_scenarios": {
+      "name": "IAM / Prospective MRIO Methods",
+      "priority": 1,
+      "hard_threshold": {
+        "require_investment": false
+      },
+      "io_method_terms": {
+        "keywords_en": [
+          "\\bMRIO\\b",
+          "\\bEEIO\\b",
+          "\\bEEMRIO\\b",
+          "\\binput\\-output\\b",
+          "\\binput[- ]+output\\b",
+          "\\bIO[- ]+analysis\\b",
+          "\\bIO[- ]+model\\b",
+          "\\bLeontief\\b",
+          "\\bEXIOBASE\\b",
+          "\\bWIOD\\b",
+          "\\bOECD[- ]+ICIO\\b",
+          "\\bICIO\\b",
+          "\\bGTAP\\b",
+          "\\bEora\\b",
+          "\\bGLORIA\\b",
+          "\\bFIGARO\\b"
+        ]
+      },
+      "context_terms": {
+        "keywords_en": [
+          "\\bIAM\\b",
+          "\\bintegrated[- ]+assessment[- ]+model\\b",
+          "\\bintegrated[- ]+assessment[- ]+models\\b",
+          "\\bintegrated[- ]+assessment[- ]+modelling\\b",
+          "\\bintegrated[- ]+assessment[- ]+modeling\\b",
+          "\\bSSP\\b",
+          "\\bSSP1\\b",
+          "\\bSSP2\\b",
+          "\\bSSP3\\b",
+          "\\bSSP4\\b",
+          "\\bSSP5\\b",
+          "\\bShared[- ]+Socioeconomic[- ]+Pathways\\b",
+          "\\bprospective\\b",
+          "\\bscenario\\-based\\b",
+          "\\bfuture[- ]+input\\-output\\b",
+          "\\binput\\-output[- ]+projections\\b",
+          "\\bprojecting[- ]+input\\-output\\b",
+          "\\bprojected[- ]+input\\-output\\b",
+          "\\bMESSAGEix\\b",
+          "\\bREMIND\\-MAgPIE\\b",
+          "\\bGCAM\\b",
+          "\\bscenario\\b",
+          "\\bscenarios\\b",
+          "\\bpathway\\b",
+          "\\bpathways\\b"
         ]
       }
     }
   },
-  "supplementary_themes": {
-    "description": "Cross-cutting themes that add bonus scores but don't define pipelines",
-    "datacenter_digital": {
-      "name": "Digital Infrastructure & Datacenters",
-      "description": "AI/datacenter as capital formation object - includes engineering metrics",
-      "bonus_score": 5,
-      "keywords_en": [
-        "\\bdata cent(er|re)\\b",
-        "\\bdatacentre\\b",
-        "\\bdatacenter\\b",
-        "\\bhyperscale\\b",
-        "\\bcolocation\\b",
-        "\\bcloud computing\\b",
-        "\\bcloud infrastructure\\b",
-        "\\bdigital infrastructure\\b",
-        "\\bcomputing infrastructure\\b",
-        "\\bai infrastructure\\b",
-        "\\bai energy\\b",
-        "\\bai carbon\\b",
-        "\\bai emission\\b",
-        "\\bgpu energy\\b",
-        "\\btraining carbon\\b",
-        "\\bllm\\b",
-        "\\blarge language model\\b",
-        "\\bpue\\b",
-        "\\bwue\\b",
-        "\\bpower usage effectiveness\\b",
-        "\\bwater usage effectiveness\\b",
-        "\\bcooling\\b",
-        "\\bliquid cooling\\b",
-        "\\bimmersion cooling\\b",
-        "\\bups\\b",
-        "\\bpower distribution\\b",
-        "\\bserver utilization\\b",
-        "\\binference\\b",
-        "\\bserving\\b"
-      ],
-      "keywords_cn": [
-        "数据中心",
-        "超大规模",
-        "云计算",
-        "云基础设施",
-        "数字基础设施",
-        "算力基础设施",
-        "AI能耗",
-        "AI碳排放",
-        "电源使用效率",
-        "水使用效率",
-        "冷却",
-        "液冷"
-      ]
-    },
-    "material_resources": {
-      "name": "Material Flow & Resources",
-      "description": "Material footprint, resource efficiency, key materials",
-      "bonus_score": 3,
-      "keywords_en": [
-        "\\bmaterial footprint\\b",
-        "\\bmaterial flow\\b",
-        "\\bresource footprint\\b",
-        "\\bresource efficiency\\b",
-        "\\bcircular economy\\b",
-        "\\braw materials?\\b",
-        "\\bcritical materials?\\b",
-        "\\bsteel\\b",
-        "\\bcement\\b",
-        "\\bconcrete\\b",
-        "\\baluminum\\b",
-        "\\baluminium\\b",
-        "\\bcopper\\b",
-        "\\brare earth\\b"
-      ],
-      "keywords_cn": [
-        "物质足迹",
-        "物质流",
-        "资源足迹",
-        "循环经济",
-        "原材料",
-        "关键材料",
-        "钢铁",
-        "水泥",
-        "混凝土",
-        "铝",
-        "铜",
-        "稀土"
-      ]
-    },
-    "water_land": {
-      "name": "Water & Land Footprints",
-      "description": "Water and land use impacts",
-      "bonus_score": 3,
-      "keywords_en": [
-        "\\bwater footprint\\b",
-        "\\bvirtual water\\b",
-        "\\bembodied water\\b",
-        "\\bwater consumption\\b",
-        "\\bland footprint\\b",
-        "\\bland use\\b",
-        "\\becological footprint\\b",
-        "\\bbiodiversity footprint\\b"
-      ],
-      "keywords_cn": [
-        "水足迹",
-        "虚拟水",
-        "隐含水",
-        "土地足迹",
-        "土地利用",
-        "生态足迹"
-      ]
-    }
-  },
+  "supplementary_themes": {},
   "negative_keywords": {
-    "description": "Exclusion patterns to filter out financial/ESG noise - applied differently per pipeline",
-    "financial_noise": {
-      "description": "Financial investment terminology to exclude from P1/P2 (accounting pipelines)",
+    "pure_finance": {
       "apply_to": [
         "pipeline1_gfcf_environmental",
-        "pipeline2_gfcf_mrio"
+        "pipeline2_gfcf_mrio",
+        "pipeline3_gfcf_trade",
+        "pipeline4_gfcf_policy",
+        "pipeline5_io_scenarios"
       ],
       "keywords_en": [
-        "\\bportfolio\\b",
-        "\\bstock market\\b",
-        "\\bequity return\\b",
-        "\\basset pricing\\b",
-        "\\bmutual fund\\b",
-        "\\bshareholder\\b",
-        "\\bhedge fund\\b",
-        "\\bprivate equity\\b",
-        "\\bventure capital\\b",
-        "\\bstock valuation\\b",
-        "\\bmarket capitali[sz]ation\\b",
-        "\\bfinancial portfolio\\b"
-      ]
-    },
-    "pure_finance_policy": {
-      "description": "Pure financial terms to exclude from P4 (policy pipeline) - but allow climate finance/green bonds",
-      "apply_to": [
-        "pipeline4_gfcf_policy"
-      ],
-      "keywords_en": [
-        "\\basset pricing\\b",
-        "\\bstock market\\b",
-        "\\bequity return\\b",
-        "\\bhedge fund\\b"
+        "\\bstock[- ]+market\\b",
+        "\\basset[- ]+pricing\\b",
+        "\\bequity[- ]+return\\b",
+        "\\bhedge[- ]+fund\\b",
+        "\\bmutual[- ]+fund\\b",
+        "\\bfinancial[- ]+portfolio\\b",
+        "\\bdebt[- ]+rollover\\b",
+        "\\bpension[- ]+system\\b",
+        "\\bpension[- ]+fund\\b"
       ]
     }
   },
   "consistency_requirements": {
-    "description": "For HIGH priority (>=20), must also pass at least one consistency check",
     "enabled": true,
     "checks": [
       {
-        "name": "asset_type_match",
-        "description": "Must match at least one SNA asset type",
-        "asset_types": [
-          "structures",
-          "machinery_equipment",
-          "transport_equipment",
-          "ict_equipment",
-          "intangibles_ipp"
-        ]
-      },
-      {
-        "name": "capital_measurement_match",
-        "description": "Must match CFC/PIM/lifetime/vintage terminology",
         "keywords_en": [
-          "\\bcfc\\b",
-          "\\bpim\\b",
-          "\\blifetime\\b",
-          "\\bservice life\\b",
-          "\\bvintage\\b",
-          "\\bdepreciation\\b"
-        ]
-      },
-      {
-        "name": "embodied_impact_match",
-        "description": "Must match embodied/upfront/capital goods emissions terminology",
-        "keywords_en": [
+          "\\bGFCF\\b",
+          "\\bgross[- ]+fixed[- ]+capital[- ]+formation\\b",
+          "\\bgross[- ]+fixed[- ]+capital\\b",
+          "\\bfixed[- ]+capital[- ]+formation\\b",
+          "\\bfixed[- ]+capital\\b",
+          "\\bcapital[- ]+formation\\b",
+          "\\bcapital[- ]+investment\\b",
+          "\\bcapital[- ]+expenditure\\b",
+          "\\bCAPEX\\b",
+          "\\bcapital[- ]+goods\\b",
+          "\\binvestment[- ]+goods\\b",
+          "\\bmanufactured[- ]+capital\\b",
+          "\\bphysical[- ]+capital\\b",
+          "\\bMRIO\\b",
+          "\\bEEIO\\b",
+          "\\bEEMRIO\\b",
+          "\\binput\\-output\\b",
+          "\\binput[- ]+output\\b",
+          "\\bIO[- ]+analysis\\b",
+          "\\bIO[- ]+model\\b",
+          "\\bLeontief\\b",
+          "\\bEXIOBASE\\b",
+          "\\bWIOD\\b",
+          "\\bOECD[- ]+ICIO\\b",
+          "\\bICIO\\b",
+          "\\bGTAP\\b",
+          "\\bEora\\b",
+          "\\bGLORIA\\b",
+          "\\bFIGARO\\b",
           "\\bembodied\\b",
-          "\\bupfront\\b",
-          "\\bcapital goods emissions?\\b",
-          "\\binvestment[- ]?embodied\\b"
+          "\\blife[- ]+cycle[- ]+assessment\\b"
         ]
       }
     ]
   },
   "exclusion_patterns": [
-    "^editorial\\b",
-    "^editor[']?s note",
-    "^letter to",
-    "^correction[:\\s]",
-    "^erratum[:\\s]",
-    "^corrigendum[:\\s]",
-    "^retraction[:\\s]",
-    "^book review[:\\s]",
-    "^acknowledgement",
-    "\\beditorial board\\b",
-    "\\bguest editor\\b",
-    "^contents\\b",
-    "^table of contents\\b",
-    "^index\\b",
-    "^preface\\b",
-    "^foreword\\b"
+    "\\boffspring\\b",
+    "\\bfecundity\\b",
+    "\\bPIM\\-1\\b",
+    "\\bGCF\\-Net\\b",
+    "\\bcarbon\\-carbon[- ]+bond\\b",
+    "\\bcatalytic[- ]+reduction\\b"
   ]
 }

@@ -10,7 +10,6 @@ from literature_monitor.topic.schema import (
     KeywordSet,
     PipelineConfig,
     HardThreshold,
-    ScoringConfig,
 )
 from literature_monitor.topic.loader import (
     list_topics,
@@ -80,7 +79,7 @@ class TestLoadTopic:
     def test_load_gfcf(self):
         t = load_topic("gfcf_environment")
         assert t.id == "gfcf_environment"
-        assert len(t.pipelines) == 4
+        assert len(t.pipelines) == 5
         assert len(t.keyword_sets) >= 5
         inv = next(ks for ks in t.keyword_sets if ks.name == "investment_terms")
         assert "GFCF" in inv.keywords
@@ -106,7 +105,7 @@ class TestValidateTopic:
     def test_gfcf_valid(self):
         ok, msg = validate_topic("gfcf_environment")
         assert ok is True
-        assert "4 pipelines" in msg
+        assert "5 pipelines" in msg
 
     def test_removed_topic_is_not_valid(self):
         ok, msg = validate_topic("algal_bloom_ml")
@@ -116,6 +115,7 @@ class TestValidateTopic:
         """A topic with a pipeline referencing a nonexistent keyword set
         should fail validation."""
         import yaml, os
+
         bad = {
             "id": "test_bad_ref",
             "name": "Bad Ref",
@@ -150,9 +150,16 @@ class TestTopicToLegacyKeywords:
         assert "GFCF" in inv
 
     def test_additional_pipeline_converts(self):
-        t = Topic(id="test_method", name="Method", keyword_sets=[], pipelines=[
-            PipelineConfig(name="Method", hard_threshold=HardThreshold(required_sets=[]))
-        ])
+        t = Topic(
+            id="test_method",
+            name="Method",
+            keyword_sets=[],
+            pipelines=[
+                PipelineConfig(
+                    name="Method", hard_threshold=HardThreshold(required_sets=[])
+                )
+            ],
+        )
         legacy = topic_to_legacy_keywords_dict(t)
         assert len(legacy["pipelines"]) == 1
 
@@ -169,6 +176,7 @@ class TestCLITopicCommands:
 
     def test_list_runs(self, capsys):
         from literature_monitor.cli import _cmd_topic_list
+
         rc = _cmd_topic_list()
         assert rc == 0
         out = capsys.readouterr().out
@@ -177,16 +185,19 @@ class TestCLITopicCommands:
 
     def test_validate_pass(self):
         from literature_monitor.cli import _cmd_topic_validate
+
         rc = _cmd_topic_validate("gfcf_environment")
         assert rc == 0
 
     def test_validate_fail(self):
         from literature_monitor.cli import _cmd_topic_validate
+
         rc = _cmd_topic_validate("nonexistent")
         assert rc == 1
 
     def test_show_gfcf(self, capsys):
         from literature_monitor.cli import _cmd_topic_show
+
         rc = _cmd_topic_show("gfcf_environment")
         assert rc == 0
         out = capsys.readouterr().out
@@ -195,6 +206,7 @@ class TestCLITopicCommands:
 
     def test_show_nonexistent(self):
         from literature_monitor.cli import _cmd_topic_show
+
         rc = _cmd_topic_show("nonexistent")
         assert rc == 1
 
@@ -204,22 +216,35 @@ class TestSynonymInLegacyDict:
 
     def test_synonyms_appended_to_investment(self):
         from literature_monitor.topic.loader import topic_to_legacy_keywords_dict
+
         t = load_topic("gfcf_environment")
         legacy = topic_to_legacy_keywords_dict(t)
         inv_en = legacy["gfcf_vocabulary"]["investment_terms"]["keywords_en"]
         # gfcf_environment has no synonyms on investment_terms, but function
         # should not crash and should return valid list
         assert isinstance(inv_en, list)
-        assert len(inv_en) >= 25
+        assert len(inv_en) == 14
 
     def test_custom_topic_includes_synonyms_in_legacy(self):
-        t = Topic(id="test_synonyms", name="Method", keyword_sets=[
-            KeywordSet(name="investment_terms", keywords=["GFCF"], synonyms=["gross fixed capital formation"])
-        ], pipelines=[])
+        t = Topic(
+            id="test_synonyms",
+            name="Method",
+            keyword_sets=[
+                KeywordSet(
+                    name="investment_terms",
+                    keywords=["GFCF"],
+                    synonyms=["gross fixed capital formation"],
+                )
+            ],
+            pipelines=[],
+        )
         legacy = topic_to_legacy_keywords_dict(t)
         assert "scoring_rules" in legacy
         assert "gfcf_vocabulary" in legacy
-        assert "gross fixed capital formation" in legacy["gfcf_vocabulary"]["investment_terms"]["keywords_en"]
+        assert (
+            "gross fixed capital formation"
+            in legacy["gfcf_vocabulary"]["investment_terms"]["keywords_en"]
+        )
 
 
 class TestDateRangeValidation:
@@ -227,22 +252,26 @@ class TestDateRangeValidation:
 
     def test_valid_date(self):
         from literature_monitor.topic.schema import DateRange
+
         dr = DateRange(date_from="2026-01-01")
         assert dr.date_from == "2026-01-01"
 
     def test_invalid_date_rejected(self):
         import pytest
         from literature_monitor.topic.schema import DateRange
+
         with pytest.raises(Exception):
             DateRange(date_from="not-a-date")
 
     def test_valid_date_to(self):
         from literature_monitor.topic.schema import DateRange
+
         dr = DateRange(date_from="2026-01-01", date_to="2026-12-31")
         assert dr.date_to == "2026-12-31"
 
     def test_invalid_date_to_rejected(self):
         import pytest
         from literature_monitor.topic.schema import DateRange
+
         with pytest.raises(Exception):
             DateRange(date_from="2026-01-01", date_to="bad-date")

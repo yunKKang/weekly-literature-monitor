@@ -194,24 +194,47 @@ def fetch_url(
         except httpx.HTTPStatusError as e:
             status = e.response.status_code
             body = e.response.content
-            if status in (500, 502, 503, 504) and attempt < effective_max_retries:
+            if status in (429, 500, 502, 503, 504) and attempt < effective_max_retries:
                 logger.warning(
                     "HTTP %s for %s, retrying in %.1fs...",
-                    status, url, effective_retry_delay,
+                    status,
+                    url,
+                    effective_retry_delay,
                 )
-                time.sleep(effective_retry_delay * (2**attempt))
+                retry_after = (
+                    e.response.headers.get("Retry-After", "")
+                    if e.response.headers
+                    else ""
+                )
+                try:
+                    delay = min(60.0, max(0.0, float(retry_after)))
+                except (ValueError, TypeError):
+                    delay = effective_retry_delay * (2**attempt)
+                time.sleep(delay)
                 continue
             return status, body
-        except (httpx.TimeoutException, httpx.ConnectError, httpx.ReadError,
-                httpx.RemoteProtocolError, httpx.DecodingError, Exception) as e:
+        except (
+            httpx.TimeoutException,
+            httpx.ConnectError,
+            httpx.ReadError,
+            httpx.RemoteProtocolError,
+            httpx.DecodingError,
+            Exception,
+        ) as e:
             if attempt < effective_max_retries:
                 logger.warning(
                     "Network error for %s, retrying in %.1fs...",
-                    url, effective_retry_delay,
+                    url,
+                    effective_retry_delay,
                 )
                 time.sleep(effective_retry_delay * (2**attempt))
                 continue
-            logger.error("Failed to fetch %s after %d attempts: %s", url, effective_max_retries + 1, e)
+            logger.error(
+                "Failed to fetch %s after %d attempts: %s",
+                url,
+                effective_max_retries + 1,
+                e,
+            )
             return None, b""
 
     return None, b""

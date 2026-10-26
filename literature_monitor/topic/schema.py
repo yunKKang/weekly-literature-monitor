@@ -112,7 +112,7 @@ class LLMReviewConfig(BaseModel):
 
     enabled: bool = False
     provider: str = "deepseek"
-    model: str = "deepseek-chat"
+    model: str = "deepseek-flash"
     base_url: str = Field(
         "",
         description="Custom API base URL for OpenAI-compatible providers. "
@@ -185,7 +185,10 @@ class Topic(BaseModel):
     exporters: list[ExporterConfig] = Field(default_factory=list)
 
     # --- Metadata ---
-    benchmark_dois: list[str] = Field(default_factory=list, description="DOIs of benchmark papers for recall verification")
+    benchmark_dois: list[str] = Field(
+        default_factory=list,
+        description="DOIs of benchmark papers for recall verification",
+    )
     created_at: str = ""
     updated_at: str = ""
     author: str = ""

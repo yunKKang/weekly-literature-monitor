@@ -9,7 +9,6 @@ Stage name: rule_scoring
 
 from __future__ import annotations
 
-from typing import Any
 
 from literature_monitor.pipeline.base import PipelineState
 
@@ -44,6 +43,7 @@ class RuleScoringStage:
             return False
         legacy_pool_markers = (
             "main_pool",
+            "supplementary_pool",
             "gfcf",
             "sna",
             "capital",
@@ -58,11 +58,15 @@ class RuleScoringStage:
     def _get_kw_config(self):
         """Lazy-load and cache keyword config."""
         if self._kw_config is None:
-            from literature_monitor.config import CONFIG_DIR
             from literature_monitor.core.relevance_filter import load_keyword_config
 
             from pathlib import Path
-            config_path = self.keyword_config_path or str(Path(__file__).resolve().parent.parent.parent.parent / "config" / "keywords.json")
+
+            config_path = self.keyword_config_path or str(
+                Path(__file__).resolve().parent.parent.parent.parent
+                / "config"
+                / "keywords.json"
+            )
             self._kw_config = load_keyword_config(Path(config_path))
         return self._kw_config
 
@@ -103,24 +107,29 @@ class RuleScoringStage:
                 if keyword and keyword.lower() in text.lower():
                     from literature_monitor.core.models import KeywordHit
                     from literature_monitor.core.scoring import snippet
-                    hits.append(KeywordHit(
-                        keyword=keyword,
-                        field=field,
-                        hit_type="pipeline_keyword",
-                        weight=2,
-                        snippet=snippet(text, keyword),
-                    ))
+
+                    hits.append(
+                        KeywordHit(
+                            keyword=keyword,
+                            field=field,
+                            hit_type="pipeline_keyword",
+                            weight=2,
+                            snippet=snippet(text, keyword),
+                        )
+                    )
                     break
 
         breakdown = dict(state.breakdown)
-        breakdown.update({
-            "legacy_score": result.score,
-            "legacy_priority": result.priority,
-            "matched_asset_types": result.matched_asset_types,
-            "matched_themes": result.matched_themes,
-            "exclusion_reason": result.exclusion_reason,
-            "negative_matches": result.negative_matches,
-        })
+        breakdown.update(
+            {
+                "legacy_score": result.score,
+                "legacy_priority": result.priority,
+                "matched_asset_types": result.matched_asset_types,
+                "matched_themes": result.matched_themes,
+                "exclusion_reason": result.exclusion_reason,
+                "negative_matches": result.negative_matches,
+            }
+        )
 
         return state.with_(
             rule_score=float(result.score),

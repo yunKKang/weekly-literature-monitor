@@ -57,9 +57,15 @@ class FinalScoringStage:
         legacy_priority = breakdown.get("legacy_priority", "LOW")
         legacy_score = breakdown.get("legacy_score", 0)
 
-        if legacy_priority == "HIGH" or legacy_score >= self.legacy_high_threshold:
+        if legacy_priority == "HIGH" or (
+            "legacy_priority" not in breakdown
+            and legacy_score >= self.legacy_high_threshold
+        ):
             level = "HIGH"
-        elif legacy_priority == "MEDIUM" or legacy_score >= self.legacy_medium_threshold:
+        elif legacy_priority == "MEDIUM" or (
+            "legacy_priority" not in breakdown
+            and legacy_score >= self.legacy_medium_threshold
+        ):
             level = "MEDIUM"
         elif total >= LEVEL_HIGH:
             level = "HIGH"

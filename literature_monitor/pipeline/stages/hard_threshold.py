@@ -25,11 +25,20 @@ class HardThresholdStage:
         self,
         keyword_sets: dict[str, list[str]] | None = None,
         pipeline_requirements: list[list[str | list[str]]] | None = None,
+        pipeline_negatives: list[list[str]] | None = None,
     ) -> None:
+        self.negatives = [
+            [re.compile(r"(?<!\w)" + re.escape(k) + r"(?!\w)", re.I) for k in group]
+            for group in (pipeline_negatives or [])
+        ]
         self.keyword_sets = keyword_sets or {}
         self.pipeline_requirements = pipeline_requirements
         self._compiled: dict[str, list[re.Pattern]] = {
-            name: [re.compile(re.escape(kw), re.IGNORECASE) for kw in kws if kw]
+            name: [
+                re.compile(r"(?<!\w)" + re.escape(kw) + r"(?!\w)", re.IGNORECASE)
+                for kw in kws
+                if kw
+            ]
             for name, kws in self.keyword_sets.items()
         }
 
@@ -54,9 +63,13 @@ class HardThresholdStage:
         if not self.pipeline_requirements or not self._compiled:
             return state.with_(passed_hard_threshold=True)
 
-        text = f"{state.title} {state.abstract}"
+        text = f"{state.title} {state.abstract}".replace("–", "-").replace("—", "-")
 
-        for required_sets in self.pipeline_requirements:
+        for index, required_sets in enumerate(self.pipeline_requirements):
+            if index < len(self.negatives) and any(
+                p.search(text) for p in self.negatives[index]
+            ):
+                continue
             all_matched = True
             for group in required_sets:
                 if not self._check_and_group(text, group):
