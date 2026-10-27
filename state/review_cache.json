@@ -1,0 +1,288 @@
+{
+  "schema": 1,
+  "entries": {
+    "304e322f0649831c837445849cacf92269a819174eac2e4ec32eefaaa4507cbf": {
+      "paper": {
+        "doi": "10.1007/s44498-026-00160-7",
+        "title": "Sectoral green finance thresholds for managing carbon transition risks: an input–output network approach with evidence from Malaysia",
+        "authors": [
+          "Faridzad, Ali",
+          "Sritharan, Nivakan"
+        ],
+        "journal": "Journal of Industrial Ecology",
+        "issn": "1088-1980",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-10-01",
+        "abstract": "Abstract Green finance is an important instrument for supporting low-carbon transitions; however, its effectiveness depends on targeted allocation that balances emission reduction with economic stability. In Malaysia, which has committed to achieving net-zero emissions by 2050, the sectoral distribution of green finance remains uncertain, particularly given complex inter-industry linkages. This study addresses this issue by developing a sectoral input–output framework to estimate indicative green finance thresholds associated with managing carbon transition risks. The approach integrates carbon intensity (CI) and Hypothetical Extraction Centrality (HEC) to capture environmental exposure and systemic importance across the national production network. The results suggest that implied green finance needs are concentrated in a limited number of sectors. Electrical and optical equipment emerges as a systemically important sector, while electricity, gas, and water supply show high carbon intensity. Additional sectors, including coke, refined petroleum and nuclear fuel, wholesale and retail trade, and basic and fabricated metals, are associated with relatively higher estimated financing levels. In contrast, service-oriented sectors appear to exhibit lower transition risks. Overall, the findings highlight how scenario-based, sector-specific allocation can provide insights into potential pathways for reducing emissions while maintaining macroeconomic stability. However, these estimates are best understood as indicative, model-based benchmarks that reflect the structural assumptions of a static, one-period input–output framework. The study offers a scalable analytical approach that may help inform green finance discussions in Malaysia and other emerging economies.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": false,
+        "confidence": "high",
+        "reason": "The paper develops an input–output framework to estimate sectoral green finance thresholds for carbon transition risk management, which is a finance/ESG allocation application rather than environmental accounting of physical capital formation, capital stocks, or infrastructure, and it does not couple a transferable prospective IO/MRIO method to IAM/SSP future scenarios.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-10-27T04:10:04.205251+00:00",
+        "methodology": "Static one-period input–output framework integrating carbon intensity and Hypothetical Extraction Centrality",
+        "research_object": "Sectoral green finance thresholds and carbon transition risks in Malaysia",
+        "environmental_dimension": "Carbon intensity and emissions exposure across sectors"
+      }
+    },
+    "ae48dc099f40bb8ee25d166b9e87981f9a1eed074f8b6dd556cadd19e6429909": {
+      "paper": {
+        "doi": "10.1007/s44498-026-00175-0",
+        "title": "Environmental and socio-economic implications of solar photovoltaic reshoring under the EU Net Zero Industry Act: a hybrid input–output assessment",
+        "authors": [
+          "Rinaldi, Lorenzo",
+          "Merletti, Raffaele",
+          "Citterio, Camilla",
+          "Golinucci, Nicolò",
+          "Rocco, Matteo Vincenzo"
+        ],
+        "journal": "Journal of Industrial Ecology",
+        "issn": "1088-1980",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-10-01",
+        "abstract": "Abstract The photovoltaic supply chain is complex and geographically concentrated. Assessing the impacts of policies targeting it requires models that explicitly represent supply-chain structure. While process-based life-cycle assessment truncates economy-wide effects and top-down input–output models are too aggregated to resolve individual manufacturing stages, our study develops a hybrid framework integrating a process-based PV supply chain model into the multi-regional input–output accounting structure of EXIOBASE. The model is first verified against reference literature ranges of solar electricity carbon footprints and producer prices, showing literature-consistent results that purely top-down models miss by omitting productive capital. The framework is applied to the Net Zero Industry Act, a major European Union (EU) reshoring policy, under a scenario where 40% of module demand is supplied domestically. Results show that reshoring mainly affects downstream stages, while upstream production remains largely external, leading to moderate changes in consumption-based emissions and limited gains in EU value-added and employment.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": true,
+        "confidence": "high",
+        "reason": "The paper develops a hybrid process-based PV supply-chain model integrated into EXIOBASE MRIO to assess environmental and socio-economic impacts of EU solar reshoring, explicitly accounting for productive capital and consumption-based emissions.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-10-27T04:10:05.858429+00:00",
+        "methodology": "Hybrid process-based life-cycle model integrated into EXIOBASE multi-regional input-output accounting, applied to a Net Zero Industry Act reshoring scenario",
+        "research_object": "Solar photovoltaic supply chain and EU reshoring policy (Net Zero Industry Act)",
+        "environmental_dimension": "Consumption-based emissions and carbon footprints of solar electricity"
+      }
+    },
+    "3ad7083bae5347bc87ffcc53ecd5790f316d51a23e02b05b5570d8d8dfb6583b": {
+      "paper": {
+        "doi": "10.1007/s44498-026-00188-9",
+        "title": "Wood use scenarios in Sweden through integrated monetary-physical input–output framework",
+        "authors": [
+          "Iliev, Bogomil",
+          "Arto, Iñaki",
+          "Bentsen, Niclas Scott",
+          "de la Maza Larrea, Arrate Sainz",
+          "Thomsen, Marianne"
+        ],
+        "journal": "Journal of Industrial Ecology",
+        "issn": "1088-1980",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-10-01",
+        "abstract": "Abstract Governments promote expanded wood use to meet climate and bioeconomy goals, yet policy requires comprehensive evidence. We develop an integrated monetary-physical input–output framework for Sweden linking structural changes in wood use to macroeconomic performance, GHG emissions, and carbon stock dynamics in wood-based products and forests. We simulate 3 stylised scenarios for 2020–2040: (i) cross-laminated timber (CLT) construction; (ii) waste recycling; and (iii) wood cascade combining both with a harvest constraint met by reduced pulp and paper demand. Across scenarios, aggregate economic and production-based GHG effects remain modest at the national level, while impacts on the forest-based economy and carbon-stock trajectories are more pronounced. CLT construction delivers the strongest macroeconomic gains (value added +5.1 bn SEK yr⁻ 1 ; employment +8.5 thousand yr⁻ 1 ) and lowers production-based GHG emissions (− 0.3 Mt CO₂e yr⁻ 1 ), but reduces the forest carbon pool, yielding a negative system carbon balance (− 63 Mt carbon (C) by 2040). Waste recycling increases value added (+ 4.3 bn SEK yr⁻ 1 ) and improves system carbon (+ 7 Mt C by 2040). Wood cascade increases value added (+ 2.4 bn SEK yr⁻ 1 ), achieves the largest GHG reduction (− 0.53 Mt CO₂e yr⁻ 1 ), and yields a positive system carbon trajectory (+ 33 Mt C by 2040). Overall, cascading secures climate benefits while maintaining economic performance, albeit with a shift away from pulp, paper, and mineral production toward long-lived wood products, whereas substitution without harvest limits risks eroding forest resources and the carbon sink. The framework enables system-wide comparison of wood-use strategies, revealing economy-forest trade-offs and supporting integrated assessment across monetary and physical accounts.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": true,
+        "confidence": "high",
+        "reason": "The paper develops an integrated monetary-physical input–output framework simulating wood-use scenarios (CLT construction, recycling, cascade) linked to GHG emissions and carbon stock dynamics, directly addressing environmental accounting of capital formation and infrastructure (CLT construction) and prospective IO scenario methods.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-10-27T04:10:07.693048+00:00",
+        "methodology": "Integrated monetary-physical input–output framework with stylised 2020–2040 scenarios",
+        "research_object": "Wood use strategies in Sweden (CLT construction, waste recycling, wood cascade) and their macroeconomic, GHG, and carbon stock effects",
+        "environmental_dimension": "GHG emissions, forest carbon pool and system carbon balance, carbon stock dynamics in wood products"
+      }
+    },
+    "3b7360766035433d5e5a8ee5d1092b3581f01d7df63167d8cbc0e8be816fe4e0": {
+      "paper": {
+        "doi": "10.1016/j.spc.2026.04.009",
+        "title": "Household carbon emissions analysis under aging population scenarios in China: Insights from micro household surveys and input-output analysis",
+        "authors": [
+          "Li, Daming",
+          "Li, Nan",
+          "Wang, Saige",
+          "Li, Chengming",
+          "Xu, Ming"
+        ],
+        "journal": "Sustainable Production and Consumption",
+        "issn": "2352-5509",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-09-01",
+        "abstract": "",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "missing_abstract",
+        "relevant": null,
+        "reason": "missing_abstract",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-10-27T04:10:07.693924+00:00"
+      }
+    },
+    "e2bf4da5c9b74f8435e5e26f0f8018cbfccc3be9655375e06678d91999d57c52": {
+      "paper": {
+        "doi": "10.1021/acs.est.6c06705",
+        "title": "How Long Do Buildings Live: A Systematic Review and Meta-Analysis of Global Building Lifetimes",
+        "authors": [
+          "Krych, Kamila",
+          "Dittrich, Nils",
+          "Müller, Daniel B.",
+          "Hellweg, Stefanie"
+        ],
+        "journal": "Environmental Science &amp;\nTechnology",
+        "issn": "0013-936X",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-09-22",
+        "abstract": "Abstract Building lifetime is a foundational parameter for modeling stock dynamics, informing environmental impact assessment and urban development, yet current lifetime assumptions frequently lack empirical grounding. Although well-established in medicine and demography, survival analysis concepts have not penetrated building stock research to the same extent. This study bridges this gap through a systematic review and meta-analysis of 258 median building lifetime estimates across 46 global studies. Central to our analysis is right-censoring, when a building’s demolition remains unobserved at the end of the observation period, which, if unaccounted for in estimation, leads to underestimated lifetimes. We systematize five estimation approaches based on data type and the capacity to account for right-censoring, describe the currently available empirical evidence, and apply a meta-regression to identify significant predictors of median lifetimes: world region, use class, structural material, and right-censoring bias, the latter underestimating building lifetimes by 50% (95% CI: 49–51%). Of the five estimation approaches identified, three inherently consider right-censoring, one inherently cannot correct for it, and one requires an active correction step that is frequently omitted. Our work identifies critical data gaps and offers targeted recommendations for users and producers of lifetime estimates to improve transparency, reproducibility, and methodological rigor.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": true,
+        "confidence": "high",
+        "reason": "The paper provides empirically grounded building lifetime estimates that are foundational parameters for modeling building stock dynamics and environmental impact assessment, directly supporting capital stock and material stock accounting.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-10-27T04:10:09.511248+00:00",
+        "methodology": "Systematic review and meta-analysis with meta-regression of 258 median building lifetime estimates across 46 studies, including survival analysis and right-censoring correction.",
+        "research_object": "Building lifetimes (median demolition/survival estimates) for building stocks globally.",
+        "environmental_dimension": "Environmental impact assessment via building stock dynamics and material stock modeling."
+      }
+    },
+    "d7ccfc078aa645b4952d855381bc8c2c9d8ffbaf71694cdcbc2cd2b7795b0f6a": {
+      "paper": {
+        "doi": "10.1021/acs.est.6c06919",
+        "title": "Decomposing Vehicle Production and Consumption Impacts in Japan under Mobility and Production Network Interventions",
+        "authors": [
+          "Fry, Jacob",
+          "He, Ziyan",
+          "Ishikawa, Hiroyuki",
+          "Iwata, Takamichi",
+          "Kito, Minami",
+          "Nakajima, Kenichi",
+          "Nansai, Keisuke"
+        ],
+        "journal": "Environmental Science &amp;\nTechnology",
+        "issn": "0013-936X",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-09-22",
+        "abstract": "Abstract Passenger vehicles contribute approximately 8% to global energy-related emissions and drive other environmental impacts through the extraction of raw materials. In this study, a hybrid LCA approach is used to investigate emissions and material life-cycle impacts arising from vehicle production and consumption in Japan. By embedding a physical vehicle production model within a global MRIO, we find that 53% of emissions occur in Japan, while almost all material extraction impacts occur internationally. Vehicle size, PHEV utility factor, and battery capacity all strongly influence life-cycle impacts. Demand-side scenarios of increased occupancy, downsizing, and lifetime extension have the collective potential to reduce emissions by approximately 33% at the cohort level, while providing comparable mobility services. Lifetime extension requires additional material inputs with associated impacts; however, these impacts are repaid over time, resulting in an overall average emissions intensity (gCO2e/km) reduction of 7%. Vehicle electrification alone is unlikely to be sufficient to meet climate targets; therefore, demand-side measures should be implemented concurrently to decarbonize passenger transport while maintaining access to mobility services. While some opportunity exists to substitute upstream suppliers for lower-impact providers, the existence of low-pollution production havens is limited, further underscoring the importance of demand-side measures.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": true,
+        "confidence": "high",
+        "reason": "The paper uses a hybrid LCA embedding a physical vehicle production model within a global MRIO to quantify life-cycle emissions and material impacts of vehicle production and consumption, directly addressing environmental accounting of physical capital/investment goods (vehicles).",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-10-27T04:10:11.255163+00:00",
+        "methodology": "Hybrid LCA with physical vehicle production model embedded in global MRIO, plus demand-side scenarios",
+        "research_object": "Passenger vehicle production and consumption in Japan",
+        "environmental_dimension": "Life-cycle GHG emissions and material extraction impacts"
+      }
+    },
+    "cdf692bc2a55160337d16060a17ce273454a7c7cd8fbdebc50383f761b2399a0": {
+      "paper": {
+        "doi": "10.1021/acs.est.6c01727",
+        "title": "Multi-Scale Multi-Indicator Assessment of Material Recovery Pathways: The Case of the United States Flat Glass Sector",
+        "authors": [
+          "Walzberg, Julien",
+          "Biyani, Nivedita",
+          "Upasani, Shubhankar",
+          "Sharma, Mansi",
+          "Wachs, Liz",
+          "Hanes, Rebecca J.",
+          "Ghosh, Tapajyoti",
+          "Avelino, Andre",
+          "Eberle, Annika",
+          "Carpenter, Alberta"
+        ],
+        "journal": "Environmental Science &amp;\nTechnology",
+        "issn": "0013-936X",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-10-23",
+        "abstract": "Abstract Material recovery and circularity analysis offers critical insights for understanding future scenarios and informing strategic decisions toward resource use. However, existing approaches often lack the granularity and breadth needed to capture supply chain dynamics and economy-wide impacts simultaneously. We introduce a novel quantitative framework─Supply Chain Operations Research through Physical Input-Output (SCORPIO)─that addresses this gap by enabling multi-scale assessment of material recovery strategies across both supply chain and macroeconomic levels. To demonstrate SCORPIO’s capabilities, we apply it to flat glass flows in the United States, examining waste valorization practices, including open- and closed-loop recycling. By assessing economic, workforce, and environmental indicators, SCORPIO reveals the potential outcomes and trade-offs of different waste valorization solutions in a holistic manner. Results show that both open-loop and closed-loop recycling of glass from utility solar and commercial buildings have the potential for positive economic impacts at the supply chain and economy level. However, the effect on environmental impacts was less certain, with open-loop recycling generally performing better than closed-loop pathways. This case study illustrates how the SCORPIO framework can support stakeholders navigating the transition toward increased material recovery, offering a methodological foundation applicable to other material systems facing environmental and resource challenges.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": true,
+        "confidence": "high",
+        "reason": "The paper develops a physical input-output framework (SCORPIO) for multi-scale assessment of material recovery pathways, evaluating environmental, economic, and workforce indicators for flat glass recycling, which constitutes environmental accounting of material recovery and circularity with economy-wide IO methods.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-10-27T04:10:13.260381+00:00",
+        "methodology": "Physical input-output (SCORPIO) framework combined with supply chain operations research for multi-scale material flow and indicator assessment",
+        "research_object": "United States flat glass sector material recovery and waste valorization pathways (open- and closed-loop recycling)",
+        "environmental_dimension": "Environmental impacts and resource use across recycling scenarios, alongside economic and workforce indicators"
+      }
+    },
+    "d85e8c6f371af02c52141085e6d13f6681144053880b859fa7034de945ddc09e": {
+      "paper": {
+        "doi": "10.1038/s41467-026-76207-x",
+        "title": "Enabling molecular signaling with temperature and ionic-strength independence or programmable dependence",
+        "authors": [
+          "Korenkov, Egor S.",
+          "Nikitin, Maxim P."
+        ],
+        "journal": "Nature Communications",
+        "issn": "2041-1723",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-08-07",
+        "abstract": "Abstract The equilibrium constants of chemical reactions fundamentally depend on temperature, posing challenges for living systems. However, many conformer organisms do not maintain a stable internal temperature. This raises the question: can molecular signaling pathways inherently resist temperature susceptibility? Molecular commutation is a recently discovered, fundamentally distinct mechanism of biological information processing and storage within reversible association/dissociation reactions. Here, we show that molecular commutation enables complex signaling systems that are independent of temperature and ionic strength and, even more generally, programmably dependent on these parameters. Using examples of various DNA logic gates, receptor-activator networks, and systems with complex input–output relationships (e.g., computed as algebraic functions), we demonstrate computationally that introducing compensatory reactions in these networks can render their signaling independent of temperature and ionic strength. We experimentally validate such independence for a case of a YES-logic gate. Finally, we computationally demonstrate networks with outputs that follow predefined functional forms of temperature and ionic strength (e.g., sin(T), where T is temperature). The presented intrinsic capabilities of affinity-based networks provide a remarkable homeostasis and signaling control mechanism that may be used by biological systems of arbitrarily high complexity.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": false,
+        "confidence": "high",
+        "reason": "The paper studies molecular commutation and DNA logic gates for temperature/ionic-strength-independent signaling, with no environmental accounting of capital formation, investment goods, infrastructure, or transferable IAM–MRIO scenario methods.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-10-27T04:10:14.873436+00:00",
+        "methodology": "Computational modeling and experimental validation of DNA logic gates and receptor-activator networks",
+        "research_object": "Molecular signaling networks and DNA logic gates",
+        "environmental_dimension": "none"
+      }
+    }
+  }
+}
