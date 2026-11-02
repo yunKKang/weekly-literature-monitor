@@ -134,7 +134,7 @@
         "reason": "missing_abstract",
         "model": "deepseek-flash",
         "provider": "deepseek",
-        "reviewed_at": "2026-10-27T04:10:07.693924+00:00"
+        "reviewed_at": "2026-11-02T17:30:51.377894+00:00"
       }
     },
     "e2bf4da5c9b74f8435e5e26f0f8018cbfccc3be9655375e06678d91999d57c52": {
@@ -282,6 +282,111 @@
         "methodology": "Computational modeling and experimental validation of DNA logic gates and receptor-activator networks",
         "research_object": "Molecular signaling networks and DNA logic gates",
         "environmental_dimension": "none"
+      }
+    },
+    "1255b903ddea33287ca1829209fe3259f7a94bff89b25d5da1e6476a4207ae5c": {
+      "paper": {
+        "doi": "10.1007/s44498-026-00198-7",
+        "title": "Characterising the Swiss window stock and retrofit potential using machine-learning",
+        "authors": [
+          "Hummel, Tim H. C.",
+          "Herbst, Oskar",
+          "Schmid, Carlo",
+          "Hellweg, Stefanie"
+        ],
+        "journal": "Journal of Industrial Ecology",
+        "issn": "1088-1980",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-10-30",
+        "abstract": "Abstract Windows strongly influence both operational energy demand and embodied emissions in the construction sector, yet they remain insufficiently represented in national building material stock models. Accurate representation of window materials, energy performance, and renovation state is essential for assessing both operational and embodied climate impacts, and for informing future refurbishment and re-use strategies. This study combines detailed information from energy performance certificates with machine-learning classification. Window frame materials, glazing types, renovation states, and window to wall ratios are derived from energy certificate data for more than 40,000 buildings. Results show an increasing share of plastic frames since the 1990s and increasing window to wall ratio until 2010. We then train supervised machine-learning classifiers on these 40,000 buildings to predict glazing type and frame material for all 1.51 million Swiss residential buildings from building age, size, and location. While double glazing can be identified with a precision of 0.8 and triple glazing with an F1-score of 0.67, frame-material prediction performs lower due to overlapping characteristics between material classes. We preserve stochastic uncertainty when applying the trained classifiers using probabilistic classification and Monte Carlo analysis. The resulting estimates describe the window stock at an aggregate, probabilistic level. We use this stock estimate to assess the retrofit potential of the Swiss window stock to showcase the application of our framework. Double glazing dominates the residential building stock in all cantons (56.2–67.7%). By contrast, potential annual net $$\\hbox {CO}_2$$ CO 2 savings per $$\\hbox {m}^{2}$$ m 2 window area for a double-to-triple glazing retrofit show three-fold differences across cantons.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": true,
+        "confidence": "high",
+        "reason": "The paper characterizes the Swiss window material stock and retrofit potential, quantifying embodied/operational climate impacts and CO2 savings, which constitutes environmental accounting of physical capital stock (building components).",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-11-02T17:30:52.921541+00:00",
+        "methodology": "Machine-learning classification combined with Monte Carlo probabilistic analysis applied to energy performance certificate data to estimate material stock and retrofit potential.",
+        "research_object": "Swiss residential window stock (frame materials, glazing types, renovation states, window-to-wall ratios) across 1.51 million buildings.",
+        "environmental_dimension": "Embodied emissions and operational energy/CO2 savings from glazing retrofits."
+      }
+    },
+    "61ede01e193c415cb4bf9d1d16eae9a87675ec63b7a45390c4c6bb03689c3673": {
+      "paper": {
+        "doi": "10.1088/1748-9326/aebbd3",
+        "title": "Electricity retail pricing as incentives for load optimization in Vietnam",
+        "authors": [
+          "Doan, Thuy T.T.",
+          "Portilla-Paveri, Manuel",
+          "Lobos Rodríguez, Nicolás Eduardo",
+          "Negrete-Pincetic, Matias"
+        ],
+        "journal": "Environmental Research Letters",
+        "issn": "1748-9326",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-10-30",
+        "abstract": "Abstract Vietnam’s pathway to net-zero emissions by 2050 has so far relied primarily on large-scale renewable energy investments, with limited use of demand-side management. This study evaluates how alternative retail electricity pricing schemes - flat tariffs, Time-of-Use (TOU), Critical Peak Pricing (CPP), and a TOU-CPP hybrid - shape demand flexibility, system costs, emissions, consumer welfare, and reliability in Vietnam. The analysis uses SWITCH 2.0, an integrated capacity expansion and dispatch model with an iterative demand-response module, to Vietnam’s electricity system in 2050.&amp;#xD;&amp;#xD;Relative to flat pricing, the modeled TOU designs reduce total system costs by up to 15% and CO2 emissions by 17.2-37.5%, while increasing consumer welfare. Consecutive TOU blocks capture substantial benefits, whereas adding CPP produces little additional improvement. Endogenous block assignment achieves the lowest system cost and reduces storage investment, but does not yield the lowest emissions or highest consumer welfare. Sensitivity analysis confirms lower unit costs and emissions and higher consumer welfare under consecutive TOU than under matched flat-pricing cases across seven demand-response parameter combinations. However, the magnitude of these benefits depends strongly on the share of load available for within-day rescheduling. Demand shifting toward solar-rich hours also changes transmission utilization, relieving pressure on some corridors while increasing it elsewhere.&amp;#xD;&amp;#xD;The findings support a staged transition toward TOU pricing with simple consecutive blocks, accompanied by enabling technologies and coordinated transmission planning. The results represent conditional system-level outcomes rather than estimates of realized consumer responses or distributional effects.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": false,
+        "confidence": "high",
+        "reason": "The paper evaluates retail electricity pricing schemes (TOU, CPP) for demand flexibility and emissions using a capacity expansion/dispatch model, which is operational energy and demand-response analysis without substantive physical capital formation, investment goods, capital stock, or transferable IAM-MRIO/IO scenario methods.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-11-02T17:30:54.438977+00:00",
+        "methodology": "SWITCH 2.0 integrated capacity expansion and dispatch model with iterative demand-response module",
+        "research_object": "Vietnam electricity system retail pricing and demand flexibility in 2050",
+        "environmental_dimension": "CO2 emissions and system costs"
+      }
+    },
+    "43cbe9270300aee16a0912b7c7d5233c06efa70d8590fb61a81adfa22a84fe76": {
+      "paper": {
+        "doi": "10.1088/1748-9326/aebbdc",
+        "title": "Biodiversity credits hold promise, yet credit-generating protocols require safeguards to realize potential",
+        "authors": [
+          "Culbertson, Katherine",
+          "Federman, Sarah",
+          "Camp, Lucia Catherine",
+          "Potts, Matthew D"
+        ],
+        "journal": "Environmental Research Letters",
+        "issn": "1748-9326",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-10-30",
+        "abstract": "Abstract Given the existing gap in biodiversity funding, mobilizing private finance will be essential to achieving global biodiversity conservation goals, especially across lower- and middle-income countries with limited capacity and public finance. The emerging voluntary biodiversity market (VBM) holds promise to leverage private finance for biodiversity, but credit-generating protocols must be robust to prevent greenwashing and maximize effectiveness. In this study, the first to move beyond theoretical critiques and general market assessments of the VBM, we extracted details of program structure and crediting issuance from protocols for 13 relatively well-established biodiversity-crediting organizations. With these data, we evaluated protocols’ alignment with both conservation and restoration biology principles and lessons learned from the voluntary carbon market (VCM). We find that action must be taken to improve quantification of biodiversity impacts, especially incorporating patch size and connectivity in crediting and assessing projects on ecologically relevant timelines. Further, safeguards for additionality, leakage, risk, and verification from the VCM must be more robustly integrated in the VBM, and deep engagement and investment in local communities must be improved to ensure durable biodiversity-positive outcomes.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": false,
+        "confidence": "high",
+        "reason": "The paper evaluates biodiversity-crediting protocols and market safeguards, which is finance/conservation policy rather than environmental accounting of physical capital formation or transferable IAM-MRIO scenario methods.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-11-02T17:30:55.677224+00:00",
+        "methodology": "Protocol content extraction and evaluation against conservation/restoration principles and VCM lessons",
+        "research_object": "Biodiversity-crediting organizations and their protocols",
+        "environmental_dimension": "Biodiversity conservation impacts"
       }
     }
   }
