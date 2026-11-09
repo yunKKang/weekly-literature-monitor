@@ -134,7 +134,7 @@
         "reason": "missing_abstract",
         "model": "deepseek-flash",
         "provider": "deepseek",
-        "reviewed_at": "2026-11-02T17:30:51.377894+00:00"
+        "reviewed_at": "2026-11-09T17:54:25.726875+00:00"
       }
     },
     "e2bf4da5c9b74f8435e5e26f0f8018cbfccc3be9655375e06678d91999d57c52": {
@@ -387,6 +387,118 @@
         "methodology": "Protocol content extraction and evaluation against conservation/restoration principles and VCM lessons",
         "research_object": "Biodiversity-crediting organizations and their protocols",
         "environmental_dimension": "Biodiversity conservation impacts"
+      }
+    },
+    "7d0b9b777b0277cc7f2f8ba365fbe0b055dce286cca82d122ccd778c18a3ff50": {
+      "paper": {
+        "doi": "10.1021/acs.est.6c10592",
+        "title": "Constructing Prospective Multiregional Input-Output Tables via Scenario-Constrained Optimization for Future Environmental Footprint Assessment",
+        "authors": [
+          "Peng, Sidi",
+          "Daioglou, Vassilis",
+          "Stadler, Konstantin",
+          "Roshandel, Ramin",
+          "Bruckner, Martin",
+          "Pfister, Stephan"
+        ],
+        "journal": "Environmental Science &amp;\nTechnology",
+        "issn": "0013-936X",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-11-03",
+        "abstract": "Abstract Prospective multiregional input-output (MRIO) tables that integrate scenarios from integrated assessment models (IAMs) support forward-looking environmental footprint analysis, but the trade-off between historical structural fidelity and scenario compliance has not been quantified. We constructed 12 prospective MRIO tables from EXIOBASE 2019 and the IMAGE SSP2 scenario for 2035, including a Leontief-based projection and 11 optimization-based projections under different combinations of scenario constraints on GDP, value added, sector outputs, as well as energy and agriculture consumption. Among the constraints, those on energy and agriculture consumption were satisfied at the highest cost in coefficient deviations from the Leontief-based projection and shifted the corresponding transaction flows most significantly. Regional shares of the global carbon footprint remained stable, but sectoral attribution within each region was substantially reshuffled, and the identification of high-growth consumption hotspots was sensitive to scenario compliance level. Some hotspots persisted at all levels of compliance. The consumption-based carbon footprint driven by China’s final energy demand grew the fastest and emerged as a major new hotspot in 2035. The footprint of livestock consumption showed persistent high growth in multiple regions and India and the Rest of Asia rose in environmental significance through their industrial sectors.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": true,
+        "confidence": "high",
+        "reason": "The paper constructs prospective MRIO tables by coupling IAM SSP2 scenarios with EXIOBASE via scenario-constrained optimization for future environmental footprint assessment, directly matching Route B.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-11-09T17:54:25.711816+00:00",
+        "methodology": "Scenario-constrained optimization to construct prospective MRIO tables from EXIOBASE 2019 and IMAGE SSP2, with Leontief-based and optimization-based projections",
+        "research_object": "Prospective multiregional input-output tables and consumption-based carbon footprints for 2035",
+        "environmental_dimension": "Consumption-based carbon footprint and environmental significance of sectors/regions"
+      }
+    },
+    "fe1259ba26477dee73afc29c0eadcca694b6721b4ff4e8247282bac563146525": {
+      "paper": {
+        "doi": "10.1021/acs.est.6c12154",
+        "title": "Wastewater Treatment Plants as Anchor Infrastructure for Geothermal Energy in Cold Regions",
+        "authors": [
+          "Xue, Jinkai",
+          "Li, Rui",
+          "Liu, Xitong",
+          "Moore, Michal Charles",
+          "Liu, Yang",
+          "Huang, Xia",
+          "Huang, Guohe"
+        ],
+        "journal": "Environmental Science &amp; Technology",
+        "issn": "0013-936X",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-11-05",
+        "abstract": "Abstract Thermal constraints in cold regions suppress biological treatment, increase energy demand, and elevate greenhouse gas emissions of existing wastewater treatment plants (WWTPs), and remain a major barrier to the deployment of adequate sanitation infrastructure in many cold-region communities. Where geothermal resources exist, low-enthalpy hydrothermal heat is well matched to this energy gap. Yet, WWTPs are underrecognized anchors for broader geothermal deployment, providing a continuous, weather-independent thermal offtake through which subsurface CAPEX can be amortized. We reframe geothermal-WWTP integration as a system-level enabler that benefits both parts. Using three cascaded configurations for a full-scale WWTP, a rapid techno-economic analysis identifies three trends: energy and carbon savings/revenues alone are insufficient under realistic policy stacks, whereas crediting the upgrade-deferral value of geothermally enhanced treatment makes the project economically favorable across most policy scenarios. Globally, this triple intersection encompasses ∼11,600 catalogued WWTPs serving ∼280 million people, with a further estimate of ∼48 million people in the same regions beyond current service radii. The opportunity is greatest in cold, remote, and underserved communities, where local geothermal resources, treatment intensification, and community-scale demand together carry a case that no single driver could sustain alone.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": true,
+        "confidence": "high",
+        "reason": "The paper conducts a techno-economic and carbon analysis of integrating geothermal heat with wastewater treatment plant infrastructure, assessing energy and carbon savings and capital amortization of physical infrastructure upgrades.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-11-09T17:54:27.474550+00:00",
+        "methodology": "Rapid techno-economic analysis with three cascaded geothermal-WWTP configurations and policy scenario assessment",
+        "research_object": "Wastewater treatment plants as anchor infrastructure for geothermal energy deployment in cold regions",
+        "environmental_dimension": "Energy and carbon savings, greenhouse gas emissions reduction, and infrastructure capital accounting"
+      }
+    },
+    "48cdfbc5b63307823acd7998d26a65eac5d8c28f98701c2b8b67f7f10eba1acb": {
+      "paper": {
+        "doi": "10.1038/s41467-026-79187-0",
+        "title": "Toward Ternary Computing Enabled by Origami-Inspired Modular Architectures",
+        "authors": [
+          "Wang, Xiaolei",
+          "Wang, Zihe",
+          "Qu, Haibo",
+          "Wang, Peiyi",
+          "Guo, Sheng",
+          "Yang, Jinkyu"
+        ],
+        "journal": "Nature Communications",
+        "issn": "2041-1723",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-11-05",
+        "abstract": "Abstract Modern mechanical computing, being envisioned as a pathway toward structure- and material-level processing, holds potential for intelligent metamaterials and robotics in extreme environments. However, current computing architectures remain constrained by binary paradigms. Here, we introduce an origami-inspired modular architecture that encodes logical mappings into its inherent kinematic responses under an input-output decoupled paradigm, enabling both binary and ternary mechanical computing. Within this emerging paradigm, the multi-stable states of two Kresling origami configurations serve as physical carriers for generating discrete signals, while torsional transitions among these states ensure signal switching, supporting operations from logic gates to advanced arithmetic. Based on this mechanical architecture, we systematically demonstrate seven common logic gates and modular arithmetic half- and full-adders in both binary and ternary systems, revealing challenges and opportunities in advancing multi-valued logic through comparative analysis. The physical platform, along with its accompanying response-programming strategy, represents a simplified and generalized paradigm that supports migration to higher-level mechanical computing mechanisms.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": false,
+        "confidence": "high",
+        "reason": "The paper develops origami-inspired mechanical computing architectures for binary and ternary logic, with no environmental accounting, capital formation, or input-output/MRIO scenario methods.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-11-09T17:54:28.836884+00:00",
+        "methodology": "none",
+        "research_object": "origami-inspired modular mechanical computing architectures",
+        "environmental_dimension": "none"
       }
     }
   }
