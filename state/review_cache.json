@@ -134,7 +134,7 @@
         "reason": "missing_abstract",
         "model": "deepseek-flash",
         "provider": "deepseek",
-        "reviewed_at": "2026-11-09T17:54:25.726875+00:00"
+        "reviewed_at": "2026-11-16T17:36:33.699966+00:00"
       }
     },
     "e2bf4da5c9b74f8435e5e26f0f8018cbfccc3be9655375e06678d91999d57c52": {
@@ -499,6 +499,41 @@
         "methodology": "none",
         "research_object": "origami-inspired modular mechanical computing architectures",
         "environmental_dimension": "none"
+      }
+    },
+    "259c14289a224b7c9a5295f7487a008cb4b1d29e95311b7c6a2e1e997087bfc0": {
+      "paper": {
+        "doi": "10.1088/1748-9326/aebbd3",
+        "title": "Electricity retail pricing as incentives for load optimization in Vietnam",
+        "authors": [
+          "Doan, Thuy T T",
+          "Portilla-Paveri, Manuel",
+          "Lobos, Nicolás",
+          "Negrete-Pincetic, Matías"
+        ],
+        "journal": "Environmental Research Letters",
+        "issn": "1748-9326",
+        "publisher": null,
+        "year": "2026",
+        "publication_date": "2026-11-14",
+        "abstract": "Abstract Vietnam’s pathway to net-zero emissions by 2050 has so far relied primarily on large-scale renewable energy investments, with limited use of demand-side management. This study evaluates how alternative retail electricity pricing schemes—flat tariffs, time-of-use (TOU), critical peak pricing (CPP), and a TOU–CPP hybrid—shape demand flexibility, system costs, emissions, consumer welfare, and reliability in Vietnam. The analysis uses SWITCH 2.0, an integrated capacity expansion and dispatch model with an iterative demand-response (DR) module, to Vietnam’s electricity system in 2050. Relative to flat pricing, the modeled TOU designs reduce total system costs by up to 15% and CO 2 emissions by 17.2%–37.5%, while increasing consumer welfare. Consecutive TOU blocks capture substantial benefits, whereas adding CPP produces little additional improvement. Endogenous block assignment achieves the lowest system cost and reduces storage investment, but does not yield the lowest emissions or highest consumer welfare. Sensitivity analysis confirms lower unit costs and emissions and higher consumer welfare under consecutive TOU than under matched flat-pricing cases across seven DR parameter combinations. However, the magnitude of these benefits depends strongly on the share of load available for within-day rescheduling. Demand shifting toward solar-rich hours also changes transmission utilization, relieving pressure on some corridors while increasing it elsewhere. The findings support a staged transition toward TOU pricing with simple consecutive blocks, accompanied by enabling technologies and coordinated transmission planning. The results represent conditional system-level outcomes rather than estimates of realized consumer responses or distributional effects.",
+        "url": null,
+        "oa_url": null,
+        "citation_count": null,
+        "topics": []
+      },
+      "review": {
+        "status": "completed",
+        "stage": "single",
+        "relevant": false,
+        "confidence": "high",
+        "reason": "The paper evaluates retail electricity pricing schemes and demand response using a capacity expansion/dispatch model, which is operational energy system analysis without substantive physical capital formation, investment goods, capital stock, or transferable IAM–MRIO/IO scenario methods.",
+        "model": "deepseek-flash",
+        "provider": "deepseek",
+        "reviewed_at": "2026-11-16T17:36:35.387326+00:00",
+        "methodology": "SWITCH 2.0 integrated capacity expansion and dispatch model with iterative demand-response module",
+        "research_object": "Vietnam electricity system retail pricing and demand flexibility in 2050",
+        "environmental_dimension": "CO2 emissions and system costs"
       }
     }
   }
